@@ -1,0 +1,1 @@
+{\n  \"dependencies\": {\n    \"googleapis\": \"^39.2.0\",\n    \"google-auth-library\": \"^6.0.0\"\n  }\n}

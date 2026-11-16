@@ -1,0 +1,697 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+    :root{
+      --bg:#0b1020; --card:#101a33; --muted:#8ea0c3; --txt:#eaf0ff;
+      --accent:#6ee7ff; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --line:#223058;
+      --chip:#0f2446;
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--txt);
+      background: radial-gradient(1000px 700px at 20% 10%, rgba(110,231,255,.15), transparent 55%),
+                  radial-gradient(900px 700px at 80% 30%, rgba(34,197,94,.12), transparent 55%),
+                  var(--bg);
+      min-height:100vh;
+    }
+    header{
+      padding:24px 16px 10px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    h1{margin:0 0 6px; font-size:20px; letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:13px}
+    .wrap{max-width:1100px; margin:0 auto; padding:14px 16px 40px}
+    .tabs{display:flex; gap:10px; margin:14px 0}
+    .tabbtn{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:600;
+      transition:.15s;
+    }
+    .tabbtn[aria-selected="true"]{
+      border-color:rgba(110,231,255,.7);
+      background:rgba(110,231,255,.10);
+      box-shadow:0 0 0 4px rgba(110,231,255,.08) inset;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .card h2{margin:0 0 10px; font-size:15px}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    @media (max-width: 680px){ .row{grid-template-columns:1fr} }
+    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px}
+    input, select, textarea{
+      width:100%;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      color:var(--txt);
+      padding:10px 10px;
+      border-radius:12px;
+      outline:none;
+      transition:.15s;
+    }
+    textarea{min-height:90px; resize:vertical}
+    input:focus, select:focus, textarea:focus{
+      border-color:rgba(110,231,255,.7);
+      box-shadow:0 0 0 4px rgba(110,231,255,.09);
+    }
+    .btnbar{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    button{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      transition:.15s;
+    }
+    button:hover{transform:translateY(-1px)}
+    .primary{
+      border-color:rgba(110,231,255,.7);
+      background:rgba(110,231,255,.12);
+    }
+    .danger{
+      border-color:rgba(239,68,68,.7);
+      background:rgba(239,68,68,.10);
+    }
+    .muted{color:var(--muted); font-size:12px}
+    .split{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.03);
+      font-size:12px;
+      color:var(--muted);
+      font-family:var(--mono);
+    }
+    .list{display:flex; flex-direction:column; gap:10px}
+    .item{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(0,0,0,.15);
+      padding:10px;
+    }
+    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .itemTitle{font-weight:800; font-size:13px}
+    .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+    .chip{
+      font-size:12px;
+      padding:6px 8px;
+      border-radius:999px;
+      background:rgba(110,231,255,.08);
+      border:1px solid rgba(110,231,255,.18);
+      color:#cfefff;
+    }
+    .chip.gray{
+      background:rgba(255,255,255,.05);
+      border-color:rgba(255,255,255,.10);
+      color:var(--muted);
+    }
+    .badge{
+      font-weight:900;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+    }
+    .b-good{border-color:rgba(34,197,94,.5); background:rgba(34,197,94,.12); color:#bff7d0}
+    .b-warn{border-color:rgba(245,158,11,.55); background:rgba(245,158,11,.12); color:#ffe1b1}
+    .b-bad{border-color:rgba(239,68,68,.55); background:rgba(239,68,68,.12); color:#ffd0d0}
+    .hr{height:1px; background:var(--line); margin:12px 0}
+    .mono{font-family:var(--mono)}
+    .small{font-size:12px}
+    .hidden{display:none !important}
+    /* ===== Modal Customizado (Transparente) ===== */
+    .modal-overlay{
+      display:none;
+      position:fixed;
+      top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,.5);
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      z-index:99999;
+      align-items:center;
+      justify-content:center;
+    }
+    .modal-overlay.show{
+      display:flex;
+    }
+    .modal-box{
+      background: linear-gradient(135deg, #1a2847, #0f1728);
+      border:1px solid rgba(110,231,255,.5);
+      border-radius:20px;
+      padding:32px;
+      max-width:480px;
+      width:92%;
+      box-shadow: 0 25px 100px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.15);
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      animation:slideIn .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes slideIn{
+      from{
+        opacity:0;
+        transform:translateY(-30px) scale(.92);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+      }
+    }
+    .modal-title{
+      font-size:18px;
+      font-weight:700;
+      color:#ffffff;
+      margin:0 0 12px;
+    }
+    .modal-message{
+      color:#d1d5db;
+      font-size:14px;
+      line-height:1.6;
+      margin:0 0 20px;
+    }
+    .modal-input{
+      width:100%;
+      background:rgba(0,0,0,.2);
+      border:1px solid rgba(110,231,255,.3);
+      color:#ffffff;
+      padding:12px 12px;
+      border-radius:12px;
+      outline:none;
+      margin:0 0 16px;
+      font-family:var(--mono);
+      transition:.15s;
+    }
+    .modal-input::placeholder{
+      color:rgba(255,255,255,.5);
+    }
+    .modal-input:focus{
+      border-color:rgba(110,231,255,.8);
+      box-shadow:0 0 0 4px rgba(110,231,255,.2);
+    }
+    .modal-buttons{
+      display:flex;
+      gap:12px;
+      justify-content:flex-end;
+    }
+    .modal-btn{
+      padding:10px 16px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.2);
+      background:rgba(255,255,255,.08);
+      color:#ffffff;
+      font-weight:600;
+      cursor:pointer;
+      transition:.15s;
+      font-size:13px;
+    }
+    .modal-btn:hover{
+      background:rgba(255,255,255,.15);
+      transform:translateY(-1px);
+    }
+    .modal-btn.primary{
+      border-color:rgba(110,231,255,.6);
+      background:rgba(110,231,255,.25);
+      color:#ffffff;
+    }
+    .modal-btn.primary:hover{
+      background:rgba(110,231,255,.35);
+    }
+    .modal-btn.danger{
+      border-color:rgba(239,68,68,.6);
+      background:rgba(239,68,68,.25);
+      color:#ffffff;
+    }
+    .modal-btn.danger:hover{
+      background:rgba(239,68,68,.35);
+    }
+    .modal-btn:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+/* ===== Custom Select (substitui TODOS os <select>) ===== */
+select.native-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Wrapper ocupa o lugar do select */
+.cselect {
+  position: relative;
+  width: 100%;
+}
+
+/* Botão com mesmo estilo do input */
+.cselect-btn{
+  width:100%;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+  color: var(--txt);
+  padding:10px 10px;
+  border-radius:12px;
+  cursor:pointer;
+  user-select: none;
+}
+
+.cselect-btn:focus{
+  outline:none;
+  border-color: rgba(110,231,255,.7);
+  box-shadow: 0 0 0 4px rgba(110,231,255,.09);
+}
+
+/* Menu: transparente + blur + mesma vibe do site */
+.cselect-menu{
+  position:absolute;
+  left:0; right:0;
+  margin-top:8px;
+  z-index:9999;
+
+  max-height:260px;
+  overflow:auto;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+
+  background: rgba(16,26,51,.62);      /* transparente */
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 18px 55px rgba(0,0,0,.45);
+}
+
+.cselect-menu.hidden{ display:none; }
+
+.cselect-search{
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  background: rgba(16,26,51,.75);
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.cselect-search input{
+  width:100%;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--txt);
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.cselect-item{
+  padding:10px 12px;
+  cursor:pointer;
+  color: var(--txt);
+}
+
+.cselect-item:hover{
+  background: rgba(110,231,255,.12);
+}
+
+.cselect-item[aria-selected="true"]{
+  background: rgba(110,231,255,.18);
+  border-left: 3px solid rgba(110,231,255,.7);
+}
+
+.cselect-caret{ opacity:.85; }
+.cselect-muted{ opacity:.75; font-size: 12px; }
+
+  </style></head><body><p id="notice" role="status" aria-live="polite">Conectando…</p><header>
+  <h1>MVP – Treinos de Escalada Indoor</h1>
+  <div class="sub">Treinador cria treinos detalhados. Aluno devolve status, motivo, dor no dedo e RPE. Dados protegidos por identidade Google e permissões no servidor.</div>
+
+  <div class="tabs" role="tablist" aria-label="Papéis">
+    <button class="tabbtn" id="tabCoach" role="tab" aria-selected="true" aria-controls="panelCoach">Treinador</button>
+    <button class="tabbtn" id="tabStudent" role="tab" aria-selected="false" aria-controls="panelStudent">Aluno</button>
+    
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- TREINADOR -->
+  <section id="panelCoach" role="tabpanel" aria-labelledby="tabCoach">
+    <div class="grid">
+      <div class="card">
+        <div class="split">
+          <h2>Criar treino (sessão detalhada)</h2>
+          <span class="pill" id="coachStorageInfo">—</span>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="coachAluno">Aluno</label>
+            <select id="coachAluno" required></select>
+          </div>
+          <div>
+            <label for="coachData">Data</label>
+            <input id="coachData" type="date" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="coachTreinoId">TreinoID</label>
+            <input id="coachTreinoId" readonly aria-label="ID gerado pelo servidor" />
+            <div class="muted">O ID é criado pelo servidor. Selecione um treino para adicionar itens.</div>
+          </div>
+          <div>
+            <label for="coachObjetivoDia">Objetivo do dia</label>
+            <select id="coachObjetivoDia">
+              <option value="Força">Força</option>
+              <option value="Técnica">Técnica</option>
+              <option value="Resistência">Resistência</option>
+              <option value="Volume">Volume</option>
+              <option value="Regenerativo">Regenerativo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btnbar">
+          
+          <button id="btnCriarTreino" class="primary">Criar treino</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <h2>Adicionar item (1 linha = 1 bloco/exercício)</h2>
+
+        <div class="row">
+          <div>
+            <label for="itemBloco">Bloco</label>
+            <select id="itemBloco">
+              <option>Aquecimento</option>
+              <option>Técnica</option>
+              <option>Boulder</option>
+              <option>Via</option>
+              <option>Força</option>
+              <option>Condicionamento</option>
+              <option>Mobilidade</option>
+              <option>Prehab</option>
+            </select>
+          </div>
+          <div>
+            <label for="itemCategoria">Categoria (analítica)</label>
+            <select id="itemCategoria">
+              <option value="Technique">Technique</option>
+              <option value="Finger strength">Finger strength</option>
+              <option value="Pull strength">Pull strength</option>
+              <option value="Power">Power</option>
+              <option value="Power endurance">Power endurance</option>
+              <option value="Aerobic endurance">Aerobic endurance</option>
+              <option value="Mobility">Mobility</option>
+              <option value="Prehab">Prehab</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="itemExercicio">Exercício</label>
+            <input id="itemExercicio" placeholder="Ex: Hangboard 7/3, Boulder limit, ARC 20min..." />
+          </div>
+          <div>
+            <label for="itemMetrica">Métrica principal</label>
+            <select id="itemMetrica">
+              <option value="Tentativas">Tentativas</option>
+              <option value="Moves">Moves</option>
+              <option value="Minutos">Minutos</option>
+              <option value="Séries">Séries</option>
+              <option value="Reps">Reps</option>
+              <option value="Metros">Metros</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="itemQtd">Quantidade</label>
+            <input id="itemQtd" type="number" min="0" step="1" placeholder="Ex: 6" />
+          </div>
+          <div>
+            <label for="itemIntensTipo">Intensidade (tipo)</label>
+            <select id="itemIntensTipo">
+              <option value="RPE">RPE</option>
+              <option value="Grade">Grade</option>
+              <option value="%">%</option>
+              <option value="Peso">Peso</option>
+              <option value="Livre">Livre</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="itemIntensVal">Intensidade (valor)</label>
+            <input id="itemIntensVal" placeholder="Ex: 8, V5, 70%, +10kg..." />
+          </div>
+          <div>
+            <label for="itemMin">Min planejados</label>
+            <input id="itemMin" type="number" min="0" step="5" placeholder="Ex: 15" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label for="itemNotas">Notas do treinador</label>
+          <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
+        </div>
+
+        <div class="btnbar">
+          <button id="btnAddItem" class="primary">Adicionar item ao treino</button>
+        </div>
+
+        <div class="muted" style="margin-top:10px">
+          O aluno acessa o treino em sua própria conta Google.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="split">
+          <h2>Treinos criados</h2>
+          
+        </div>
+        <div class="muted">Clique num treino para ver itens. Use o TreinoID para o aluno responder.</div>
+        <div class="hr"></div>
+        <div id="listaTreinos" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALUNO -->
+  <section id="panelStudent" role="tabpanel" aria-labelledby="tabStudent" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <div class="split">
+          <h2>Retorno do aluno</h2>
+          <span class="pill" id="studentStorageInfo">—</span>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="alunoTreinoId">TreinoID</label>
+            <select id="alunoTreinoId"></select>
+            <div class="muted">Somente treinos autorizados aparecem aqui.</div>
+          </div>
+          <div>
+            <label for="alunoNome">Aluno (confirmação)</label>
+            <input id="alunoNome" readonly />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="alunoStatus">Status</label>
+            <select id="alunoStatus">
+              <option value="Concluído">Concluído</option>
+              <option value="Parcial">Parcial</option>
+              <option value="Não fez">Não fez</option>
+            </select>
+          </div>
+          <div>
+            <label for="alunoMotivo">Motivo (se Parcial/Não fez)</label>
+            <select id="alunoMotivo">
+              <option value="">—</option>
+              <option value="Sem tempo">Sem tempo</option>
+              <option value="Dor">Dor</option>
+              <option value="Cansaço">Cansaço</option>
+              <option value="Sem acesso">Sem acesso</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="alunoDor">Dor no dedo (0–10)</label>
+            <input id="alunoDor" type="number" min="0" max="10" step="1" value="0" />
+          </div>
+          <div>
+            <label for="alunoRpe">RPE do treino (1–10)</label>
+            <input id="alunoRpe" type="number" min="1" max="10" step="1" value="6" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label for="alunoComentario">Comentários</label>
+          <textarea id="alunoComentario" placeholder="Ex: doeu o dedo no crimp, sem tempo, achei pesado, etc."></textarea>
+        </div>
+
+        <div class="btnbar">
+          <button id="btnEnviarRetorno" class="primary">Enviar retorno</button>
+        </div>
+
+        <div class="hr"></div>
+        <h2>Detalhes do treino selecionado</h2>
+        <div id="previewTreinoAluno" class="muted">Selecione um TreinoID acima.</div>
+      </div>
+
+      <div class="card">
+        <h2>Retornos recebidos</h2>
+        <div class="muted">Histórico autorizado do treino selecionado.</div>
+        <div class="hr"></div>
+        <div id="listaRetornos" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script>
+function createRpc(run) {
+  return function(request) {
+    return new Promise(function(resolve, reject) {
+      run.withSuccessHandler(function(response) {
+        if (response && response.ok) resolve(response.data);
+        else reject(new Error(response && response.error ? response.error.code : 'INVALID_RESPONSE'));
+      }).withFailureHandler(function() { reject(new Error('TRANSPORT_ERROR')); }).api(request);
+    });
+  };
+}
+// UI integration
+(async function() {
+  const $ = id => document.getElementById(id);
+  const notice = message => { $('notice').textContent = message; };
+  let rpc, selected = '', session, busy = false, generation = 0;
+  const pending = new Map();
+  const key = () => crypto.randomUUID();
+  function write(action, data) {
+    const signature = JSON.stringify([action, data]);
+    if (!pending.has(signature)) pending.set(signature, key());
+    return rpc({action, data, requestId:pending.get(signature)}).then(result => {
+      pending.delete(signature); return result;
+    });
+  }
+  function button(parent, label, handler) {
+    const b=document.createElement('button'); b.textContent=label;
+    b.addEventListener('click', () => perform(handler)); parent.appendChild(b);
+  }
+  async function perform(fn) {
+    if (busy) return;
+    busy=true; document.querySelectorAll('button').forEach(b => { b.disabled=true; });
+    try { await fn(); notice('Operação concluída.'); }
+    catch(e) { notice('Não foi possível concluir: '+e.message+'. Tente novamente com os mesmos dados em caso de falha de conexão.'); }
+    finally { busy=false; document.querySelectorAll('button').forEach(b => { b.disabled=false; }); }
+  }
+  function text(parent, value) { const p=document.createElement('p'); p.textContent=value; parent.appendChild(p); }
+  async function detail(id) {
+    const ticket=++generation;
+    $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren();
+    const w=await rpc({action:'getWorkout',data:{workoutId:id}});
+    const feedback=await rpc({action:'listFeedback',data:{workoutId:id}});
+    if(ticket!==generation) return;
+    selected=id; $('coachTreinoId').value=id; $('alunoTreinoId').value=id;
+    text($('previewTreinoAluno'),w.date+' • '+w.goal+' • '+w.studentId);
+    w.items.forEach(i => text($('previewTreinoAluno'),[i.block,i.category,i.exercise,i.metric,i.quantity,i.minutes+' min',i.notes].join(' • ')));
+    feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
+    if (!feedback.length) text($('listaRetornos'),'Nenhum retorno registrado.');
+  }
+  async function refresh(id) {
+    const workouts=await rpc({action:'listWorkouts',data:{}});
+    $('listaTreinos').replaceChildren(); $('alunoTreinoId').replaceChildren();
+    workouts.forEach(w => {
+      button($('listaTreinos'),w.date+' • '+w.studentId+' • '+w.goal,()=>detail(w.id));
+      const option=document.createElement('option'); option.value=w.id; option.textContent=w.date+' • '+w.goal; $('alunoTreinoId').appendChild(option);
+    });
+    $('coachStorageInfo').textContent=workouts.length+' treinos'; $('studentStorageInfo').textContent=workouts.length+' treinos';
+    if(workouts.length) await detail(workouts.some(w=>w.id===id)?id:workouts[0].id);
+    else { selected=''; $('coachTreinoId').value=''; $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren(); }
+  }
+  $('btnCriarTreino').addEventListener('click',()=>perform(async()=>{
+    const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,goal:$('coachObjetivoDia').value});
+    await refresh(w.id);
+  }));
+  $('btnAddItem').addEventListener('click',()=>perform(async()=>{
+    if(!selected) throw Error('Selecione um treino');
+    if(!$('itemQtd').value || !$('itemMin').value) throw Error('Preencha quantidade e minutos');
+    const intensity=$('itemIntensVal').value.trim();
+    await write('addItem',{workoutId:selected,block:$('itemBloco').value,category:$('itemCategoria').value,exercise:$('itemExercicio').value,metric:$('itemMetrica').value,quantity:Number($('itemQtd').value),minutes:Number($('itemMin').value),notes:[$('itemNotas').value, intensity ? 'Intensidade: '+$('itemIntensTipo').value+' '+intensity : ''].filter(Boolean).join('\n')});
+    $('itemExercicio').value=''; $('itemNotas').value=''; $('itemIntensVal').value='';
+    await detail(selected);
+  }));
+  $('btnEnviarRetorno').addEventListener('click',()=>perform(async()=>{
+    if(!selected) throw Error('Selecione um treino');
+    if(!$('alunoDor').value || !$('alunoRpe').value) throw Error('Preencha dor e RPE');
+    await write('submitFeedback',{workoutId:selected,status:$('alunoStatus').value,reason:$('alunoMotivo').value,fingerPain:Number($('alunoDor').value),rpe:Number($('alunoRpe').value),comment:$('alunoComentario').value});
+    $('alunoComentario').value=''; await detail(selected);
+  }));
+  $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
+  try {
+    if(typeof google==='undefined' || !google.script || !google.script.run) throw Error('Abra no ambiente Google Apps Script');
+    rpc=createRpc(google.script.run);
+    session=await rpc({action:'getSession',data:{}});
+    $('alunoNome').value=session.id;
+    $('tabCoach').hidden=true; $('tabStudent').hidden=true;
+    $('panelCoach').classList.toggle('hidden',session.role!=='coach');
+    // Shared read-only preview and history; only students can submit feedback.
+    $('panelStudent').classList.remove('hidden');
+    $('btnEnviarRetorno').hidden=session.role!=='student';
+    if(session.role==='coach') {
+      const students=await rpc({action:'listStudents',data:{}});
+      $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.id; $('coachAluno').appendChild(o);});
+    }
+    const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+    await perform(()=>refresh());
+    button($('notice').parentNode,'Atualizar treinos',()=>refresh(selected));
+  } catch(e) { notice('Acesso indisponível: '+e.message); document.querySelectorAll('button').forEach(b=>{b.disabled=true;}); }
+})();
+
+</script></body></html>

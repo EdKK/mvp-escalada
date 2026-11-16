@@ -4,6 +4,7 @@ var SCHEMA_ = {
   Links: ['id', 'coachId', 'studentId', 'active'],
   Workouts: ['id', 'coachId', 'studentId', 'date', 'goal', 'createdAt'],
   Items: ['id', 'workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'createdAt'],
+  Feedback: ['id', 'workoutId', 'studentId', 'status', 'reason', 'fingerPain', 'rpe', 'comment', 'createdAt'],
   Requests: ['id', 'userId', 'key', 'fingerprint', 'entity', 'entityId']
 };
 function fail_(code) { var e = new Error(code); e.code = code; throw e; }
@@ -61,7 +62,7 @@ function fingerprint_(action, data) {
   return JSON.stringify([action, canonical]);
 }
 function create_(db, user, req) {
-  if (user.role !== 'coach') fail_('FORBIDDEN');
+  if (user.role !== (req.action === 'submitFeedback' ? 'student' : 'coach')) fail_('FORBIDDEN');
   var d = req.data, entity, record;
   var key = text_(req.requestId, 100);
   if (req.action === 'createWorkout') {
@@ -70,6 +71,14 @@ function create_(db, user, req) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail_('INVALID_DATA');
     if (!linked_(db, user.id, student)) fail_('FORBIDDEN');
     entity = 'Workouts'; record = {id: id_(), coachId: user.id, studentId: student, date: date, goal: goal, createdAt: new Date().toISOString()};
+  } else if (req.action === 'submitFeedback') {
+    fields_(d, ['workoutId', 'status', 'reason', 'fingerPain', 'rpe', 'comment']);
+    var target = workout_(db, user, text_(d.workoutId, 100));
+    if (['Concluído', 'Parcial', 'Não fez'].indexOf(d.status) < 0) fail_('INVALID_DATA');
+    var reason = d.reason === undefined ? '' : d.reason;
+    if (['', 'Sem tempo', 'Dor', 'Cansaço', 'Sem acesso', 'Outro'].indexOf(reason) < 0 || (d.status !== 'Concluído' && !reason)) fail_('INVALID_DATA');
+    ['fingerPain', 'rpe'].forEach(function(k) { if (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10) fail_('INVALID_DATA'); });
+    entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain, rpe: d.rpe, comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
   } else {
     fields_(d, ['workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes']);
     var w = workout_(db, user, text_(d.workoutId, 100));
@@ -97,11 +106,20 @@ function api(request) {
   var lock;
   try {
     fields_(request, ['action', 'data', 'requestId']);
-    if (['listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
+    if (['getSession', 'listStudents', 'listFeedback', 'submitFeedback', 'listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
     lock = LockService.getScriptLock();
     if (!lock.tryLock(5000)) fail_('BUSY');
     var db = db_(), user = actor_(db), result;
-    if (request.action === 'listWorkouts') {
+    if (request.action === 'getSession') {
+      fields_(request.data, []); result = {id: user.id, role: user.role};
+    } else if (request.action === 'listStudents') {
+      fields_(request.data, []); if (user.role !== 'coach') fail_('FORBIDDEN');
+      result = rows_(db, 'Users').filter(function(u) { return u.role === 'student' && linked_(db, user.id, u.id); }).map(function(u) { return {id: u.id}; });
+    } else if (request.action === 'listFeedback') {
+      fields_(request.data, ['workoutId']);
+      var target = workout_(db, user, text_(request.data.workoutId, 100));
+      result = rows_(db, 'Feedback').filter(function(f) { return f.workoutId === target.id && f.studentId === target.studentId; });
+    } else if (request.action === 'listWorkouts') {
       fields_(request.data, []);
       result = rows_(db, 'Workouts').filter(function(w) { return visible_(db, user, w); });
     } else if (request.action === 'getWorkout') {
@@ -126,3 +144,6 @@ function initializeSchema_() {
     });
   } finally { lock.releaseLock(); }
 }
+
+// Serves the isolated integration UI; does not deploy the project.
+function doGet() { return HtmlService.createHtmlOutputFromFile('Index').setTitle('MVP Escalada'); }

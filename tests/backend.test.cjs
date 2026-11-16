@@ -73,3 +73,28 @@ test('schema mismatch does not overwrite existing cells', () => {
   const f=fixture(); f.tables.Workouts[0][0]='legacy'; code(f.call('createWorkout',workout),'SCHEMA_ERROR');
   assert.equal(f.tables.Workouts[0][0],'legacy');
 });
+test('feedback ownership, coach read, validation and duplicate protection', () => {
+  const f=fixture(), w=f.call('createWorkout',workout).data;
+  const data={workoutId:w.id,status:'Parcial',reason:'Dor',fingerPain:3,rpe:6,comment:'Rest'};
+  code(f.call('submitFeedback',data,'fb'),'FORBIDDEN');
+  f.email('two@example.invalid'); code(f.call('submitFeedback',data,'fb'),'NOT_FOUND'); code(f.call('listFeedback',{workoutId:w.id}),'NOT_FOUND');
+  f.email('one@example.invalid');
+  for(const bad of [{...data,fingerPain:11},{...data,rpe:0},{...data,rpe:1.5},{...data,reason:''},{...data,studentId:'s2'},{...data,comment:'=formula'}]) code(f.call('submitFeedback',bad,'fb'),'INVALID_DATA');
+  const a=f.call('submitFeedback',data,'fb'), b=f.call('submitFeedback',data,'fb'); assert.equal(a.ok,true); assert.equal(a.data.id,b.data.id); assert.equal(a.data.studentId,'s1');
+  code(f.call('submitFeedback',{...data,rpe:8},'fb'),'CONFLICT');
+  f.email('coach@example.invalid'); assert.equal(f.call('listFeedback',{workoutId:w.id}).data.length,1);
+  f.tables.Links[1][3]=false; code(f.call('listFeedback',{workoutId:w.id}),'NOT_FOUND');
+});
+test('session and student picker disclose only authorized IDs',()=>{
+  const f=fixture(); assert.equal(f.call('getSession').data.role,'coach');
+  assert.equal(f.call('listStudents').data.length,1); assert.equal(f.call('listStudents').data[0].id,'s1');
+  assert.equal(Object.keys(f.call('listStudents').data[0]).join(','),'id');
+  f.email('one@example.invalid'); code(f.call('listStudents'),'FORBIDDEN');
+});
+test('feedback partial write and lock contention are recoverable',()=>{
+  const f=fixture(), w=f.call('createWorkout',workout).data; f.email('one@example.invalid');
+  const data={workoutId:w.id,status:'Concluído',reason:'',fingerPain:0,rpe:5,comment:''};
+  f.busy(true); code(f.call('submitFeedback',data,'fb'),'BUSY'); f.busy(false);
+  f.fail('Feedback'); code(f.call('submitFeedback',data,'fb'),'INTERNAL_ERROR');
+  assert.equal(f.call('submitFeedback',data,'fb').ok,true); assert.equal(f.tables.Feedback.length,2);
+});

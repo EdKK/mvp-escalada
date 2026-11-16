@@ -36,9 +36,7 @@ function append_(db, name, obj) {
   sheet_(db, name).appendRow(SCHEMA_[name].map(function(k) { return obj[k] === undefined ? '' : obj[k]; }));
 }
 function enabled_(v) { return v === true || v === 'TRUE'; }
-function actor_(db) {
-  var email = Session.getActiveUser().getEmail();
-  if (!email) fail_('UNAUTHENTICATED');
+function userForEmail_(db, email) {
   var matches = rows_(db, 'Users').filter(function(u) { return String(u.email).toLowerCase() === email.toLowerCase() && enabled_(u.active); });
   if (matches.length !== 1 || ['coach', 'student'].indexOf(matches[0].role) < 0) fail_('FORBIDDEN');
   var user = matches[0];
@@ -105,11 +103,15 @@ function create_(db, user, req) {
 function api(request) {
   var lock;
   try {
-    fields_(request, ['action', 'data', 'requestId']);
-    if (['getSession', 'listStudents', 'listFeedback', 'submitFeedback', 'listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
+    fields_(request, ['action', 'data', 'requestId', 'sessionToken']);
+    if (['beginLogin', 'finishLogin', 'logout', 'getSession', 'listStudents', 'listFeedback', 'submitFeedback', 'listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
     lock = LockService.getScriptLock();
     if (!lock.tryLock(5000)) fail_('BUSY');
-    var db = db_(), user = actor_(db), result;
+    if (request.action === 'beginLogin') return {ok:true, data:beginLogin_(request.data)};
+    if (request.action === 'finishLogin') return {ok:true, data:finishLogin_(request.data)};
+    if (request.action === 'logout') { fields_(request.data, []); return {ok:true, data:logout_(request.sessionToken)}; }
+    var identity = sessionIdentity_(request.sessionToken);
+    var db = db_(), user = userForEmail_(db, identity.email), result;
     if (request.action === 'getSession') {
       fields_(request.data, []); result = {id: user.id, role: user.role};
     } else if (request.action === 'listStudents') {
@@ -129,7 +131,7 @@ function api(request) {
     } else result = create_(db, user, request);
     return {ok: true, data: result};
   } catch (e) {
-    var allowed = ['INVALID_DATA', 'INVALID_ACTION', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'BUSY', 'CONFIGURATION_ERROR', 'SCHEMA_ERROR'];
+    var allowed = ['INVALID_DATA', 'INVALID_ACTION', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'BUSY', 'CONFIGURATION_ERROR', 'SCHEMA_ERROR', 'AUTH_FAILED'];
     return {ok: false, error: {code: allowed.indexOf(e.code) >= 0 ? e.code : 'INTERNAL_ERROR'}};
   } finally { if (lock && lock.hasLock()) lock.releaseLock(); }
 }
@@ -146,4 +148,12 @@ function initializeSchema_() {
 }
 
 // Serves the isolated integration UI; does not deploy the project.
-function doGet() { return HtmlService.createHtmlOutputFromFile('Index').setTitle('MVP Escalada'); }
+function doGet(e) {
+  var p = e && e.parameter;
+  if (p && (p.state !== undefined || p.code !== undefined || p.error !== undefined)) {
+    var ok = completeGoogleLogin_(p);
+    // No tokens or claims in the callback page or URL. Only original tab can finish login.
+    return HtmlService.createHtmlOutput(ok ? '<p>Autenticação concluída. Volte à aba original do MVP Escalada e clique em Concluir entrada.</p>' : '<p>Não foi possível autenticar. Volte à aba original e inicie uma nova entrada.</p>').setTitle('MVP Escalada — entrada');
+  }
+  return HtmlService.createHtmlOutputFromFile('Index').setTitle('MVP Escalada');
+}

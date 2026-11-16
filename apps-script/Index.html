@@ -357,7 +357,17 @@ select.native-hidden {
 .cselect-caret{ opacity:.85; }
 .cselect-muted{ opacity:.75; font-size: 12px; }
 
-  </style></head><body><p id="notice" role="status" aria-live="polite">Conectando…</p><header>
+  </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
+<section id="loginPanel" class="card">
+  <h1>Entrar no MVP Escalada</h1>
+  <p>Use uma das contas Google autorizadas para homologação.</p>
+  <button id="btnLogin">Preparar entrada com Google</button>
+  <a id="googleLoginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google (nova aba)</a>
+  <button id="btnFinishLogin" hidden>Concluir entrada</button>
+  <p>Depois de autenticar na nova aba, volte aqui e conclua a entrada. Não feche esta aba.</p>
+</section>
+<button id="btnLogout" hidden>Sair do MVP</button>
+<div id="appPanel" hidden><header>
   <h1>MVP – Treinos de Escalada Indoor</h1>
   <div class="sub">Treinador cria treinos detalhados. Aluno devolve status, motivo, dor no dedo e RPE. Dados protegidos por identidade Google e permissões no servidor.</div>
 
@@ -594,10 +604,12 @@ select.native-hidden {
     </div>
   </section>
 
-</div>
+</div></div>
 <script>
-function createRpc(run) {
+function createRpc(run, getSessionToken) {
   return function(request) {
+    const token = getSessionToken && getSessionToken();
+    if (token) request = Object.assign({}, request, {sessionToken:token});
     return new Promise(function(resolve, reject) {
       run.withSuccessHandler(function(response) {
         if (response && response.ok) resolve(response.data);
@@ -610,7 +622,7 @@ function createRpc(run) {
 (async function() {
   const $ = id => document.getElementById(id);
   const notice = message => { $('notice').textContent = message; };
-  let rpc, selected = '', session, busy = false, generation = 0;
+  let rpc, selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
   const key = () => crypto.randomUUID();
   function write(action, data) {
@@ -628,7 +640,7 @@ function createRpc(run) {
     if (busy) return;
     busy=true; document.querySelectorAll('button').forEach(b => { b.disabled=true; });
     try { await fn(); notice('Operação concluída.'); }
-    catch(e) { notice('Não foi possível concluir: '+e.message+'. Tente novamente com os mesmos dados em caso de falha de conexão.'); }
+    catch(e) { if(e.message==='UNAUTHENTICATED') clearSession(); notice('Não foi possível concluir: '+e.message+'. Tente novamente com os mesmos dados em caso de falha de conexão.'); }
     finally { busy=false; document.querySelectorAll('button').forEach(b => { b.disabled=false; }); }
   }
   function text(parent, value) { const p=document.createElement('p'); p.textContent=value; parent.appendChild(p); }
@@ -674,14 +686,18 @@ function createRpc(run) {
     $('alunoComentario').value=''; await detail(selected);
   }));
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
-  try {
-    if(typeof google==='undefined' || !google.script || !google.script.run) throw Error('Abra no ambiente Google Apps Script');
-    rpc=createRpc(google.script.run);
+  function clearSession() {
+    sessionToken=''; session=null; selected=''; loginAttempt=null; generation++; pending.clear();
+    $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;
+    $('googleLoginLink').hidden=true; $('googleLoginLink').removeAttribute('href'); $('btnFinishLogin').hidden=true;
+    ['listaTreinos','alunoTreinoId','previewTreinoAluno','listaRetornos','coachAluno'].forEach(id=>$(id).replaceChildren());
+    document.querySelectorAll('#appPanel input, #appPanel textarea').forEach(el=>{el.value='';});
+  }
+  async function loadApp() {
     session=await rpc({action:'getSession',data:{}});
     $('alunoNome').value=session.id;
     $('tabCoach').hidden=true; $('tabStudent').hidden=true;
     $('panelCoach').classList.toggle('hidden',session.role!=='coach');
-    // Shared read-only preview and history; only students can submit feedback.
     $('panelStudent').classList.remove('hidden');
     $('btnEnviarRetorno').hidden=session.role!=='student';
     if(session.role==='coach') {
@@ -689,9 +705,34 @@ function createRpc(run) {
       $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.id; $('coachAluno').appendChild(o);});
     }
     const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-    await perform(()=>refresh());
-    button($('notice').parentNode,'Atualizar treinos',()=>refresh(selected));
+    $('alunoDor').value='0'; $('alunoRpe').value='6';
+    await refresh();
+    $('appPanel').hidden=false; $('loginPanel').hidden=true; $('btnLogout').hidden=false;
+  }
+  $('btnLogin').addEventListener('click',()=>perform(async()=>{
+    clearSession();
+    loginAttempt=await rpc({action:'beginLogin',data:{}});
+    // The URL comes from our server; never accept an arbitrary destination.
+    const url=new URL(loginAttempt.authorizationUrl);
+    if(url.origin!=='https://accounts.google.com' || url.pathname!=='/o/oauth2/v2/auth') throw Error('INVALID_RESPONSE');
+    $('googleLoginLink').href=url.href; $('googleLoginLink').hidden=false; $('btnFinishLogin').hidden=false;
+  }));
+  $('btnFinishLogin').addEventListener('click',()=>perform(async()=>{
+    if(!loginAttempt) throw Error('Prepare a entrada novamente');
+    const result=await rpc({action:'finishLogin',data:{transaction:loginAttempt.transaction,proof:loginAttempt.proof}});
+    if(result.pending) throw Error('Conclua a autenticação na aba do Google primeiro');
+    sessionToken=result.sessionToken;
+    await loadApp(); loginAttempt=null;
+  }));
+  $('btnLogout').addEventListener('click',()=>perform(async()=>{
+    try { await rpc({action:'logout',data:{}}); } finally { clearSession(); }
+  }));
+  try {
+    if(typeof google==='undefined' || !google.script || !google.script.run) throw Error('Abra no ambiente Google Apps Script');
+    rpc=createRpc(google.script.run,()=>sessionToken);
+    button($('appPanel'),'Atualizar treinos',()=>refresh(selected));
   } catch(e) { notice('Acesso indisponível: '+e.message); document.querySelectorAll('button').forEach(b=>{b.disabled=true;}); }
+
 })();
 
 </script></body></html>

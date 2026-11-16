@@ -2,29 +2,8 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
-function fixture() {
-  let email = 'coach@example.invalid', seq = 0, busy = false, held = false, failTable;
-  const tables = {};
-  const context = vm.createContext({
-    Session: {getActiveUser: () => ({getEmail: () => email})},
-    PropertiesService: {getScriptProperties: () => ({getProperty: () => 'test-only'})},
-    Utilities: {getUuid: () => `uuid-${++seq}`},
-    LockService: {getScriptLock: () => ({tryLock: () => {if (busy || held) return false; held = true; return true}, waitLock: () => {held = true}, hasLock: () => held, releaseLock: () => {held = false}})},
-    SpreadsheetApp: {flush() {}, openById: () => ({getSheetByName: name => tables[name] && sheet(name), insertSheet: name => {tables[name] = []; return sheet(name)}})}
-  });
-  function sheet(name) {return {
-    getLastRow: () => tables[name].length,
-    getLastColumn: () => tables[name][0]?.length || 0,
-    getRange: (r,c,n,w) => ({getValues: () => tables[name].slice(r-1,r-1+n).map(row => row.slice(c-1,c-1+w))}),
-    appendRow: row => {if (failTable === name) {failTable = null; throw Error('simulated outage')} tables[name].push([...row]); return sheet(name)}
-  }}
-  vm.runInContext(fs.readFileSync('apps-script/Backend.gs','utf8'), context);
-  context.initializeSchema_();
-  tables.Users.push(['c1','coach@example.invalid','coach',true],['s1','one@example.invalid','student',true],['s2','two@example.invalid','student',true]);
-  tables.Links.push(['l1','c1','s1',true]);
-  const call = (action,data={},requestId='request-1') => context.api({action,data,requestId});
-  return {context,call,tables,email: value => email=value,busy: value => busy=value, fail: name => failTable=name};
-}
+const {fixture}=require('./helpers/gas.cjs');
+
 const workout = {studentId:'s1',date:'2026-11-16',goal:'Technique'};
 const item = id => ({workoutId:id,block:'Warmup',category:'Mobility',exercise:'Movement',metric:'reps',quantity:5,minutes:10});
 function code(result, expected) {assert.equal(result.ok,false); assert.equal(result.error.code,expected)}

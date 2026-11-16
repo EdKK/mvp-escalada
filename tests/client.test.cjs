@@ -32,3 +32,12 @@ test('deployment files are consistent and UI references existing unique IDs',()=
   assert.match(backend,/createHtmlOutputFromFile\('Index'\)/);
   for(const m of script.matchAll(/(?:action:|write\()'([^']+)'/g)) assert.ok(backend.includes("'"+m[1]+"'"),m[1]);
 });
+test('RPC attaches in-memory session without mutating caller payload',async()=>{
+  let success,sent;
+  const run={withSuccessHandler(fn){success=fn;return this},withFailureHandler(){return this},api(req){sent=req;success({ok:true,data:{}})}};
+  const request={action:'listWorkouts',data:{}};
+  await ctx.createRpc(run,()=> 'opaque-test-session')(request);
+  assert.equal(sent.sessionToken,'opaque-test-session'); assert.equal(request.sessionToken,undefined);
+  assert.match(html,/rel="noopener noreferrer"/); assert.match(html,/id="appPanel" hidden/);
+  assert.doesNotMatch(html,/sessionStorage|localStorage/);
+});

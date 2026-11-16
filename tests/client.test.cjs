@@ -20,3 +20,15 @@ test('integration script parses and original integration channels are absent',()
   new vm.Script(script); assert.match(html,/google\.script\.run/);
   assert.doesNotMatch(html,/localStorage|api\.github\.com|backendToken|githubToken|innerHTML/);
 });
+
+test('deployment files are consistent and UI references existing unique IDs',()=>{
+  const manifest=JSON.parse(fs.readFileSync('apps-script/appsscript.json','utf8'));
+  assert.equal(manifest.runtimeVersion,'V8');
+  assert.equal(manifest.oauthScopes.length,2);
+  const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
+  assert.equal(new Set(ids).size,ids.length);
+  for(const m of script.matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.includes(m[1]),m[1]);
+  const backend=fs.readFileSync('apps-script/Backend.gs','utf8');
+  assert.match(backend,/createHtmlOutputFromFile\('Index'\)/);
+  for(const m of script.matchAll(/(?:action:|write\()'([^']+)'/g)) assert.ok(backend.includes("'"+m[1]+"'"),m[1]);
+});

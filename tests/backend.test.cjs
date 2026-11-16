@@ -23,7 +23,7 @@ function fixture() {
   tables.Users.push(['c1','coach@example.invalid','coach',true],['s1','one@example.invalid','student',true],['s2','two@example.invalid','student',true]);
   tables.Links.push(['l1','c1','s1',true]);
   const call = (action,data={},requestId='request-1') => context.api({action,data,requestId});
-  return {call,tables,email: value => email=value,busy: value => busy=value, fail: name => failTable=name};
+  return {context,call,tables,email: value => email=value,busy: value => busy=value, fail: name => failTable=name};
 }
 const workout = {studentId:'s1',date:'2026-11-16',goal:'Technique'};
 const item = id => ({workoutId:id,block:'Warmup',category:'Mobility',exercise:'Movement',metric:'reps',quantity:5,minutes:10});
@@ -97,4 +97,23 @@ test('feedback partial write and lock contention are recoverable',()=>{
   f.busy(true); code(f.call('submitFeedback',data,'fb'),'BUSY'); f.busy(false);
   f.fail('Feedback'); code(f.call('submitFeedback',data,'fb'),'INTERNAL_ERROR');
   assert.equal(f.call('submitFeedback',data,'fb').ok,true); assert.equal(f.tables.Feedback.length,2);
+});
+
+test('homologation seed requires explicit environment and empty tables',()=>{
+  const f=fixture(); vm.runInContext(fs.readFileSync('apps-script/Homologation.gs','utf8'),f.context);
+  assert.throws(()=>f.context.seedHomologation_(),/CONFIGURATION_ERROR/);
+  f.context.PropertiesService={getScriptProperties:()=>({getProperty:k=>({ENVIRONMENT:'homologation',SPREADSHEET_ID:'test-only',HOMOLOGATION_SPREADSHEET_ID:'test-only'})[k]})};
+  assert.throws(()=>f.context.seedHomologation_(),/HOMOLOGATION_NOT_EMPTY/);
+  assert.equal(f.tables.Users.length,4);
+  Object.values(f.tables).forEach(table=>table.splice(1));
+  f.context.seedHomologation_();
+  assert.equal(f.tables.Users.length,4); assert.equal(f.tables.Links.length,3);
+  assert.equal(f.tables.Workouts.length,3); assert.equal(f.tables.Items.length,3);
+  assert.equal(f.tables.Feedback.length,1); assert.equal(f.tables.Requests.length,1);
+  f.email('student-a@example.invalid');
+  assert.equal(f.call('listWorkouts').data.length,1);
+  code(f.call('getWorkout',{workoutId:'hom-workout-b'}),'NOT_FOUND');
+  f.email('coach@example.invalid'); assert.equal(f.call('listWorkouts').data.length,2);
+  assert.throws(()=>f.context.seedHomologation_(),/HOMOLOGATION_NOT_EMPTY/);
+  assert.equal(f.tables.Workouts.length,3);
 });

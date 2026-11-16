@@ -77,3 +77,8 @@ Intensidade do item é preservada como texto identificado nas notas, junto às n
 O adaptador google.script.run usa success/failure handlers e mensagens de erro sem detalhes de transporte. Chaves de repetição são mantidas em memória para o mesmo payload após erro; recarregar a página perde essas chaves. Não há armazenamento local de dados ou credenciais. Os botões são bloqueados durante operações, e conteúdos retornados usam textContent. Não há importação, exclusão ou sincronização Gist nessa versão. O painel de consulta compartilhado mantém o visual original; as abas de troca de papel são ocultadas e os papéis vêm do servidor.
 
 Testes locais adicionais exercitam retornos, permissões, validação, idempotência, recuperação de escrita, sessão/listagem de alunos e adaptador RPC com respostas simuladas. A sintaxe do JavaScript integrado é verificada. Não houve teste visual em navegador nem execução end-to-end no Google: testar formulário por formulário com contas distintas, seleção de treino, falha/repetição, atualização de dados, isolamento e chamadas simultâneas reais na homologação. O aplicativo bloqueia ações quando não está no Apps Script ou quando a identidade é indisponível.
+
+
+## Preparação da homologação real
+
+Seguir [o procedimento reproduzível](../docs/HOMOLOGACAO.md), incluindo a carga fictícia de Homologation.gs, a condição de domínio Workspace e os 14 casos de homologação. A suíte local agora possui 16 testes; nenhum é comprovação de execução Google. A carga exige propriedades explícitas de homologação e recusa tabelas preenchidas.

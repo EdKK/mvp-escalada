@@ -27,6 +27,7 @@ function fixture() {
   vm.runInContext(fs.readFileSync('apps-script/Backend.gs','utf8'), context);
   vm.runInContext(fs.readFileSync('apps-script/Auth.gs','utf8'), context);
   vm.runInContext('Date',context).now=()=>now;
+  vm.runInContext(fs.readFileSync('apps-script/Student.gs','utf8'), context);
   context.initializeSchema_();
   tables.Users.push(['c1','coach@example.invalid','coach',true],['s1','one@example.invalid','student',true],['s2','two@example.invalid','student',true]);
   tables.Links.push(['l1','c1','s1',true]);

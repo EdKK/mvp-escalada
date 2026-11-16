@@ -5,6 +5,9 @@ var SCHEMA_ = {
   Workouts: ['id', 'coachId', 'studentId', 'date', 'goal', 'createdAt'],
   Items: ['id', 'workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'createdAt'],
   Feedback: ['id', 'workoutId', 'studentId', 'status', 'reason', 'fingerPain', 'rpe', 'comment', 'createdAt'],
+  WorkoutGuidance: ['id','workoutId','steps'],
+  ItemPrescription: ['id','itemId','workoutId','position','sets','quantity','quantityUnit','restSeconds','intensityMin','intensityMax','intensityUnit','intensityText','rpeApplicable'],
+  ItemFeedback: ['id','workoutId','itemId','studentId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','revision','supersedesId','createdAt'],
   Requests: ['id', 'userId', 'key', 'fingerprint', 'entity', 'entityId']
 };
 function fail_(code) { var e = new Error(code); e.code = code; throw e; }
@@ -64,7 +67,9 @@ function create_(db, user, req) {
   var d = req.data, entity, record;
   var key = text_(req.requestId, 100);
   if (req.action === 'createWorkout') {
-    fields_(d, ['studentId', 'date', 'goal']);
+    fields_(d, ['studentId', 'date', 'goal', 'instructions']);
+    if (d.instructions !== undefined && (!Array.isArray(d.instructions) || d.instructions.length>20)) fail_('INVALID_DATA');
+    if (d.instructions) d.instructions.forEach(function(step){text_(step,500);});
     var student = text_(d.studentId, 100), date = text_(d.date, 10), goal = text_(d.goal, 500);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail_('INVALID_DATA');
     if (!linked_(db, user.id, student)) fail_('FORBIDDEN');
@@ -78,33 +83,46 @@ function create_(db, user, req) {
     ['fingerPain', 'rpe'].forEach(function(k) { if (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10) fail_('INVALID_DATA'); });
     entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain, rpe: d.rpe, comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
   } else {
-    fields_(d, ['workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes']);
+    fields_(d, ['workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'prescription']);
+    if (d.prescription !== undefined) prescription_(d.prescription);
     var w = workout_(db, user, text_(d.workoutId, 100));
     entity = 'Items'; record = {id: id_(), workoutId: w.id, createdAt: new Date().toISOString()};
     ['block', 'category', 'exercise', 'metric'].forEach(function(k) { record[k] = text_(d[k], 500); });
     ['quantity', 'minutes'].forEach(function(k) { if (typeof d[k] !== 'number' || !Number.isFinite(d[k]) || d[k] < 0 || d[k] > 100000) fail_('INVALID_DATA'); record[k] = d[k]; });
     record.notes = d.notes === undefined || d.notes === '' ? '' : text_(d.notes, 2000);
   }
-  var fingerprint = fingerprint_(req.action, d);
-  var previous = rows_(db, 'Requests').filter(function(r) { return r.userId === user.id && r.key === key; });
-  if (previous.length) {
-    if (previous.length !== 1 || previous[0].fingerprint !== fingerprint || previous[0].entity !== entity) fail_('CONFLICT');
-    record.id = previous[0].entityId;
-  } else {
-    // Reserve the stable ID first. Retrying after a partial write uses this same ID.
-    append_(db, 'Requests', {id: id_(), userId: user.id, key: key, fingerprint: fingerprint, entity: entity, entityId: record.id});
+  return persistRecord_(db,user,req,entity,record,function(){
+    if(req.action==='addItem' && req.data.prescription) {
+      var position=req.data.prescription.position;
+      if(positionTaken_(db,record.workoutId,record.id,position)) fail_('CONFLICT');
+    }
+  });
+}
+function persistRecord_(db,user,req,entity,record,beforeInsert) {
+  var key=text_(req.requestId,100), fingerprint=fingerprint_(req.action,req.data);
+  var previous=rows_(db,'Requests').filter(function(r){return r.userId===user.id && r.key===key;});
+  if(previous.length) {
+    if(previous.length!==1 || previous[0].fingerprint!==fingerprint || previous[0].entity!==entity) fail_('CONFLICT');
+    record.id=previous[0].entityId;
+  }
+  var existing=rows_(db,entity).filter(function(r){return r.id===record.id;});
+  if(existing.length>1) fail_('SCHEMA_ERROR');
+  if(!existing.length && beforeInsert) beforeInsert();
+  if(!previous.length) {
+    append_(db,'Requests',{id:id_(),userId:user.id,key:key,fingerprint:fingerprint,entity:entity,entityId:record.id});
     SpreadsheetApp.flush();
   }
-  var existing = rows_(db, entity).filter(function(r) { return r.id === record.id; });
-  if (existing.length > 1) fail_('SCHEMA_ERROR');
-  if (existing.length) return existing[0];
-  append_(db, entity, record); SpreadsheetApp.flush(); return record;
+  if(!existing.length) {append_(db,entity,record); SpreadsheetApp.flush();}
+  var saved=existing[0]||record;
+  ensureStudentData_(db,req,saved);
+  return saved;
 }
+
 function api(request) {
   var lock;
   try {
     fields_(request, ['action', 'data', 'requestId', 'sessionToken']);
-    if (['beginLogin', 'finishLogin', 'logout', 'getSession', 'listStudents', 'listFeedback', 'submitFeedback', 'listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
+    if (['beginLogin', 'finishLogin', 'logout', 'getSession', 'listStudents', 'listFeedback', 'submitFeedback', 'submitItemFeedback', 'listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
     lock = LockService.getScriptLock();
     if (!lock.tryLock(5000)) fail_('BUSY');
     if (request.action === 'beginLogin') return {ok:true, data:beginLogin_(request.data)};
@@ -128,7 +146,9 @@ function api(request) {
       fields_(request.data, ['workoutId']);
       result = workout_(db, user, text_(request.data.workoutId, 100));
       result.items = rows_(db, 'Items').filter(function(i) { return i.workoutId === result.id; });
-    } else result = create_(db, user, request);
+      result=hydrateStudentWorkout_(db,result);
+    } else if(request.action==='submitItemFeedback') result=saveItemFeedback_(db,user,request);
+    else result = create_(db, user, request);
     return {ok: true, data: result};
   } catch (e) {
     var allowed = ['INVALID_DATA', 'INVALID_ACTION', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'BUSY', 'CONFIGURATION_ERROR', 'SCHEMA_ERROR', 'AUTH_FAILED'];
@@ -154,6 +174,11 @@ function doGet(e) {
     var ok = completeGoogleLogin_(p);
     // No tokens or claims in the callback page or URL. Only original tab can finish login.
     return HtmlService.createHtmlOutput(ok ? '<p>Autenticação concluída. Volte à aba original do MVP Escalada e clique em Concluir entrada.</p>' : '<p>Não foi possível autenticar. Volte à aba original e inicie uma nova entrada.</p>').setTitle('MVP Escalada — entrada');
+  }
+  if(!p || p.view!=='coach') {
+    var redirect=PropertiesService.getScriptProperties().getProperty('GOOGLE_REDIRECT_URI') || '';
+    var coachUrl=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(redirect)?redirect:'https://script.google.com/home';
+    return HtmlService.createHtmlOutput(HtmlService.createHtmlOutputFromFile('Student').getContent().replace('@@COACH_URL@@',coachUrl+'?view=coach')).setTitle('MVP Escalada — Aluno');
   }
   return HtmlService.createHtmlOutputFromFile('Index').setTitle('MVP Escalada');
 }

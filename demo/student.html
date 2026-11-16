@@ -1,0 +1,533 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#123E78"><meta name="robots" content="noindex,nofollow"><title>MVP Escalada — Treino do aluno</title><style>@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/inter-0.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(assets/inter-1.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(assets/inter-2.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(assets/inter-3.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(assets/inter-4.ttf) format('truetype');
+}
+:root{--blue:#1769F5;--navy:#123E78;--green:#22A052;--bg:#F5F7FB;--lilac:#EAE8FF;--text:#182438;--border:#AAB7CC;--muted:#617087;font-family:Inter,Arial,sans-serif;color:var(--text);background:var(--bg);font-synthesis:weight}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #1769F566;outline-offset:3px}button,select{min-height:44px}button{border:1px solid #d8dfeb;background:#fff;color:var(--text);border-radius:10px;padding:10px 14px;font-weight:650}button svg{width:19px;height:19px;flex-shrink:0}button.icon-only{padding:9px;width:44px;display:grid;place-items:center}svg{stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}a{color:var(--blue);text-decoration:none}[hidden]{display:none!important}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.demo-strip{background:#e8effc;color:var(--navy);font-size:11px;line-height:1.6;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid #dce5f4}.demo-strip strong{letter-spacing:1px;font-size:10px}.demo-strip select{background:#fff;border:1px solid #ccd8ed;border-radius:7px;color:var(--navy);font-size:12px;min-height:44px;max-width:150px}.demo-strip button{font-size:11px;padding:4px 8px;min-height:44px}.app-shell{max-width:760px;margin:0 auto;min-height:100dvh;background:var(--bg);box-shadow:0 12px 60px #123e7809}.hero{position:relative;isolation:isolate;padding:40px 24px 68px;min-height:205px;color:white;overflow:hidden;background:#183b5a}.hero:before{content:'';position:absolute;inset:0;z-index:-2;background:url(assets/climbing.jpg) 62% 32%/cover;transform:scaleX(-1)}.hero:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#0b2b4cca 0%,#11304fa3 48%,#f5f7fb00 60%,#f5f7fb 100%),linear-gradient(90deg,#0a264dce 5%,transparent 85%)}.brand-row{display:flex;align-items:center;gap:12px}.mountain{width:42px;height:38px;fill:#29a2ff;stroke:none}.brand-name{font-weight:750;font-size:27px;letter-spacing:-.8px;margin:0}.profile-icon{margin-left:auto;border:1px solid #ffffff22;background:#ffffff22;border-radius:50%;color:white;width:44px;height:44px;display:grid;place-items:center}.profile-icon svg{width:25px;height:25px}.hero h2{font-size:21px;font-weight:600;margin:7px 0 0;color:#e1e8f3}.hero .eyebrow{font-size:10px;letter-spacing:2px;margin:16px 0 0;color:#c5d8ef}.day-navigation{position:relative;margin:-47px 12px 0;display:flex;align-items:center;gap:4px;z-index:2}.day-navigation>.icon-only{border:0;background:transparent;color:#40516c;padding:0;width:28px;min-width:28px}.days{display:flex;gap:12px;overflow:auto;scrollbar-width:none;scroll-behavior:smooth;flex:1;padding:4px 3px 9px;scroll-snap-type:x mandatory}.days::-webkit-scrollbar{display:none}.day{flex:0 0 72px;border:1px solid #dde3ef;background:linear-gradient(#fff,#edf1f8);border-radius:50%;height:72px;padding:9px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 7px #14284715;scroll-snap-align:center;color:#2d3a50}.day span{font-size:13px;font-weight:650}.day strong{font-size:23px;line-height:1.3}.day[aria-pressed=true]{color:white;background:linear-gradient(135deg,#0c89ff,#1769F5);border-color:#fff;box-shadow:0 0 0 1px #72b8ff,0 5px 12px #1769f52b}.content{padding:7px 16px 40px}.session-topline{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:11px;margin:0 2px 12px;min-height:20px}.session-topline button{font-size:11px;border:0;background:transparent;min-height:30px;padding:4px}.information{border:1px solid #d9e0ed;background:linear-gradient(145deg,#fff,#f1f3fa);border-radius:14px;padding:15px 16px;box-shadow:0 2px 5px #123e7805}.info-row{display:flex;align-items:flex-start;gap:12px}.info-icon{flex:0 0 37px;height:37px;border-radius:10px;display:grid;place-items:center;background:#deebff;color:var(--blue)}.info-icon svg{width:25px;height:25px}.info-icon.purple{background:var(--lilac);color:#7051fa}.info-row h3{font-size:15px;margin:0 0 4px;letter-spacing:-.3px}.info-row p,.info-row ol{font-size:13px;line-height:1.55;margin:0;padding:0}.info-row ol{padding-left:17px}.info-row+.info-row{border-top:1px solid #dce2ed;margin-top:12px;padding-top:12px}.progress-line{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);margin:18px 2px 9px;gap:8px}.progress-line strong{font-weight:600;color:var(--text)}.progress-track{height:4px;background:#e1e8f3;border-radius:4px;margin-bottom:14px;overflow:hidden}.progress-track span{height:100%;display:block;background:var(--green);transition:width .2s}.exercise{border:1px solid #d6deec;border-radius:13px;background:#fff;margin:11px 0;box-shadow:0 2px 5px #123e7807;overflow:hidden}.exercise[open]{border:1.5px solid var(--blue);background:linear-gradient(150deg,#f0f5ff,#fff 38%)}.exercise summary{list-style:none;display:flex;align-items:center;gap:12px;padding:12px 13px;cursor:pointer;min-height:59px}.exercise summary::-webkit-details-marker{display:none}.exercise .number{display:grid;place-items:center;flex:0 0 29px;height:29px;background:#e5e9f1;border-radius:9px;font-size:17px;font-weight:750}.exercise[open] .number{background:linear-gradient(135deg,#168bff,#1769f5);color:white}.exercise .exercise-title{flex:1;min-width:0;font-size:14px;font-weight:750;line-height:1.4;letter-spacing:-.2px}.expand-label{font-size:11px;color:#64738a}.chevron{width:17px;height:17px;transition:transform .2s}.exercise[open] .chevron{transform:rotate(180deg)}.exercise[open] .expand-label{display:none}.exercise[data-status=completed]{border-color:#82c89c}.exercise[data-status=completed] .number{background:var(--green);color:white}.exercise[data-status=completed] .exercise-title{color:#176e38}.status-label{display:block;font-size:10px;color:#64738a;font-weight:500;margin-top:1px}.exercise[data-status=completed] .status-label{color:var(--green)}.exercise-body{padding:0 12px 14px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}.metric{background:#ffffffa8;border:1px solid #dce3ef;border-radius:10px;padding:10px 7px;text-align:center;min-width:0;box-shadow:0 1px 3px #123e7806}.metric span{display:flex;align-items:center;justify-content:center;gap:5px;font-size:10px;white-space:nowrap}.metric svg{width:17px;height:17px}.metric strong{font-size:13px;display:block;margin-top:6px;line-height:1.4;overflow-wrap:anywhere;letter-spacing:-.25px}.technical-note{display:flex;align-items:flex-start;gap:10px;background:var(--lilac);padding:11px 12px;border-radius:11px;margin:10px 0 12px;font-size:12px;line-height:1.5;color:#292854}.technical-note svg{width:20px;height:20px;flex-shrink:0;color:#7754fa;margin-top:2px}.technical-note strong{display:block;color:#262346;font-size:12px}.technical-note p{margin:0}.exercise-timer{display:grid;grid-template-columns:1.45fr repeat(3,1fr);gap:7px;align-items:stretch}.clock-face{display:flex;align-items:center;justify-content:center;gap:8px;color:#fff;background:linear-gradient(130deg,#1761ad,#123e78);border-radius:10px;min-height:52px;font-size:29px;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums}.clock-face svg{width:23px;height:23px;flex-shrink:0}.timer-btn{padding:9px 5px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:4px;background:#f9faff}.timer-btn.primary{background:var(--blue);color:white;border-color:var(--blue)}.rest-row{display:flex;align-items:center;gap:8px;background:#f4f6fb;border:1px solid #e3e8f1;border-radius:9px;padding:7px 9px;margin-top:9px;flex-wrap:wrap;font-size:11px}.rest-row .rest-value{font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;margin-right:auto}.rest-row button{padding:4px 7px;font-size:10px;min-height:44px}.rest-row[data-finished=true]{background:#e7f5eb;border-color:#98d3ac}.exercise-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.exercise-actions button{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;min-height:45px;padding:9px 6px}.feedback-btn{color:var(--blue);border:1.5px solid var(--blue);background:#fff}.complete-btn{color:white;background:linear-gradient(135deg,#26ad58,#169546);border-color:#22a052}.saved-note{font-size:10px;color:#617087;margin:9px 1px 0}.empty-state{text-align:center;padding:36px 20px;background:#fff;border:1px dashed #cad4e5;border-radius:14px}.empty-state h3{font-size:17px}.empty-state p{font-size:13px;line-height:1.6;color:var(--muted)}#sessionSelect{width:100%;font-size:14px;margin:0 0 12px;border:1px solid #d3dceb;padding:9px;border-radius:9px;background:white;color:var(--text)}.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:8;background:#123e78;color:white;padding:12px 18px;border-radius:11px;font-size:12px;box-shadow:0 5px 22px #123e7830;max-width:calc(100% - 28px);width:max-content;line-height:1.5}.overlay{position:fixed;inset:0;background:#11264077;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}.modal{background:#fff;width:100%;max-width:460px;max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;border-radius:20px;padding:22px;box-shadow:0 20px 90px #132f5b44}.modal-head{display:flex;align-items:center;gap:10px;justify-content:space-between}.modal h2{font-size:20px;margin:0}.modal .subheading{font-size:12px;color:var(--muted);line-height:1.6}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.form-grid .full{grid-column:1/-1}label{font-size:12px;font-weight:600;display:block;margin-bottom:6px}input,select,textarea{border:1px solid #b9c6d9;background:#fff;color:var(--text);border-radius:9px;padding:10px;width:100%;min-height:44px;font-size:16px}textarea{min-height:83px;resize:vertical}.modal-actions{display:flex;gap:10px;margin-top:17px}.modal-actions button{flex:1}.modal-actions .save{background:var(--blue);color:white;border-color:var(--blue)}.field-error{color:#a72e39;font-size:12px;line-height:1.5}.history{font-size:11px;line-height:1.5;color:#617087;margin-top:14px}.auth-box{margin:24px 16px;padding:22px;background:white;border:1px solid #d5dfed;border-radius:14px}.auth-box p{font-size:13px;line-height:1.6}.auth-box a{display:inline-block;padding:12px;border:1px solid var(--blue);border-radius:9px;margin:8px 0;font-size:13px}.app-footer{text-align:center;font-size:10px;letter-spacing:.2px;color:#8994a8;padding:8px 16px 30px}.app-footer a{color:#617087}.demo-profile{font-size:10px!important}
+@media(max-width:480px){.brand-name{font-size:25px}.hero{padding:31px 20px 65px;min-height:192px}.hero h2{font-size:20px}.content{padding-left:12px;padding-right:12px}.day{flex-basis:65px;height:65px}.days{gap:10px}.day-navigation{margin-top:-43px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.metric{padding:8px}.metric span{font-size:11px}.metric strong{font-size:14px;margin-top:4px}.exercise-timer{grid-template-columns:repeat(3,1fr)}.clock-face{grid-column:1/-1;min-height:57px;font-size:34px}.timer-btn{font-size:12px;min-height:44px}.exercise .exercise-title{font-size:13px}.exercise summary{gap:9px;padding:11px 11px}.expand-label{font-size:10px}.info-row h3{font-size:14px}.info-row p,.info-row ol{font-size:12px}.information{padding:13px 12px}.exercise-actions{gap:7px}.exercise-actions button{font-size:11px}.modal{padding:20px 17px}.demo-strip{gap:7px}.demo-strip span{display:none}}
+@media(min-width:760px){.app-shell{margin:24px auto;border-radius:24px;overflow:hidden;border:1px solid #e0e5ee}.hero{padding:42px 30px 75px;min-height:220px}.brand-name{font-size:31px}.hero h2{font-size:24px}.content{padding:9px 22px 42px}.days{justify-content:center}.day{flex-basis:78px;height:78px}.day span{font-size:15px}.day strong{font-size:25px}.exercise .exercise-title{font-size:16px}.exercise-actions button{font-size:14px}.info-row h3{font-size:17px}.info-row p,.info-row ol{font-size:14px}.metric span{font-size:12px}.metric strong{font-size:15px}.clock-face{font-size:34px}.timer-btn{font-size:13px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style></head><body>
+<aside class="demo-strip"><strong>DEMONSTRAÇÃO</strong><span>Dados fictícios • sem conexão com Google</span><label class="sr-only" for="demoProfile">Perfil de demonstração</label><select id="demoProfile"><option value="hom-student-a">Aluna A Demo</option><option value="hom-student-b">Aluno B Demo</option><option value="hom-student-empty">Sem treinos</option></select><button id="resetDemo">Reiniciar</button><a href="coach.html">Treinador ↗</a></aside>
+<div class="app-shell">
+<header class="hero"><div class="brand-row"><svg class="mountain" viewBox="0 0 50 38" aria-hidden="true"><path d="M0 35 14 13l8 12 10-23 18 33H38L31 21l-7 14H15l-3-6-4 6z"/></svg><h1 class="brand-name">MVP Escalada</h1><button id="profileButton" class="profile-icon" aria-label="Informações do perfil"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2z"/></svg></button></div><h2>Treino do aluno</h2><p class="eyebrow">FOCO NO MOVIMENTO. EVOLUA A CADA TREINO.</p></header>
+<section id="authPanel" class="auth-box" hidden><h2>Seu próximo movimento começa aqui.</h2><p>Entre com a conta Google autorizada para acompanhar seus treinos.</p><button id="prepareLogin">Preparar entrada</button><a id="loginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google</a><button id="finishLogin" hidden>Concluir entrada</button><p id="authMessage" role="status">Após autenticar na nova aba, volte aqui e conclua a entrada.</p><a id="coachLink" href="coach.html" target="_top">Sou treinador</a></section>
+<main id="trainingPanel" hidden><nav class="day-navigation" aria-label="Dias de treino"><button class="icon-only" id="previousDays" aria-label="Datas anteriores"><svg viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></svg></button><div class="days" id="days"></div><button class="icon-only" id="nextDays" aria-label="Próximas datas"><svg viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></svg></button></nav>
+<div class="content"><div class="session-topline"><span id="sessionDate"></span><button id="refreshWorkouts">Atualizar treinos ↻</button></div><label for="sessionSelect" id="sessionLabel" hidden>Sessão do dia</label><select id="sessionSelect" hidden></select>
+<div id="emptyState" class="empty-state" hidden><h3>Nenhum treino por aqui.</h3><p>Quando seu treinador disponibilizar uma sessão, ela aparecerá nesta tela.</p></div>
+<section id="sessionContent" hidden><section class="information" aria-label="Orientações do treinamento"><div class="info-row"><span class="info-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4"/><path d="m11 13 9-10m-1 1v4h-4"/></svg></span><div><h3>Objetivo do dia</h3><p id="dayGoal"></p></div></div><div class="info-row"><span class="info-icon purple"><svg viewBox="0 0 24 24"><path d="M8 4H4v17h16V4h-4M8 2h8v5H8zM8 11h8M8 15h8M8 18h5"/></svg></span><div><h3>Orientação passo a passo</h3><ol id="dayInstructions"></ol><p id="noInstructions" hidden>O treinador ainda não adicionou orientações para esta sessão.</p></div></div></section>
+<div class="progress-line"><strong>Seu treino, um movimento de cada vez</strong><span id="progressText"></span></div><div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div><div id="exercises"></div></section></div></main>
+<footer class="app-footer">MVP ESCALADA · TREINE COM PROPÓSITO <span id="demoFooter"></span></footer></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="feedbackDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="feedbackHeading" hidden><section class="modal"><div class="modal-head"><h2 id="feedbackHeading">Seu feedback</h2><button id="closeFeedback" class="icon-only" aria-label="Fechar feedback">✕</button></div><p id="feedbackExercise" class="subheading"></p><form id="feedbackForm"><div class="form-grid"><div class="full"><label for="feedbackStatus">Como foi este exercício?</label><select id="feedbackStatus"><option value="completed">Concluído</option><option value="partial">Parcial</option><option value="not_done">Não realizado</option></select></div><div id="rpeField"><label for="feedbackRpe">RPE percebida (1–10)</label><input id="feedbackRpe" inputmode="numeric" type="number" min="1" max="10" step="1" placeholder="Opcional"></div><div><label for="feedbackPain">Dor nos dedos (0–10)</label><input id="feedbackPain" inputmode="numeric" type="number" min="0" max="10" step="1" required value="0"></div><div id="setsField"><label for="actualSets">Séries executadas</label><input id="actualSets" type="number" inputmode="numeric" min="0" max="1000" step="1" placeholder="Opcional"></div><div id="quantityField"><label for="actualQuantity" id="actualQuantityLabel">Quantidade executada</label><input id="actualQuantity" type="number" inputmode="decimal" min="0" max="100000" step="any" placeholder="Por série • opcional"></div><div class="full"><label for="feedbackComment">Observações do aluno</label><textarea id="feedbackComment" maxlength="2000" placeholder="Como você se sentiu? Algo a ajustar?"></textarea></div></div><p id="feedbackError" class="field-error" role="alert"></p><div class="modal-actions"><button type="button" id="cancelFeedback">Cancelar</button><button type="submit" class="save" id="saveFeedback">Salvar feedback</button></div><div class="history" id="feedbackHistory"></div></form></section></div>
+<div id="confirmDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirmHeading" hidden><section class="modal"><h2 id="confirmHeading">Concluir exercício?</h2><p id="confirmExercise" class="subheading"></p><p class="subheading">Apenas este exercício será marcado como concluído. Você poderá corrigir o registro em “Editar feedback”. A sessão não será concluída automaticamente.</p><p id="confirmError" class="field-error" role="alert"></p><div class="modal-actions"><button id="cancelComplete">Cancelar</button><button class="complete-btn" id="confirmComplete">Sim, concluir</button></div></section></div>
+<script>/* Pure student view model; timers are derived from timestamps, never tick counters. */
+var StudentModel = (() => {
+  const units={repetitions:'repetições',seconds:'segundos',hang_seconds:'s de suspensão',minutes:'minutos',meters:'metros',attempts:'tentativas',moves:'movimentos'};
+  const statuses={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'};
+  function dates(workouts){return [...new Set(workouts.map(w=>w.date))].sort();}
+  function forDate(workouts,date){return workouts.filter(w=>w.date===date);}
+  function ordered(items){return items.map((item,index)=>({item,index})).sort((a,b)=>(a.item.prescription?.position??a.index+1)-(b.item.prescription?.position??b.index+1)||a.index-b.index).map(x=>x.item);}
+  function latest(history,itemId){return history.filter(f=>f.itemId===itemId).sort((a,b)=>b.revision-a.revision)[0];}
+  function state(history,itemId){return latest(history,itemId)?.status||'pending';}
+  function formatTime(ms){const secs=Math.max(0,Math.floor(ms/1000));return String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');}
+  function elapsed(t,now){return (t?.accumulated||0)+(t?.startedAt!==null&&t?.startedAt!==undefined?Math.max(0,now-t.startedAt):0);}
+  function start(t,now){return {...(t||{accumulated:0}),startedAt:t?.startedAt??now};}
+  function pause(t,now){return {accumulated:elapsed(t,now),startedAt:null};}
+  function zero(){return {accumulated:0,startedAt:null};}
+  function remaining(t,now){return t?.endsAt!==null&&t?.endsAt!==undefined?Math.max(0,t.endsAt-now):(t?.remaining||0);}
+  function restStart(t,seconds,now){return {remaining:t?.remaining??seconds*1000,endsAt:now+(t?.remaining??seconds*1000)};}
+  function restPause(t,now){return {remaining:remaining(t,now),endsAt:null};}
+  function quantity(p){return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
+  function intensity(p){if(!p.intensityUnit)return 'Não informada';if(p.intensityText)return p.intensityText;const v=p.intensityMin===p.intensityMax?String(p.intensityMin):`${p.intensityMin}–${p.intensityMax}`;return p.intensityUnit==='RPE'?'RPE '+v:v+' '+(p.intensityUnit==='%1RM'?'% de 1RM':p.intensityUnit==='%bodyweight'?'% do peso corporal':p.intensityUnit);}
+  function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}
+  return {units,statuses,dates,forDate,ordered,latest,state,formatTime,elapsed,start,pause,zero,remaining,restStart,restPause,quantity,intensity,feedbackData};
+})();
+</script><script>
+function createDemoBackend() {
+  let active = 'hom-coach', sequence = 0;
+  let tables = {};
+  const profiles = [{id:'hom-coach',label:'Treinador Demo',role:'coach'}, {id:'hom-student-a',label:'Aluna A Demo',role:'student'}, {id:'hom-student-b',label:'Aluno B Demo',role:'student'}, {id:'hom-student-empty',label:'Sem treinos Demo',role:'student'}];
+  const PropertiesService = {getScriptProperties:()=>({getProperty:()=> 'demo-only'})};
+  const SpreadsheetApp = {openById:()=>({getSheetByName: name=>sheet(name)}), flush() {}};
+  const Utilities = {getUuid:()=> 'demo-'+(++sequence)};
+  const LockService = {getScriptLock:()=>({tryLock:()=>true,hasLock:()=>true,releaseLock(){}})};
+  function sessionIdentity_() { return {email:tables.Users.find(u=>u[0]===active)[1]}; }
+  function sheet(name) { return tables[name] && {
+    getLastRow:()=>tables[name].length, getLastColumn:()=>tables[name][0].length,
+    getRange:(r,c,n,w)=>({getValues:()=>tables[name].slice(r-1,r-1+n).map(row=>row.slice(c-1,c-1+w))}),
+    appendRow:row=>tables[name].push([...row])
+  }; }
+/* MVP Escalada. Public RPC: api(request). All helpers are private to Apps Script. */
+var SCHEMA_ = {
+  Users: ['id', 'email', 'role', 'active'],
+  Links: ['id', 'coachId', 'studentId', 'active'],
+  Workouts: ['id', 'coachId', 'studentId', 'date', 'goal', 'createdAt'],
+  Items: ['id', 'workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'createdAt'],
+  Feedback: ['id', 'workoutId', 'studentId', 'status', 'reason', 'fingerPain', 'rpe', 'comment', 'createdAt'],
+  WorkoutGuidance: ['id','workoutId','steps'],
+  ItemPrescription: ['id','itemId','workoutId','position','sets','quantity','quantityUnit','restSeconds','intensityMin','intensityMax','intensityUnit','intensityText','rpeApplicable'],
+  ItemFeedback: ['id','workoutId','itemId','studentId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','revision','supersedesId','createdAt'],
+  Requests: ['id', 'userId', 'key', 'fingerprint', 'entity', 'entityId']
+};
+function fail_(code) { var e = new Error(code); e.code = code; throw e; }
+function text_(v, max) {
+  if (typeof v !== 'string' || !v.trim() || v.length > max || /^[\s]*[=+@-]/.test(v)) fail_('INVALID_DATA');
+  return v.trim();
+}
+function fields_(obj, allowed) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj) || Object.keys(obj).some(function(k) { return allowed.indexOf(k) < 0; })) fail_('INVALID_DATA');
+}
+function db_() {
+  var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!id) fail_('CONFIGURATION_ERROR');
+  return SpreadsheetApp.openById(id);
+}
+function sheet_(db, name) {
+  var s = db.getSheetByName(name);
+  if (!s || JSON.stringify(s.getRange(1, 1, 1, SCHEMA_[name].length).getValues()[0]) !== JSON.stringify(SCHEMA_[name]) || s.getLastColumn() !== SCHEMA_[name].length) fail_('SCHEMA_ERROR');
+  return s;
+}
+function rows_(db, name) {
+  var s = sheet_(db, name), n = s.getLastRow();
+  if (n < 2) return [];
+  return s.getRange(2, 1, n - 1, SCHEMA_[name].length).getValues().map(function(row) {
+    var out = {}; SCHEMA_[name].forEach(function(k, i) { out[k] = row[i] instanceof Date ? (k === 'date' ? row[i].toISOString().slice(0, 10) : row[i].toISOString()) : row[i]; }); return out;
+  });
+}
+function append_(db, name, obj) {
+  sheet_(db, name).appendRow(SCHEMA_[name].map(function(k) { return obj[k] === undefined ? '' : obj[k]; }));
+}
+function enabled_(v) { return v === true || v === 'TRUE'; }
+function userForEmail_(db, email) {
+  var matches = rows_(db, 'Users').filter(function(u) { return String(u.email).toLowerCase() === email.toLowerCase() && enabled_(u.active); });
+  if (matches.length !== 1 || ['coach', 'student'].indexOf(matches[0].role) < 0) fail_('FORBIDDEN');
+  var user = matches[0];
+  if (rows_(db, 'Users').filter(function(u) { return u.id === user.id; }).length !== 1) fail_('SCHEMA_ERROR');
+  return user;
+}
+function linked_(db, coach, student) {
+  return rows_(db, 'Users').some(function(u) { return u.id === student && u.role === 'student' && enabled_(u.active); }) && rows_(db, 'Links').some(function(l) { return l.coachId === coach && l.studentId === student && enabled_(l.active); });
+}
+function visible_(db, user, w) {
+  return user.role === 'student' ? w.studentId === user.id : w.coachId === user.id && linked_(db, user.id, w.studentId);
+}
+function workout_(db, user, id) {
+  var found = rows_(db, 'Workouts').filter(function(w) { return w.id === id; });
+  if (found.length !== 1 || !visible_(db, user, found[0])) fail_('NOT_FOUND');
+  return found[0];
+}
+function id_() { return Utilities.getUuid(); }
+function fingerprint_(action, data) {
+  var canonical = {}; Object.keys(data).sort().forEach(function(k) { canonical[k] = data[k]; });
+  return JSON.stringify([action, canonical]);
+}
+function create_(db, user, req) {
+  if (user.role !== (req.action === 'submitFeedback' ? 'student' : 'coach')) fail_('FORBIDDEN');
+  var d = req.data, entity, record;
+  var key = text_(req.requestId, 100);
+  if (req.action === 'createWorkout') {
+    fields_(d, ['studentId', 'date', 'goal', 'instructions']);
+    if (d.instructions !== undefined && (!Array.isArray(d.instructions) || d.instructions.length>20)) fail_('INVALID_DATA');
+    if (d.instructions) d.instructions.forEach(function(step){text_(step,500);});
+    var student = text_(d.studentId, 100), date = text_(d.date, 10), goal = text_(d.goal, 500);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail_('INVALID_DATA');
+    if (!linked_(db, user.id, student)) fail_('FORBIDDEN');
+    entity = 'Workouts'; record = {id: id_(), coachId: user.id, studentId: student, date: date, goal: goal, createdAt: new Date().toISOString()};
+  } else if (req.action === 'submitFeedback') {
+    fields_(d, ['workoutId', 'status', 'reason', 'fingerPain', 'rpe', 'comment']);
+    var target = workout_(db, user, text_(d.workoutId, 100));
+    if (['Concluído', 'Parcial', 'Não fez'].indexOf(d.status) < 0) fail_('INVALID_DATA');
+    var reason = d.reason === undefined ? '' : d.reason;
+    if (['', 'Sem tempo', 'Dor', 'Cansaço', 'Sem acesso', 'Outro'].indexOf(reason) < 0 || (d.status !== 'Concluído' && !reason)) fail_('INVALID_DATA');
+    ['fingerPain', 'rpe'].forEach(function(k) { if (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10) fail_('INVALID_DATA'); });
+    entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain, rpe: d.rpe, comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
+  } else {
+    fields_(d, ['workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'prescription']);
+    if (d.prescription !== undefined) prescription_(d.prescription);
+    var w = workout_(db, user, text_(d.workoutId, 100));
+    entity = 'Items'; record = {id: id_(), workoutId: w.id, createdAt: new Date().toISOString()};
+    ['block', 'category', 'exercise', 'metric'].forEach(function(k) { record[k] = text_(d[k], 500); });
+    ['quantity', 'minutes'].forEach(function(k) { if (typeof d[k] !== 'number' || !Number.isFinite(d[k]) || d[k] < 0 || d[k] > 100000) fail_('INVALID_DATA'); record[k] = d[k]; });
+    record.notes = d.notes === undefined || d.notes === '' ? '' : text_(d.notes, 2000);
+  }
+  return persistRecord_(db,user,req,entity,record,function(){
+    if(req.action==='addItem' && req.data.prescription) {
+      var position=req.data.prescription.position;
+      if(positionTaken_(db,record.workoutId,record.id,position)) fail_('CONFLICT');
+    }
+  });
+}
+function persistRecord_(db,user,req,entity,record,beforeInsert) {
+  var key=text_(req.requestId,100), fingerprint=fingerprint_(req.action,req.data);
+  var previous=rows_(db,'Requests').filter(function(r){return r.userId===user.id && r.key===key;});
+  if(previous.length) {
+    if(previous.length!==1 || previous[0].fingerprint!==fingerprint || previous[0].entity!==entity) fail_('CONFLICT');
+    record.id=previous[0].entityId;
+  }
+  var existing=rows_(db,entity).filter(function(r){return r.id===record.id;});
+  if(existing.length>1) fail_('SCHEMA_ERROR');
+  if(!existing.length && beforeInsert) beforeInsert();
+  if(!previous.length) {
+    append_(db,'Requests',{id:id_(),userId:user.id,key:key,fingerprint:fingerprint,entity:entity,entityId:record.id});
+    SpreadsheetApp.flush();
+  }
+  if(!existing.length) {append_(db,entity,record); SpreadsheetApp.flush();}
+  var saved=existing[0]||record;
+  ensureStudentData_(db,req,saved);
+  return saved;
+}
+
+function api(request) {
+  var lock;
+  try {
+    fields_(request, ['action', 'data', 'requestId', 'sessionToken']);
+    if (['getSession', 'listStudents', 'listFeedback', 'submitFeedback', 'submitItemFeedback', 'listWorkouts', 'getWorkout', 'createWorkout', 'addItem'].indexOf(request.action) < 0) fail_('INVALID_ACTION');
+    lock = LockService.getScriptLock();
+    if (!lock.tryLock(5000)) fail_('BUSY');
+    var identity = sessionIdentity_(request.sessionToken);
+    var db = db_(), user = userForEmail_(db, identity.email), result;
+    if (request.action === 'getSession') {
+      fields_(request.data, []); result = {id: user.id, role: user.role};
+    } else if (request.action === 'listStudents') {
+      fields_(request.data, []); if (user.role !== 'coach') fail_('FORBIDDEN');
+      result = rows_(db, 'Users').filter(function(u) { return u.role === 'student' && linked_(db, user.id, u.id); }).map(function(u) { return {id: u.id}; });
+    } else if (request.action === 'listFeedback') {
+      fields_(request.data, ['workoutId']);
+      var target = workout_(db, user, text_(request.data.workoutId, 100));
+      result = rows_(db, 'Feedback').filter(function(f) { return f.workoutId === target.id && f.studentId === target.studentId; });
+    } else if (request.action === 'listWorkouts') {
+      fields_(request.data, []);
+      result = rows_(db, 'Workouts').filter(function(w) { return visible_(db, user, w); });
+    } else if (request.action === 'getWorkout') {
+      fields_(request.data, ['workoutId']);
+      result = workout_(db, user, text_(request.data.workoutId, 100));
+      result.items = rows_(db, 'Items').filter(function(i) { return i.workoutId === result.id; });
+      result=hydrateStudentWorkout_(db,result);
+    } else if(request.action==='submitItemFeedback') result=saveItemFeedback_(db,user,request);
+    else result = create_(db, user, request);
+    return {ok: true, data: result};
+  } catch (e) {
+    var allowed = ['INVALID_DATA', 'INVALID_ACTION', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'BUSY', 'CONFIGURATION_ERROR', 'SCHEMA_ERROR', 'AUTH_FAILED'];
+    return {ok: false, error: {code: allowed.indexOf(e.code) >= 0 ? e.code : 'INTERNAL_ERROR'}};
+  } finally { if (lock && lock.hasLock()) lock.releaseLock(); }
+}
+// Run manually from the editor. Existing sheets are checked, never cleared or overwritten.
+function initializeSchema_() {
+  var lock = LockService.getScriptLock(); lock.waitLock(5000);
+  try {
+    var db = db_();
+    Object.keys(SCHEMA_).forEach(function(name) {
+      if (!db.getSheetByName(name)) db.insertSheet(name).appendRow(SCHEMA_[name]);
+      sheet_(db, name);
+    });
+  } finally { lock.releaseLock(); }
+}
+
+
+/* Additive student training model. Legacy tables and prescriptions are immutable. */
+function optionalRows_(db, name) { return db.getSheetByName(name) ? rows_(db, name) : []; }
+function numberRange_(v, min, max, integer) {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max || (integer && !Number.isInteger(v))) fail_('INVALID_DATA');
+  return v;
+}
+function prescription_(data) {
+  fields_(data, ['position','sets','quantity','quantityUnit','restSeconds','intensityMin','intensityMax','intensityUnit','intensityText','rpeApplicable']);
+  var p = {position:numberRange_(data.position,1,10000,true), sets:'', quantity:'', quantityUnit:'', restSeconds:'', intensityMin:'', intensityMax:'', intensityUnit:'', intensityText:'', rpeApplicable:false};
+  if (data.sets !== undefined) p.sets = numberRange_(data.sets,1,1000,true);
+  if (data.quantity !== undefined) {
+    p.quantity = numberRange_(data.quantity,0,100000,false);
+    if (['repetitions','seconds','hang_seconds','minutes','meters','attempts','moves'].indexOf(data.quantityUnit) < 0) fail_('INVALID_DATA');
+    p.quantityUnit = data.quantityUnit;
+  } else if (data.quantityUnit !== undefined) fail_('INVALID_DATA');
+  if (data.restSeconds !== undefined) p.restSeconds = numberRange_(data.restSeconds,0,86400,true);
+  if (data.intensityUnit !== undefined) {
+    if (['RPE','kg','%1RM','%bodyweight','grade','other'].indexOf(data.intensityUnit) < 0) fail_('INVALID_DATA');
+    p.intensityUnit = data.intensityUnit;
+    if (['grade','other'].indexOf(p.intensityUnit)>=0) p.intensityText = text_(data.intensityText,100);
+    else {
+      var min=p.intensityUnit==='RPE'?1:(p.intensityUnit==='kg'?-1000:0), max=p.intensityUnit==='RPE'?10:10000;
+      p.intensityMin=numberRange_(data.intensityMin,min,max,false);
+      p.intensityMax=data.intensityMax === undefined?p.intensityMin:numberRange_(data.intensityMax,p.intensityMin,max,false);
+    }
+  } else if (data.intensityMin !== undefined || data.intensityMax !== undefined || data.intensityText !== undefined) fail_('INVALID_DATA');
+  if (data.rpeApplicable !== undefined) {
+    if (typeof data.rpeApplicable !== 'boolean') fail_('INVALID_DATA');
+    p.rpeApplicable=data.rpeApplicable;
+  }
+  return p;
+}
+function supplement_(db, name, key, record) {
+  var matches=optionalRows_(db,name).filter(function(r){return r.id===key;});
+  if (matches.length>1) fail_('SCHEMA_ERROR');
+  if (!matches.length) { append_(db,name,record); SpreadsheetApp.flush(); }
+}
+function positionTaken_(db,workoutId,itemId,position) {
+  if(optionalRows_(db,'ItemPrescription').some(function(r){return r.workoutId===workoutId && r.itemId!==itemId && r.position===position;})) return true;
+  // Also respect pending item reservations after a partial multi-sheet write.
+  return rows_(db,'Requests').some(function(r){
+    if(r.entity!=='Items' || r.entityId===itemId)return false;
+    var parsed=JSON.parse(r.fingerprint),d=parsed[1];
+    return parsed[0]==='addItem' && d.workoutId===workoutId && d.prescription && d.prescription.position===position;
+  });
+}
+function ensureStudentData_(db, req, record) {
+  if (req.action==='createWorkout' && req.data.instructions !== undefined) {
+    supplement_(db,'WorkoutGuidance',record.id,{id:record.id,workoutId:record.id,steps:JSON.stringify(req.data.instructions)});
+  }
+  if (req.action==='addItem' && req.data.prescription !== undefined) {
+    var p=prescription_(req.data.prescription);
+    var occupied=positionTaken_(db,record.workoutId,record.id,p.position);
+    if (occupied) fail_('CONFLICT');
+    p.id=record.id; p.itemId=record.id; p.workoutId=record.workoutId;
+    supplement_(db,'ItemPrescription',record.id,p);
+  }
+}
+function hydrateStudentWorkout_(db, workout) {
+  var details=optionalRows_(db,'ItemPrescription').filter(function(p){return p.workoutId===workout.id;});
+  var guidance=optionalRows_(db,'WorkoutGuidance').filter(function(g){return g.workoutId===workout.id;});
+  if (guidance.length>1) fail_('SCHEMA_ERROR');
+  workout.instructions=guidance.length?JSON.parse(guidance[0].steps):[];
+  workout.items.forEach(function(item,index){
+    var matches=details.filter(function(p){return p.itemId===item.id;});
+    if (matches.length>1) fail_('SCHEMA_ERROR');
+    if(matches[0]) matches[0].rpeApplicable=enabled_(matches[0].rpeApplicable);
+    item.prescription=matches[0] || {position:index+1,quantity:item.quantity,quantityUnit:item.metric,rpeApplicable:false};
+  });
+  workout.items.sort(function(a,b){return a.prescription.position-b.prescription.position;});
+  var history=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id && f.studentId===workout.studentId;});
+  workout.itemFeedback=history;
+  return workout;
+}
+function saveItemFeedback_(db,user,req) {
+  if (user.role!=='student') fail_('FORBIDDEN');
+  var d=req.data;
+  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision']);
+  var w=workout_(db,user,text_(d.workoutId,100));
+  var items=rows_(db,'Items').filter(function(i){return i.id===d.itemId && i.workoutId===w.id;});
+  if(items.length!==1) fail_('NOT_FOUND');
+  var p=optionalRows_(db,'ItemPrescription').filter(function(p){return p.itemId===d.itemId && p.workoutId===w.id;})[0];
+  if (['completed','partial','not_done'].indexOf(d.status)<0) fail_('INVALID_DATA');
+  var record={id:id_(),workoutId:w.id,itemId:items[0].id,studentId:user.id,status:d.status,rpe:'',fingerPain:numberRange_(d.fingerPain,0,10,true),comment:d.comment===undefined||d.comment===''?'':text_(d.comment,2000),actualSets:'',actualQuantity:'',quantityUnit:'',createdAt:new Date().toISOString()};
+  if(d.rpe!==undefined && d.rpe!==null) {
+    if(!p || !enabled_(p.rpeApplicable)) fail_('INVALID_DATA');
+    record.rpe=numberRange_(d.rpe,1,10,true);
+  }
+  if(d.actualSets!==undefined) {
+    if(!p || p.sets==='') fail_('INVALID_DATA');
+    record.actualSets=numberRange_(d.actualSets,0,1000,true);
+  }
+  if(d.actualQuantity!==undefined) {
+    if(!p || !p.quantityUnit || d.quantityUnit!==p.quantityUnit) fail_('INVALID_DATA');
+    record.actualQuantity=numberRange_(d.actualQuantity,0,100000,false); record.quantityUnit=d.quantityUnit;
+  } else if(d.quantityUnit!==undefined) fail_('INVALID_DATA');
+  numberRange_(d.expectedRevision,0,100000,true);
+  var beforeInsert=function(){
+    var previous=optionalRows_(db,'ItemFeedback').filter(function(f){return f.itemId===record.itemId && f.studentId===user.id && f.workoutId===w.id;}).sort(function(a,b){return b.revision-a.revision;})[0];
+    if(d.expectedRevision!==(previous?previous.revision:0)) fail_('CONFLICT');
+    record.revision=d.expectedRevision+1; record.supersedesId=previous?previous.id:'';
+  };
+  return persistRecord_(db,user,req,'ItemFeedback',record,beforeInsert);
+}
+
+function homologationFixture_() {
+  return {
+    Users: [
+      {id:'hom-coach', email:'coach@example.invalid', role:'coach', active:true},
+      {id:'hom-student-a', email:'student-a@example.invalid', role:'student', active:true},
+      {id:'hom-student-b', email:'student-b@example.invalid', role:'student', active:true}
+    ],
+    Links: [
+      {id:'hom-link-a', coachId:'hom-coach', studentId:'hom-student-a', active:true},
+      {id:'hom-link-b', coachId:'hom-coach', studentId:'hom-student-b', active:true}
+    ],
+    Workouts: [
+      {id:'hom-workout-a', coachId:'hom-coach', studentId:'hom-student-a', date:'2026-11-16', goal:'Técnica fictícia A', createdAt:'2026-11-16T12:00:00.000Z'},
+      {id:'hom-workout-b', coachId:'hom-coach', studentId:'hom-student-b', date:'2026-11-17', goal:'Mobilidade fictícia B', createdAt:'2026-11-16T12:00:00.000Z'}
+    ],
+    Items: [
+      {id:'hom-item-a', workoutId:'hom-workout-a', block:'Aquecimento', category:'Technique', exercise:'Movimento fictício A', metric:'Reps', quantity:5, minutes:10, notes:'Somente teste', createdAt:'2026-11-16T12:00:00.000Z'},
+      {id:'hom-item-b', workoutId:'hom-workout-b', block:'Mobilidade', category:'Mobility', exercise:'Movimento fictício B', metric:'Minutos', quantity:5, minutes:5, notes:'Somente teste', createdAt:'2026-11-16T12:00:00.000Z'}
+    ]
+  };
+}
+
+  function reset() {
+    sequence=0;
+    tables=Object.fromEntries(Object.entries(SCHEMA_).map(([name,headers])=>[name,[[...headers]]]));
+    const seed=homologationFixture_();
+    seed.Users.push({id:'hom-student-empty',email:'empty@example.invalid',role:'student',active:true});
+    Object.keys(seed).forEach(name=>seed[name].forEach(row=>append_(db_(),name,row)));
+    append_(db_(),'Feedback',{id:'hom-feedback-a',workoutId:'hom-workout-a',studentId:'hom-student-a',status:'Concluído',reason:'',fingerPain:0,rpe:6,comment:'Retorno fictício: sessão concluída com boa técnica.',createdAt:'2026-11-16T13:00:00.000Z'});
+  }
+  reset();
+  return {api,reset,profiles,switchUser(id){if(!profiles.some(p=>p.id===id)) throw Error('Perfil inválido'); active=id;}};
+}
+
+
+/* Purely local adapter: no passwords, OAuth, Google or real user records. */
+window.StudentAPI=(()=>{
+  const backend=createDemoBackend();
+  function checked(action,data,key){const r=backend.api({action,data,requestId:key});if(!r.ok)throw Error(r.error.code);return r.data;}
+  function populate(){
+    backend.reset();backend.switchUser('hom-coach');
+    const examples=[
+      ['Aquecimento geral',{position:1,quantity:10,quantityUnit:'minutes',rpeApplicable:false},'Mobilizar ombros, punhos e quadril. Aumentar a intensidade progressivamente.'],
+      ['Suspensão em borda 20 mm',{position:2,sets:4,quantity:6,quantityUnit:'hang_seconds',restSeconds:120,intensityMin:7,intensityMax:8,intensityUnit:'RPE',rpeApplicable:true},'Manter a escápula ativa e o corpo estável. Usar carga adicional se necessário para atingir a intensidade.'],
+      ['Bote no Campus Board',{position:3,sets:3,quantity:4,quantityUnit:'moves',restSeconds:180,intensityMin:80,intensityMax:85,intensityUnit:'%1RM',rpeApplicable:true},'Executar com precisão. Manter o controle na recepção e respeitar a progressão definida pelo treinador.'],
+      ['Mobilidade e desaquecimento',{position:4,sets:2,quantity:30,quantityUnit:'seconds',restSeconds:30,rpeApplicable:false},'Respirar de forma tranquila. Não forçar amplitude com dor.']
+    ];
+    ['2026-09-02','2026-09-04','2026-09-06','2026-09-08'].forEach((date,day)=>{
+      const w=checked('createWorkout',{studentId:'hom-student-a',date,goal:day===1?'Potência de membros superiores e controle de pegada.':['Técnica de movimento e precisão dos pés.','Potência de membros superiores e controle de pegada.','Resistência e ritmo de escalada.','Recuperação ativa e mobilidade.'][day],instructions:['Aquecer 10 min.','Executar os exercícios na ordem.','Respeitar os intervalos.','Registrar o feedback ao final de cada exercício.']},'student-demo-w-'+day);
+      examples.forEach(([exercise,prescription,notes],index)=>checked('addItem',{workoutId:w.id,block:index?'Força':'Aquecimento',category:index?'Finger strength':'Mobility',exercise,metric:prescription.quantityUnit,quantity:prescription.quantity,minutes:index?5:10,notes,prescription},'student-demo-i-'+day+'-'+index));
+    });
+    // The original two fixtures remain visible only to their respective owner.
+    backend.switchUser('hom-student-a');
+  }
+  populate();
+  return {isDemo:true,initialDate:'2026-09-04',call:async(action,data,key)=>{await new Promise(resolve=>setTimeout(resolve,80));return checked(action,data,key);},switchUser:id=>backend.switchUser(id),reset:populate};
+})();
+</script><script>/* Shared UI for the simulated demo and the authenticated Apps Script adapter. */
+(async()=>{
+  const M=StudentModel, $=id=>document.getElementById(id), api=window.StudentAPI;
+  let workouts=[], workout=null, selectedDate='', session=null, loadVersion=0, dialogItem=null, sending=false, focusBefore=null;
+  const timers=new Map(), rests=new Map(), expanded=new Map(), intentions=new Map();
+  const icons={chevron:'<path d="m6 9 6 6 6-6"/>',stack:'<path d="m3 8 9-5 9 5-9 5zM3 12l9 5 9-5M3 16l9 5 9-5"/>',repeat:'<path d="m17 2 4 4-4 4M3 10V7a1 1 0 0 1 1-1h17M7 22l-4-4 4-4m14 0v3a1 1 0 0 1-1 1H3"/>',clock:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6M12 2v3"/>',intensity:'<path d="M3 15h3v6H3zM10 9h3v12h-3zM17 3h3v18h-3z"/>',chat:'<path d="M4 17a9 9 0 1 1 4 3l-5 1zM8 9h8M8 13h5"/>',play:'<path d="m8 4 12 8-12 8z"/>',pause:'<path d="M5 4h4v16H5zM15 4h4v16h-4z"/>',reset:'<path d="M3 10a9 9 0 1 1 0 5M3 4v6h6"/>',check:'<path d="m4 12 5 5L20 6"/>'};
+  function icon(name){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('aria-hidden','true');s.innerHTML=icons[name]||icons.clock;return s;}
+  function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
+  function button(text,cls,handler,ic){const b=el('button',cls);if(ic)b.append(icon(ic));b.append(document.createTextNode(text));b.addEventListener('click',handler);return b;}
+  let toastTimer;
+  function notify(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
+  function errorText(e){return ({CONFLICT:'O registro mudou em outra sessão. Atualize o treino antes de corrigir novamente.',BUSY:'O servidor está ocupado. Tente novamente.',UNAUTHENTICATED:'Sua sessão expirou. Entre novamente.',FORBIDDEN:'Esta conta não tem permissão para esta operação.',INVALID_DATA:'Confira os valores e as unidades informadas.'})[e.message]||'Não foi possível carregar ou salvar. Tente novamente.';}
+  async function safe(fn){try{await fn();}catch(e){notify(errorText(e));}}
+  function timerKey(item){return `${session.id}:${workout.id}:${item.id}`;}
+  function selectionVisible(){return workout && !sending;}
+  function write(data){const signature=JSON.stringify(data);if(!intentions.has(signature))intentions.set(signature,crypto.randomUUID());return api.call('submitItemFeedback',data,intentions.get(signature)).then(result=>{intentions.delete(signature);return result;});}
+  function hideModal(id){$(id).hidden=true;document.body.style.overflow='';focusBefore?.focus();}
+  function showModal(id){focusBefore=document.activeElement;$(id).hidden=false;document.body.style.overflow='hidden';$(id).querySelector('button,select,input').focus();}
+  async function loadWorkouts(preferred){
+    const version=++loadVersion; const data=await api.call('listWorkouts',{});if(version!==loadVersion)return;
+    workouts=data;const dates=M.dates(data);selectedDate=dates.includes(preferred)?preferred:dates[0]||'';
+    renderDates();$('emptyState').hidden=!!dates.length;$('sessionContent').hidden=!dates.length;
+    if(!dates.length){$('sessionSelect').hidden=true;$('sessionLabel').hidden=true;workout=null;$('exercises').replaceChildren();$('sessionDate').textContent='Seus treinos';return;}
+    await chooseDate(selectedDate);
+  }
+  function renderDates(){
+    $('days').replaceChildren();
+    M.dates(workouts).forEach(date=>{const day=new Date(date+'T12:00:00'),b=button('','day',()=>safe(()=>chooseDate(date)));b.dataset.date=date;b.setAttribute('aria-pressed',String(date===selectedDate));b.setAttribute('aria-label',day.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}));const week=day.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');b.append(el('span','',week[0].toUpperCase()+week.slice(1)),el('strong','',date.slice(8)));$('days').append(b);});
+  }
+  async function chooseDate(date){
+    if(sending)return;selectedDate=date;renderDates();const options=M.forDate(workouts,date);$('sessionSelect').replaceChildren();
+    options.forEach((w,index)=>{const o=el('option','',`${index+1}. ${w.goal}`);o.value=w.id;$('sessionSelect').append(o);});
+    $('sessionSelect').hidden=options.length<2;$('sessionLabel').hidden=options.length<2;
+    $('sessionDate').textContent=new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+    if(options.length)await loadWorkout(options[0].id);
+  }
+  async function loadWorkout(id){
+    const version=++loadVersion;workout=null;$('sessionContent').hidden=true;
+    const data=await api.call('getWorkout',{workoutId:id});if(version!==loadVersion)return;
+    workout=data;$('dayGoal').textContent=data.goal;$('dayInstructions').replaceChildren();
+    (data.instructions||[]).forEach(text=>$('dayInstructions').append(el('li','',text)));
+    $('noInstructions').hidden=!!data.instructions?.length;$('sessionContent').hidden=false;$('emptyState').hidden=true;renderExercises();
+  }
+  function metric(label,value,ic){const box=el('div','metric'),head=el('span');head.append(icon(ic),document.createTextNode(label));box.append(head,el('strong','',value));return box;}
+  function renderExercises(){
+    const items=M.ordered(workout.items),history=workout.itemFeedback||[];
+    $('exercises').replaceChildren();const count=items.filter(i=>M.state(history,i.id)==='completed').length;
+    $('progressText').textContent=`${count} de ${items.length} concluídos`;$('progressBar').style.width=(items.length?count/items.length*100:0)+'%';
+    items.forEach((item,index)=>{
+      const p=item.prescription||{},prev=M.latest(history,item.id),key=timerKey(item),state=M.state(history,item.id);
+      const card=el('details','exercise');card.dataset.itemId=item.id;card.dataset.status=state;
+      const defaultOpen=items.length>1?1:0;
+      card.open=expanded.has(key)?expanded.get(key):index===defaultOpen;
+      card.addEventListener('toggle',()=>expanded.set(key,card.open));
+      const summary=el('summary'),number=el('span','number',state==='completed'?'✓':String(index+1)),title=el('span','exercise-title',item.exercise);
+      if(prev)title.append(el('span','status-label',M.statuses[prev.status]));
+      const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
+      const body=el('div','exercise-body'),metrics=el('div','metrics');
+      metrics.append(metric('Séries',p.sets!==''&&p.sets!==undefined?`${p.sets} séries`:'Não informadas','stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric('Descanso',p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'),metric('Intensidade',M.intensity(p),'intensity'));body.append(metrics);
+      const note=el('div','technical-note'),noteText=el('div');noteText.append(el('strong','','Observações'),el('p','',item.notes||'Nenhuma observação técnica adicional.'));note.append(icon('chat'),noteText);body.append(note);
+      const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);
+      timer.append(clock,button('Iniciar','timer-btn primary',()=>{timers.set(key,M.start(timers.get(key),Date.now()));paintClocks();},'play'),button('Pausar','timer-btn',()=>{timers.set(key,M.pause(timers.get(key),Date.now()));paintClocks();},'pause'),button('Zerar','timer-btn',()=>{timers.set(key,M.zero());paintClocks();},'reset'));body.append(timer);
+      if(p.restSeconds!==undefined&&p.restSeconds!==''&&p.restSeconds>0){
+        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','','Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
+        rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
+      }
+      const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);
+      if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
+      card.append(body);$('exercises').append(card);
+    });
+    if(!items.length)$('exercises').append(el('p','empty-state','O treinador ainda não adicionou exercícios.'));
+    paintClocks();
+  }
+  function paintClocks(){
+    const now=Date.now();document.querySelectorAll('[data-elapsed]').forEach(n=>n.textContent=M.formatTime(M.elapsed(timers.get(n.dataset.elapsed),now)));
+    document.querySelectorAll('[data-rest]').forEach(n=>{const t=rests.get(n.dataset.rest),left=t?M.remaining(t,now):Number(n.dataset.seconds)*1000;n.textContent=M.formatTime(left);n.parentElement.dataset.finished=String(!!t&&left===0);});
+  }
+  function openFeedback(item){
+    if(!selectionVisible())return;dialogItem=item;const p=item.prescription||{},prev=M.latest(workout.itemFeedback||[],item.id);
+    $('feedbackHeading').textContent=prev?'Corrigir feedback':'Seu feedback';$('feedbackExercise').textContent=item.exercise;
+    $('feedbackStatus').value=prev?.status||'completed';$('feedbackPain').value=prev?.fingerPain??0;
+    $('feedbackRpe').value=prev?.rpe??'';$('feedbackComment').value=prev?.comment||'';$('actualSets').value=prev?.actualSets??'';$('actualQuantity').value=prev?.actualQuantity??'';
+    $('rpeField').hidden=!p.rpeApplicable;$('feedbackRpe').disabled=!p.rpeApplicable;
+    $('setsField').hidden=p.sets===''||p.sets===undefined;$('actualSets').disabled=$('setsField').hidden;
+    $('quantityField').hidden=!M.units[p.quantityUnit];$('actualQuantity').disabled=$('quantityField').hidden;
+    $('actualQuantityLabel').textContent=(p.quantityUnit==='repetitions'?'Repetições por série':`Executado por série (${M.units[p.quantityUnit]||p.quantityUnit})`);
+    $('feedbackHistory').textContent=(workout.itemFeedback||[]).filter(f=>f.itemId===item.id).sort((a,b)=>b.revision-a.revision).map(f=>`Registro ${f.revision}: ${M.statuses[f.status]}`).join(' · ');
+    $('feedbackError').textContent='';showModal('feedbackDialog');
+  }
+  function openComplete(item){if(!selectionVisible())return;dialogItem=item;$('confirmExercise').textContent=item.exercise;$('confirmError').textContent='';showModal('confirmDialog');}
+  async function save(values,modal,errorId){
+    if(sending)return;sending=true;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=true);$('demoProfile')&&($('demoProfile').disabled=true);
+    try{
+      const target=workout,record=await write(M.feedbackData(workout,dialogItem,workout.itemFeedback||[],values));
+      target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
+      hideModal(modal);renderExercises();notify('Registro salvo. Apenas este exercício foi atualizado.');
+    }catch(e){$(errorId).textContent=errorText(e);}finally{sending=false;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=false);$('demoProfile')&&($('demoProfile').disabled=false);}
+  }
+  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});save(values,'feedbackDialog','feedbackError');});
+  $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
+  ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));$('cancelComplete').addEventListener('click',()=>{if(!sending)hideModal('confirmDialog');});
+  document.addEventListener('keydown',e=>{const modal=['feedbackDialog','confirmDialog'].map($).find(n=>!n.hidden);if(!modal)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});
+  $('previousDays').addEventListener('click',()=>$('days').scrollBy({left:-180,behavior:'smooth'}));$('nextDays').addEventListener('click',()=>$('days').scrollBy({left:180,behavior:'smooth'}));
+  $('sessionSelect').addEventListener('change',()=>safe(()=>loadWorkout($('sessionSelect').value)));
+  $('refreshWorkouts').addEventListener('click',()=>safe(()=>loadWorkouts(selectedDate)));
+  $('profileButton').addEventListener('click',()=>notify(session?`Perfil: ${session.id}. ${api.isDemo?'Demonstração com dados fictícios.':'Conta autenticada.'}`:'Entre para acompanhar seu treino.'));
+  document.addEventListener('visibilitychange',paintClocks);window.addEventListener('pageshow',paintClocks);setInterval(paintClocks,500);
+  async function start(){session=await api.call('getSession',{});if(session.role!=='student')throw Error('STUDENT_ONLY');$('trainingPanel').hidden=false;$('authPanel').hidden=true;await loadWorkouts(api.initialDate);}
+  if(api.isDemo){$('demoFooter').textContent='· DEMONSTRAÇÃO';$('demoProfile').addEventListener('change',()=>safe(async()=>{timers.clear();rests.clear();expanded.clear();intentions.clear();api.switchUser($('demoProfile').value);await start();}));$('resetDemo').addEventListener('click',()=>safe(async()=>{api.reset();timers.clear();rests.clear();expanded.clear();intentions.clear();await start();}));await safe(start);}
+  else {await api.setupLogin(start,notify);}
+})();
+</script></body></html>

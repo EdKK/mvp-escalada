@@ -417,6 +417,7 @@ select.native-hidden {
           </div>
         </div>
 
+        <label for="coachInstructions">Orientações passo a passo (uma por linha)</label><textarea id="coachInstructions" placeholder="Aquecer 10 min.&#10;Respeitar os intervalos."></textarea>
         <div class="btnbar">
           
           <button id="btnCriarTreino" class="primary">Criar treino</button>
@@ -506,6 +507,13 @@ select.native-hidden {
           <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
         </div>
 
+<details style="margin-top:14px"><summary>Prescrição estruturada para a nova tela do aluno</summary>
+<label><input id="structuredPrescription" type="checkbox" style="width:auto" /> Usar os campos estruturados abaixo</label>
+<div class="row"><div><label for="itemPosition">Ordem do exercício</label><input id="itemPosition" type="number" min="1" step="1" value="1" /></div><div><label for="itemSets">Séries (opcional)</label><input id="itemSets" type="number" min="1" step="1" /></div></div>
+<div class="row"><div><label for="itemDoseUnit">Unidade da quantidade acima</label><select id="itemDoseUnit"><option value="repetitions">Repetições</option><option value="seconds">Segundos</option><option value="hang_seconds">Segundos de suspensão</option><option value="minutes">Minutos</option><option value="meters">Metros</option><option value="attempts">Tentativas</option><option value="moves">Movimentos</option></select></div><div><label for="itemRestSeconds">Descanso em segundos (opcional)</label><input id="itemRestSeconds" type="number" min="0" step="1" /></div></div>
+<div class="row"><div><label for="structuredIntensityUnit">Unidade da intensidade</label><select id="structuredIntensityUnit"><option value="">Não informada</option><option>RPE</option><option>kg</option><option value="%1RM">% de 1RM</option><option value="%bodyweight">% do peso corporal</option><option value="grade">Graduação</option><option value="other">Outra (texto)</option></select></div><div><label for="structuredIntensityText">Graduação ou outra intensidade (texto)</label><input id="structuredIntensityText" /></div></div>
+<div class="row"><div><label for="structuredIntensityMin">Intensidade mínima / única</label><input id="structuredIntensityMin" type="number" step="any" /></div><div><label for="structuredIntensityMax">Intensidade máxima (opcional)</label><input id="structuredIntensityMax" type="number" step="any" /></div></div>
+<label><input id="itemRpeApplicable" type="checkbox" style="width:auto" /> Solicitar RPE percebida no feedback</label></details>
         <div class="btnbar">
           <button id="btnAddItem" class="primary">Adicionar item ao treino</button>
         </div>
@@ -650,11 +658,13 @@ function createRpc(run, getSessionToken) {
     const w=await rpc({action:'getWorkout',data:{workoutId:id}});
     const feedback=await rpc({action:'listFeedback',data:{workoutId:id}});
     if(ticket!==generation) return;
+    $('itemPosition').value=Math.max(0,...w.items.map((i,n)=>i.prescription?.position||n+1))+1;
     selected=id; $('coachTreinoId').value=id; $('alunoTreinoId').value=id;
     text($('previewTreinoAluno'),w.date+' • '+w.goal+' • '+w.studentId);
     w.items.forEach(i => text($('previewTreinoAluno'),[i.block,i.category,i.exercise,i.metric,i.quantity,i.minutes+' min',i.notes].join(' • ')));
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    if (!feedback.length) text($('listaRetornos'),'Nenhum retorno registrado.');
+    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',f.comment].filter(Boolean).join(' • '));});
+    if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
   }
   async function refresh(id) {
     const workouts=await rpc({action:'listWorkouts',data:{}});
@@ -668,14 +678,22 @@ function createRpc(run, getSessionToken) {
     else { selected=''; $('coachTreinoId').value=''; $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren(); }
   }
   $('btnCriarTreino').addEventListener('click',()=>perform(async()=>{
-    const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,goal:$('coachObjetivoDia').value});
+    const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,goal:$('coachObjetivoDia').value,...($('coachInstructions').value.trim()?{instructions:$('coachInstructions').value.trim().split('\n').map(s=>s.trim()).filter(Boolean)}:{})});
     await refresh(w.id);
   }));
+  function collectPrescription() {
+    const p={position:Number($('itemPosition').value),quantity:Number($('itemQtd').value),quantityUnit:$('itemDoseUnit').value,rpeApplicable:$('itemRpeApplicable').checked};
+    if($('itemSets').value!=='')p.sets=Number($('itemSets').value);
+    if($('itemRestSeconds').value!=='')p.restSeconds=Number($('itemRestSeconds').value);
+    const unit=$('structuredIntensityUnit').value;
+    if(unit){p.intensityUnit=unit;if(['grade','other'].includes(unit))p.intensityText=$('structuredIntensityText').value;else{if($('structuredIntensityMin').value==='')throw Error('Preencha a intensidade mínima');p.intensityMin=Number($('structuredIntensityMin').value);if($('structuredIntensityMax').value!=='')p.intensityMax=Number($('structuredIntensityMax').value);}}
+    return p;
+  }
   $('btnAddItem').addEventListener('click',()=>perform(async()=>{
     if(!selected) throw Error('Selecione um treino');
     if(!$('itemQtd').value || !$('itemMin').value) throw Error('Preencha quantidade e minutos');
     const intensity=$('itemIntensVal').value.trim();
-    await write('addItem',{workoutId:selected,block:$('itemBloco').value,category:$('itemCategoria').value,exercise:$('itemExercicio').value,metric:$('itemMetrica').value,quantity:Number($('itemQtd').value),minutes:Number($('itemMin').value),notes:[$('itemNotas').value, intensity ? 'Intensidade: '+$('itemIntensTipo').value+' '+intensity : ''].filter(Boolean).join('\n')});
+    await write('addItem',{workoutId:selected,block:$('itemBloco').value,category:$('itemCategoria').value,exercise:$('itemExercicio').value,metric:$('itemMetrica').value,quantity:Number($('itemQtd').value),minutes:Number($('itemMin').value),...($('structuredPrescription').checked?{prescription:collectPrescription()}:{}),notes:[$('itemNotas').value, intensity ? 'Intensidade: '+$('itemIntensTipo').value+' '+intensity : ''].filter(Boolean).join('\n')});
     $('itemExercicio').value=''; $('itemNotas').value=''; $('itemIntensVal').value='';
     await detail(selected);
   }));

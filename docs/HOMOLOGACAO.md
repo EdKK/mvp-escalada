@@ -7,10 +7,10 @@ A instalação e autenticação foram atualizadas para OAuth explícito. Seguir 
 Resumo reproduzível:
 
 1. Criar planilha nova, vazia, privada e exclusiva de homologação e projeto Apps Script independente. Não compartilhar com alunos ou treinador de teste; somente o proprietário administra o armazenamento.
-2. Copiar Backend.gs, Auth.gs, Homologation.gs, Index.html (nome HTML Index) e appsscript.json. Não copiar arquivos legados da raiz. Configurar ENVIRONMENT=homologation, SPREADSHEET_ID e HOMOLOGATION_SPREADSHEET_ID com o ID da mesma planilha vazia. ID é o trecho entre /d/ e /edit do URL do Sheets.
+2. Copiar Backend.gs, Student.gs, Auth.gs, Homologation.gs, Index.html (nome HTML Index), Student.html (nome HTML Student) e appsscript.json. Não copiar arquivos legados da raiz. Configurar ENVIRONMENT=homologation, SPREADSHEET_ID e HOMOLOGATION_SPREADSHEET_ID com o ID da mesma planilha vazia. ID é o trecho entre /d/ e /edit do URL do Sheets.
 3. Configurar cliente OAuth/consentimento e implantação de teste executada como proprietário, conforme o documento de autenticação. Alunos consentem somente openid/email. Proprietário autoriza spreadsheets e script.external_request. Manter todos os valores reais fora do Git. Acesso externo ao shell é necessário; acesso aos dados continua condicionado a OAuth e Users ativo.
 4. Executar seedHomologation_ no editor apenas na planilha vazia; autorizar como proprietário. A rotina recusa tabelas com registros, inclusive carga anterior/parcial. Nunca limpar planilha para repetir: inspecionar ou selecionar outra planilha vazia. Na aba Users substituir somente emails example.invalid pelos três Gmail de teste, mantendo IDs/papéis/booleanos.
-5. Abrir o /exec da implantação de teste. Preparar entrada, abrir Google na nova aba, escolher conta e voltar à aba original para Concluir entrada. Não usar /dev para comprovar acesso de aluno. A planilha e o código devem permanecer inacessíveis aos alunos.
+5. Abrir o /exec da implantação de teste como aluno; treinador usa /exec?view=coach. Preparar entrada, abrir Google na nova aba, escolher conta e voltar à aba original para Concluir entrada. Não usar /dev para comprovar acesso de aluno. A planilha e o código devem permanecer inacessíveis aos alunos.
 6. No computador e no Safari do iPhone repetir com cada conta controlada. Login/estado duram 10 minutos; sessão MVP dura no máximo 30 minutos. Fechar/recarregar a aba exige novo login. Sair revoga somente a sessão MVP. Não publicar para usuários reais.
 
 ## Protocolo de aprovação (registrar resultado, data, papel e evidência sem emails)
@@ -65,3 +65,6 @@ Conferir linhas e IDs como proprietário. Não registrar emails, cookies, tokens
 ## Impedimentos e encerramento
 
 Dependem de ação manual: criação de contas/projeto/planilha, cliente OAuth externo em Testing, consentimento, cadastro de test users, redirect autorizado, implantação de teste e observação das identidades reais. Não há prova de funcionamento Google no repositório. Se H01 ou H02 falhar, não prosseguir para usuários reais; documentar a modalidade de implantação e revisar autenticação. Após os testes, arquivar a implantação de homologação quando não for mais necessária; preservar evidências sem dados pessoais. Esta etapa não autoriza migração, implantação em produção ou merge.
+
+
+Para a nova interface do aluno e os testes de relógios, revisões de feedback e unidades, seguir também INTERFACE-ALUNO.md. As verificações de domínio Workspace foram substituídas pelo OAuth explícito para Gmail.

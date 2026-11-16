@@ -54,3 +54,8 @@ A interface guarda sessão e chaves de repetição apenas em memória. Recarrega
 Da raiz: node --test tests/*.test.cjs (Node 18+). tests/package.json isola os testes do package.json legado inválido, que permanece preservado. Não instalar dependências legadas.
 
 Testes usam serviços Google substitutos e não comprovam assinatura/tokeninfo reais, troca OAuth, identidade, persistência, interface em navegador ou concorrência distribuída. O protocolo de homologação documenta os testes reais pendentes, incluindo consentimento, sessões por Gmail, expiração, falhas e Safari. Não há comprovação Google nem publicação nesta entrega.
+
+
+## Nova tela do aluno
+
+Ver [INTERFACE-ALUNO.md](../docs/INTERFACE-ALUNO.md). Copiar também Student.gs e Student.html ao projeto Google. O /exec abre a nova tela; /exec?view=coach mantém o treinador. Três abas complementares preservam as tabelas anteriores; executar initializeSchema_ apenas na planilha de homologação antes de gravar prescrições/feedback por item. A API ganhou submitItemFeedback e suplementos opcionais de prescrição/orientação.

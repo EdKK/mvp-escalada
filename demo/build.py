@@ -4,13 +4,14 @@ import re
 root = Path(__file__).resolve().parent.parent
 source = (root / 'apps-script/Index.html').read_text()
 backend = (root / 'apps-script/Backend.gs').read_text().split('// Serves the isolated integration UI')[0]
+backend += '\n' + (root / 'apps-script/Student.gs').read_text()
 backend = backend.replace("['beginLogin', 'finishLogin', 'logout', 'getSession'", "['getSession'")
 backend = re.sub(r"    if \(request.action === 'beginLogin'\).*?    var identity", '    var identity', backend, flags=re.S)
 fixture = (root / 'apps-script/Homologation.gs').read_text().split('function homologationFixture_()')[1]
 backend_js = '''function createDemoBackend() {
   let active = 'hom-coach', sequence = 0;
   let tables = {};
-  const profiles = [{id:'hom-coach',label:'Treinador Demo',role:'coach'}, {id:'hom-student-a',label:'Aluna A Demo',role:'student'}, {id:'hom-student-b',label:'Aluno B Demo',role:'student'}];
+  const profiles = [{id:'hom-coach',label:'Treinador Demo',role:'coach'}, {id:'hom-student-a',label:'Aluna A Demo',role:'student'}, {id:'hom-student-b',label:'Aluno B Demo',role:'student'}, {id:'hom-student-empty',label:'Sem treinos Demo',role:'student'}];
   const PropertiesService = {getScriptProperties:()=>({getProperty:()=> 'demo-only'})};
   const SpreadsheetApp = {openById:()=>({getSheetByName: name=>sheet(name)}), flush() {}};
   const Utilities = {getUuid:()=> 'demo-'+(++sequence)};
@@ -26,6 +27,7 @@ backend_js = '''function createDemoBackend() {
     sequence=0;
     tables=Object.fromEntries(Object.entries(SCHEMA_).map(([name,headers])=>[name,[[...headers]]]));
     const seed=homologationFixture_();
+    seed.Users.push({id:'hom-student-empty',email:'empty@example.invalid',role:'student',active:true});
     Object.keys(seed).forEach(name=>seed[name].forEach(row=>append_(db_(),name,row)));
     append_(db_(),'Feedback',{id:'hom-feedback-a',workoutId:'hom-workout-a',studentId:'hom-student-a',status:'Concluído',reason:'',fingerPain:0,rpe:6,comment:'Retorno fictício: sessão concluída com boa técnica.',createdAt:'2026-11-16T13:00:00.000Z'});
   }

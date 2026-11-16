@@ -11,4 +11,7 @@ Reconstruir: python3 demo/build.py. Testar: node --test tests/*.test.cjs. São t
 
 Demonstração hospedada: https://mvp-escalada-demo-visual.kacaaranha.chatgpt.site
 
-Site independente no Sites, privado ao proprietário: no iPhone usar a mesma conta ChatGPT que criou a demonstração. Não há autenticação Google real dentro da demo. Não houve teste visual em Safari neste ambiente; 28 testes locais de lógica/estrutura passaram.
+Site independente no Sites, privado ao proprietário: no iPhone usar a mesma conta ChatGPT que criou a demonstração. Não há autenticação Google real dentro da demo. Não houve teste visual em Safari neste ambiente; 40 testes locais de lógica/estrutura passaram.
+
+
+Nova tela do aluno: demo/student.html (fonte/build em student/). Na hospedagem, a raiz abre esta nova versão; a demonstração anterior de treinador permanece em coach.html. Os estados em memória são independentes entre as páginas. Ver docs/INTERFACE-ALUNO.md para modelo, testes e limites de homologação.

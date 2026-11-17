@@ -178,7 +178,7 @@ function doGet(e) {
   if(!p || p.view!=='coach') {
     var redirect=PropertiesService.getScriptProperties().getProperty('GOOGLE_REDIRECT_URI') || '';
     var coachUrl=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(redirect)?redirect:'https://script.google.com/home';
-    return HtmlService.createHtmlOutput(HtmlService.createHtmlOutputFromFile('Student').getContent().replace('@@COACH_URL@@',coachUrl+'?view=coach')).setTitle('MVP Escalada — Aluno');
+    return HtmlService.createHtmlOutput(HtmlService.createHtmlOutputFromFile('Student').getContent().replace('@@COACH_URL@@',coachUrl+'?view=coach')).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover').setTitle('MVP Escalada — Aluno');
   }
   return HtmlService.createHtmlOutputFromFile('Index').setTitle('MVP Escalada');
 }

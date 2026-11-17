@@ -4,3 +4,90 @@
 @media(max-width:480px){.brand-name{font-size:25px}.hero{padding:31px 20px 65px;min-height:192px}.hero h2{font-size:20px}.content{padding-left:12px;padding-right:12px}.day{flex-basis:65px;height:65px}.days{gap:10px}.day-navigation{margin-top:-43px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.metric{padding:8px}.metric span{font-size:11px}.metric strong{font-size:14px;margin-top:4px}.exercise-timer{grid-template-columns:repeat(3,1fr)}.clock-face{grid-column:1/-1;min-height:57px;font-size:34px}.timer-btn{font-size:12px;min-height:44px}.exercise .exercise-title{font-size:13px}.exercise summary{gap:9px;padding:11px 11px}.expand-label{font-size:10px}.info-row h3{font-size:14px}.info-row p,.info-row ol{font-size:12px}.information{padding:13px 12px}.exercise-actions{gap:7px}.exercise-actions button{font-size:11px}.modal{padding:20px 17px}.demo-strip{gap:7px}.demo-strip span{display:none}}
 @media(min-width:760px){.app-shell{margin:24px auto;border-radius:24px;overflow:hidden;border:1px solid #e0e5ee}.hero{padding:42px 30px 75px;min-height:220px}.brand-name{font-size:31px}.hero h2{font-size:24px}.content{padding:9px 22px 42px}.days{justify-content:center}.day{flex-basis:78px;height:78px}.day span{font-size:15px}.day strong{font-size:25px}.exercise .exercise-title{font-size:16px}.exercise-actions button{font-size:14px}.info-row h3{font-size:17px}.info-row p,.info-row ol{font-size:14px}.metric span{font-size:12px}.metric strong{font-size:15px}.clock-face{font-size:34px}.timer-btn{font-size:13px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* Mobile layout: use the iframe's actual available width; preserve browser zoom. */
+html { width:100%; min-width:0; font-size:16px; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+body { width:100%; min-width:0; }
+.app-shell { width:100%; max-width:none; margin:0; border:0; border-radius:0; box-shadow:none; min-height:100vh; min-height:100dvh; }
+.content, .brand-row, .info-row, .info-row > div, .exercise-body, .metrics, .metric, .exercise-timer, .rest-row, .modal, .form-grid, .form-grid > div { min-width:0; }
+.content { padding:12px max(12px, env(safe-area-inset-right)) 32px max(12px, env(safe-area-inset-left)); }
+.hero { padding:30px max(20px, env(safe-area-inset-right)) 68px max(20px, env(safe-area-inset-left)); }
+.brand-name { min-width:0; font-size:clamp(25px, 5.5vw, 32px); overflow-wrap:anywhere; }
+.mountain, .profile-icon, .chevron, .info-icon { flex-shrink:0; }
+.hero h2 { font-size:22px; }
+.hero .eyebrow { font-size:12px; letter-spacing:1px; line-height:1.5; }
+button, select { min-height:48px; }
+button { font-size:16px; white-space:normal; overflow-wrap:anywhere; }
+button svg { width:22px; height:22px; }
+.day-navigation { margin:-47px max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left)); }
+.day-navigation > .icon-only { width:44px; min-width:44px; min-height:48px; }
+.days { min-width:0; justify-content:flex-start; overflow-x:auto; overflow-y:hidden; }
+.day { flex:0 0 72px; height:72px; }
+.day span { font-size:16px; }
+.day strong { font-size:26px; }
+.session-topline { flex-wrap:wrap; font-size:14px; }
+.session-topline button { min-height:44px; font-size:15px; padding:8px; }
+.information { padding:16px 12px; }
+.info-row h3 { font-size:18px; line-height:1.4; }
+.info-row p, .info-row ol { font-size:16px; line-height:1.65; overflow-wrap:anywhere; }
+.info-icon { flex-basis:42px; height:42px; }
+.info-icon svg { width:28px; height:28px; }
+.progress-line { flex-wrap:wrap; font-size:14px; line-height:1.5; }
+.exercise { width:100%; }
+.exercise summary { padding:14px 12px; gap:10px; }
+.exercise .exercise-title { font-size:17px; overflow-wrap:anywhere; }
+.exercise .number { flex-basis:34px; height:34px; font-size:20px; }
+.expand-label { font-size:13px; }
+.chevron { width:22px; height:22px; }
+.status-label { font-size:14px; line-height:1.5; }
+.metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.metric { padding:12px 8px; }
+.metric span { font-size:14px; white-space:normal; flex-wrap:wrap; overflow-wrap:anywhere; }
+.metric svg { width:22px; height:22px; flex-shrink:0; }
+.metric strong { font-size:17px; line-height:1.5; }
+.technical-note { font-size:16px; line-height:1.6; }
+.technical-note strong { font-size:16px; }
+.technical-note p { overflow-wrap:anywhere; }
+.technical-note svg { width:24px; height:24px; }
+.exercise-timer { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.clock-face { grid-column:1/-1; min-height:64px; font-size:40px; }
+.clock-face svg { width:28px; height:28px; }
+.timer-btn { min-height:48px; font-size:15px; flex-wrap:wrap; padding:10px 5px; }
+.rest-row { font-size:15px; padding:10px; }
+.rest-row button { min-height:44px; font-size:15px; padding:8px; }
+.exercise-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.exercise-actions button { min-height:52px; font-size:16px; padding:12px 8px; flex-wrap:wrap; }
+.saved-note { font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+.empty-state p, #sessionSelect { font-size:16px; }
+#sessionSelect { min-width:0; max-width:100%; }
+.toast { font-size:16px; overflow-wrap:anywhere; }
+.overlay { padding:12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left)); }
+.modal { max-width:620px; max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); padding:22px 16px; }
+.modal h2 { font-size:24px; overflow-wrap:anywhere; }
+.modal .subheading, label { font-size:16px; line-height:1.5; }
+.form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-size:16px; }
+.modal-actions { flex-wrap:wrap; }
+.modal-actions button { flex:1 1 120px; min-height:48px; }
+.field-error, .history { font-size:15px; overflow-wrap:anywhere; }
+.auth-box { margin:20px max(12px, env(safe-area-inset-right)) 20px max(12px, env(safe-area-inset-left)); padding:22px 16px; }
+.auth-box h2 { font-size:26px; line-height:1.3; }
+.auth-box p, .auth-box a { font-size:18px; overflow-wrap:anywhere; }
+.auth-box button { min-height:52px; font-size:18px; }
+.app-footer { font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.demo-strip select, .demo-strip button { font-size:16px; min-height:44px; }
+@media (max-width:400px) {
+  .form-grid, .exercise-actions { grid-template-columns:minmax(0,1fr); }
+  .expand-label { display:none; }
+}
+/* Wide phones in landscape still use the entire iframe width, without a desktop frame. */
+@media (orientation:landscape) and (max-height:600px) {
+  .app-shell { width:100%; max-width:none; margin:0; border:0; border-radius:0; }
+  .hero { min-height:160px; padding-top:20px; }
+  .overlay { align-items:flex-start; overflow-y:auto; }
+}
+@media (min-width:800px) {
+  .metrics { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .exercise-timer { grid-template-columns:minmax(180px,1.45fr) repeat(3,minmax(0,1fr)); }
+  .clock-face { grid-column:auto; }
+}

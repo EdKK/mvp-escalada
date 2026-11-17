@@ -1,0 +1,80 @@
+{
+  "environment": "LOCAL_SIMULADO",
+  "googleAppsScriptExecuted": false,
+  "referenceCommit": "013e3199f7984728259fb39d63b36aeddac0a8f6",
+  "correctionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
+  "cases": [
+    {
+      "name": "Repeaters fictícios",
+      "indicatorId": "int-max-force",
+      "percent": 60,
+      "grade": null,
+      "scale": null,
+      "target": 240,
+      "targetUnit": "unit-newton",
+      "volume": 168,
+      "volumeUnit": "unit-hang-seconds",
+      "expectedVolume": 168,
+      "result": "APROVADO"
+    },
+    {
+      "name": "Max hangs fictícios",
+      "indicatorId": "int-max-force",
+      "percent": 90,
+      "grade": null,
+      "scale": null,
+      "target": 360,
+      "targetUnit": "unit-newton",
+      "volume": 50,
+      "volumeUnit": "unit-hang-seconds",
+      "expectedVolume": 50,
+      "result": "APROVADO"
+    },
+    {
+      "name": "Boulder 4×4 fictício",
+      "indicatorId": "int-grade",
+      "percent": null,
+      "grade": "V4",
+      "scale": "V-scale",
+      "target": null,
+      "targetUnit": null,
+      "volume": 80,
+      "volumeUnit": "unit-hand-moves",
+      "expectedVolume": 80,
+      "result": "APROVADO"
+    },
+    {
+      "name": "Supino fictício",
+      "indicatorId": "int-1rm",
+      "percent": 85,
+      "grade": null,
+      "scale": null,
+      "target": 85,
+      "targetUnit": "unit-kg",
+      "volume": 15,
+      "volumeUnit": "unit-repetitions",
+      "expectedVolume": 15,
+      "result": "APROVADO"
+    }
+  ],
+  "secondInitializationIdentical": true,
+  "catalogCounts": {
+    "CAPACIDADES": 14,
+    "METODOS": 15,
+    "UNIDADES": 14,
+    "INDICADORES": 7,
+    "EXERCICIOS": 10,
+    "EXERCICIO_CAPACIDADES": 26,
+    "EXERCICIO_METODOS": 38,
+    "AVALIACOES": 0,
+    "PRESCRICOES": 0,
+    "PRESCRICAO_SERIES": 0
+  },
+  "files": {
+    "tests/library.test.cjs": "1df9584bb9f9c1fdc915e66591676028b0c02c59d81857bfc9ebef0a0ee47493",
+    "tests/library-homologation.test.cjs": "2b1cad703db45c7ff363b9c7269061cdc228d3258bae4f7a0ffaabf11e9ee691",
+    "apps-script/TrainingLibrary.gs": "5ec7fb2f4bf302755c1311ceda5f05341e5c72eaa68354ba80da9ce0e419db0f",
+    "apps-script/TrainingLoad.gs": "cb43348b5adab86ce1daabeff62b8d8327b12e670ea06145f392fc8ba7e1320f",
+    "apps-script/TrainingCatalog.gs": "2b06771ec3a1d750f39afff126a3a2b5041333c7fb722f232ab1be1b0354ecc0"
+  }
+}

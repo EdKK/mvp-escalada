@@ -1,0 +1,412 @@
+TAP version 13
+# Subtest: Google code flow, PKCE and browser proof produce a short-lived app session
+ok 1 - Google code flow, PKCE and browser proof produce a short-lived app session
+  ---
+  duration_ms: 10.726499
+  type: 'test'
+  ...
+# Subtest: missing or forged app sessions never fall back to Apps Script operator identity
+ok 2 - missing or forged app sessions never fall back to Apps Script operator identity
+  ---
+  duration_ms: 1.775362
+  type: 'test'
+  ...
+# Subtest: only original browser proof can obtain login result; no cross-login swapping
+ok 3 - only original browser proof can obtain login result; no cross-login swapping
+  ---
+  duration_ms: 2.36256
+  type: 'test'
+  ...
+# Subtest: callback state is required, expires and cannot be replayed
+ok 4 - callback state is required, expires and cannot be replayed
+  ---
+  duration_ms: 1.765649
+  type: 'test'
+  ...
+# Subtest: invalid claims and unregistered identities cannot establish sessions
+ok 5 - invalid claims and unregistered identities cannot establish sessions
+  ---
+  duration_ms: 26.907763
+  type: 'test'
+  ...
+# Subtest: Google errors, consent denial and upstream outage fail closed without details
+ok 6 - Google errors, consent denial and upstream outage fail closed without details
+  ---
+  duration_ms: 6.959727
+  type: 'test'
+  ...
+# Subtest: session logout and allowlist deactivation are enforced on subsequent requests
+ok 7 - session logout and allowlist deactivation are enforced on subsequent requests
+  ---
+  duration_ms: 2.747642
+  type: 'test'
+  ...
+# Subtest: cache eviction fails closed; OAuth configuration and rate limits are required
+ok 8 - cache eviction fails closed; OAuth configuration and rate limits are required
+  ---
+  duration_ms: 7.10017
+  type: 'test'
+  ...
+# Subtest: three independent Gmail identities retain existing coach/student authorization
+ok 9 - three independent Gmail identities retain existing coach/student authorization
+  ---
+  duration_ms: 4.689697
+  type: 'test'
+  ...
+# Subtest: missing identity and unregistered/disabled users are rejected
+ok 10 - missing identity and unregistered/disabled users are rejected
+  ---
+  duration_ms: 4.461672
+  type: 'test'
+  ...
+# Subtest: student sees only own workouts and cannot create or add items
+ok 11 - student sees only own workouts and cannot create or add items
+  ---
+  duration_ms: 4.177212
+  type: 'test'
+  ...
+# Subtest: coach relationship required on reads and writes
+ok 12 - coach relationship required on reads and writes
+  ---
+  duration_ms: 1.962226
+  type: 'test'
+  ...
+# Subtest: validation rejects dates, formulas, unknown fields and invalid numbers
+ok 13 - validation rejects dates, formulas, unknown fields and invalid numbers
+  ---
+  duration_ms: 2.052783
+  type: 'test'
+  ...
+# Subtest: idempotent workout and item writes; reused key with changed payload conflicts
+ok 14 - idempotent workout and item writes; reused key with changed payload conflicts
+  ---
+  duration_ms: 2.017128
+  type: 'test'
+  ...
+# Subtest: partial write recovery retains reserved ID and creates one record
+ok 15 - partial write recovery retains reserved ID and creates one record
+  ---
+  duration_ms: 1.231301
+  type: 'test'
+  ...
+# Subtest: lock contention rejects write without side effects, retry succeeds
+ok 16 - lock contention rejects write without side effects, retry succeeds
+  ---
+  duration_ms: 1.004388
+  type: 'test'
+  ...
+# Subtest: schema mismatch does not overwrite existing cells
+ok 17 - schema mismatch does not overwrite existing cells
+  ---
+  duration_ms: 1.147904
+  type: 'test'
+  ...
+# Subtest: feedback ownership, coach read, validation and duplicate protection
+ok 18 - feedback ownership, coach read, validation and duplicate protection
+  ---
+  duration_ms: 3.292025
+  type: 'test'
+  ...
+# Subtest: session and student picker disclose only authorized IDs
+ok 19 - session and student picker disclose only authorized IDs
+  ---
+  duration_ms: 2.750747
+  type: 'test'
+  ...
+# Subtest: feedback partial write and lock contention are recoverable
+ok 20 - feedback partial write and lock contention are recoverable
+  ---
+  duration_ms: 1.580429
+  type: 'test'
+  ...
+# Subtest: homologation seed requires explicit environment and empty tables
+ok 21 - homologation seed requires explicit environment and empty tables
+  ---
+  duration_ms: 2.80621
+  type: 'test'
+  ...
+# Subtest: RPC adapter sends request and resolves API data
+ok 22 - RPC adapter sends request and resolves API data
+  ---
+  duration_ms: 0.773649
+  type: 'test'
+  ...
+# Subtest: RPC adapter rejects authorization, malformed responses and transport failures
+ok 23 - RPC adapter rejects authorization, malformed responses and transport failures
+  ---
+  duration_ms: 1.592737
+  type: 'test'
+  ...
+# Subtest: integration script parses and original integration channels are absent
+ok 24 - integration script parses and original integration channels are absent
+  ---
+  duration_ms: 0.548659
+  type: 'test'
+  ...
+# Subtest: deployment files are consistent and UI references existing unique IDs
+ok 25 - deployment files are consistent and UI references existing unique IDs
+  ---
+  duration_ms: 0.649061
+  type: 'test'
+  ...
+# Subtest: RPC attaches in-memory session without mutating caller payload
+ok 26 - RPC attaches in-memory session without mutating caller payload
+  ---
+  duration_ms: 0.276158
+  type: 'test'
+  ...
+# Subtest: demo simulates complete coach/student feedback flow and preserves isolation
+ok 27 - demo simulates complete coach/student feedback flow and preserves isolation
+  ---
+  duration_ms: 8.824086
+  type: 'test'
+  ...
+# Subtest: demo backend has no remote data operations or login credentials
+ok 28 - demo backend has no remote data operations or login credentials
+  ---
+  duration_ms: 1.275828
+  type: 'test'
+  ...
+# Subtest: controlled E: assessment replay rechecks a revoked trainer-student link
+ok 29 - controlled E: assessment replay rechecks a revoked trainer-student link
+  ---
+  duration_ms: 11.482231
+  type: 'test'
+  ...
+# Subtest: controlled E: prescription replay cannot return or repair data after access revocation
+ok 30 - controlled E: prescription replay cannot return or repair data after access revocation
+  ---
+  duration_ms: 7.841561
+  type: 'test'
+  ...
+# Subtest: controlled D/F: Sheets Date values preserve timestamps and date-only assessment fields
+ok 31 - controlled D/F: Sheets Date values preserve timestamps and date-only assessment fields
+  ---
+  duration_ms: 7.030153
+  type: 'test'
+  ...
+# Subtest: controlled E: student A cannot access student B or manipulate ownership and parent IDs
+ok 32 - controlled E: student A cannot access student B or manipulate ownership and parent IDs
+  ---
+  duration_ms: 6.514265
+  type: 'test'
+  ...
+# Subtest: controlled F: retry after partial child persistence preserves IDs and creates no duplicate series
+ok 33 - controlled F: retry after partial child persistence preserves IDs and creates no duplicate series
+  ---
+  duration_ms: 5.147228
+  type: 'test'
+  ...
+# Subtest: controlled A/B: initialization preserves all contents and every catalog relationship resolves
+ok 34 - controlled A/B: initialization preserves all contents and every catalog relationship resolves
+  ---
+  duration_ms: 8.478583
+  type: 'test'
+  ...
+# Subtest: development initialization is explicit, idempotent and preserves every legacy record
+ok 35 - development initialization is explicit, idempotent and preserves every legacy record
+  ---
+  duration_ms: 16.373143
+  type: 'test'
+  ...
+# Subtest: existing incompatible headers prevent all schema/catalog writes; partial seed can resume
+ok 36 - existing incompatible headers prevent all schema/catalog writes; partial seed can resume
+  ---
+  duration_ms: 8.790814
+  type: 'test'
+  ...
+# Subtest: exercise registration, stable IDs, canonical duplicate prevention and request replay
+ok 37 - exercise registration, stable IDs, canonical duplicate prevention and request replay
+  ---
+  duration_ms: 8.563451
+  type: 'test'
+  ...
+# Subtest: exercise name reservation also prevents duplicates after a failed entity write
+ok 38 - exercise name reservation also prevents duplicates after a failed entity write
+  ---
+  duration_ms: 4.419189
+  type: 'test'
+  ...
+# Subtest: one exercise associates with different methods/capacities without duplicating exercise
+ok 39 - one exercise associates with different methods/capacities without duplicating exercise
+  ---
+  duration_ms: 8.322656
+  type: 'test'
+  ...
+# Subtest: all four fictitious examples retain distinct units and expected volume
+ok 40 - all four fictitious examples retain distinct units and expected volume
+  ---
+  duration_ms: 21.59243
+  type: 'test'
+  ...
+# Subtest: heterogeneous performed sets are summed; zero is valid only for executed amounts
+ok 41 - heterogeneous performed sets are summed; zero is valid only for executed amounts
+  ---
+  duration_ms: 3.940484
+  type: 'test'
+  ...
+# Subtest: intensity mismatches, ordinal percentages, missing grade scale and unit mismatches fail
+ok 42 - intensity mismatches, ordinal percentages, missing grade scale and unit mismatches fail
+  ---
+  duration_ms: 10.377572
+  type: 'test'
+  ...
+# Subtest: campus remains descriptive, and auxiliary RPE never replaces the primary indicator
+ok 43 - campus remains descriptive, and auxiliary RPE never replaces the primary indicator
+  ---
+  duration_ms: 8.560657
+  type: 'test'
+  ...
+# Subtest: assessments must exist, match the student/exercise, remain current, and use explicit reference units
+ok 44 - assessments must exist, match the student/exercise, remain current, and use explicit reference units
+  ---
+  duration_ms: 11.13659
+  type: 'test'
+  ...
+# Subtest: prescriptions snapshot assessments, append revisions and recover child writes without rewriting history
+ok 45 - prescriptions snapshot assessments, append revisions and recover child writes without rewriting history
+  ---
+  duration_ms: 11.170381
+  type: 'test'
+  ...
+# Subtest: student isolation, coach-only administration and existing OAuth identity are enforced
+ok 46 - student isolation, coach-only administration and existing OAuth identity are enforced
+  ---
+  duration_ms: 10.751157
+  type: 'test'
+  ...
+# Subtest: lock contention and failed prescription reservations prevent duplicate writes
+ok 47 - lock contention and failed prescription reservations prevent duplicate writes
+  ---
+  duration_ms: 5.8033
+  type: 'test'
+  ...
+# Subtest: aerobic and flexibility indicators preserve reference units and configurable volume units
+ok 48 - aerobic and flexibility indicators preserve reference units and configurable volume units
+  ---
+  duration_ms: 8.817395
+  type: 'test'
+  ...
+# Subtest: hand moves are totals only, and seed catalog foreign keys remain valid
+ok 49 - hand moves are totals only, and seed catalog foreign keys remain valid
+  ---
+  duration_ms: 5.870823
+  type: 'test'
+  ...
+# Subtest: data dictionary covers every physical field in the new schema
+ok 50 - data dictionary covers every physical field in the new schema
+  ---
+  duration_ms: 2.080764
+  type: 'test'
+  ...
+# Subtest: OAuth success and failure use responsive presentation without exposing callback data
+ok 51 - OAuth success and failure use responsive presentation without exposing callback data
+  ---
+  duration_ms: 7.414645
+  type: 'test'
+  ...
+# Subtest: return navigation preserves original-tab proof and has a fallback when closing is blocked
+ok 52 - return navigation preserves original-tab proof and has a fallback when closing is blocked
+  ---
+  duration_ms: 1.536762
+  type: 'test'
+  ...
+# Subtest: Apps Script student route supplies the effective device viewport
+ok 53 - Apps Script student route supplies the effective device viewport
+  ---
+  duration_ms: 3.337834
+  type: 'test'
+  ...
+# Subtest: portrait and landscape phone widths do not acquire a desktop frame
+ok 54 - portrait and landscape phone widths do not acquire a desktop frame
+  ---
+  duration_ms: 12.635084
+  type: 'test'
+  ...
+# Subtest: generated Google and demo pages include current responsive CSS and unchanged source controllers
+ok 55 - generated Google and demo pages include current responsive CSS and unchanged source controllers
+  ---
+  duration_ms: 2.615072
+  type: 'test'
+  ...
+# Subtest: dates are sorted/deduplicated; session selection and item order preserve inputs
+ok 56 - dates are sorted/deduplicated; session selection and item order preserve inputs
+  ---
+  duration_ms: 1.015024
+  type: 'test'
+  ...
+# Subtest: exercise clock uses timestamps across hidden intervals, pause, restart and reset
+ok 57 - exercise clock uses timestamps across hidden intervals, pause, restart and reset
+  ---
+  duration_ms: 0.206883
+  type: 'test'
+  ...
+# Subtest: rest countdown is independent, pauses and clamps to zero after screen lock
+ok 58 - rest countdown is independent, pauses and clamps to zero after screen lock
+  ---
+  duration_ms: 0.372843
+  type: 'test'
+  ...
+# Subtest: specific units remain visible; perceived RPE and actual dose are conditional
+ok 59 - specific units remain visible; perceived RPE and actual dose are conditional
+  ---
+  duration_ms: 0.332383
+  type: 'test'
+  ...
+# Subtest: new schema preserves legacy rows and adds structured instructions/prescriptions
+ok 60 - new schema preserves legacy rows and adds structured instructions/prescriptions
+  ---
+  duration_ms: 8.443631
+  type: 'test'
+  ...
+# Subtest: item feedback is authorized by owner and parent workout; coach cannot submit
+ok 61 - item feedback is authorized by owner and parent workout; coach cannot submit
+  ---
+  duration_ms: 2.957219
+  type: 'test'
+  ...
+# Subtest: correction appends a revision, changes visual state, and never modifies prescription/session
+ok 62 - correction appends a revision, changes visual state, and never modifies prescription/session
+  ---
+  duration_ms: 2.908635
+  type: 'test'
+  ...
+# Subtest: feedback validation rejects invalid pain, RPE, quantities, and wrong units
+ok 63 - feedback validation rejects invalid pain, RPE, quantities, and wrong units
+  ---
+  duration_ms: 1.884017
+  type: 'test'
+  ...
+# Subtest: partial structured write recovers with same request and item id
+ok 64 - partial structured write recovers with same request and item id
+  ---
+  duration_ms: 1.935034
+  type: 'test'
+  ...
+# Subtest: order conflicts and simultaneous/stale feedback requests do not duplicate records
+ok 65 - order conflicts and simultaneous/stale feedback requests do not duplicate records
+  ---
+  duration_ms: 3.192835
+  type: 'test'
+  ...
+# Subtest: student UI has native multi-expansion, touch targets, small-screen rules and separate feedback controls
+ok 66 - student UI has native multi-expansion, touch targets, small-screen rules and separate feedback controls
+  ---
+  duration_ms: 1.093793
+  type: 'test'
+  ...
+# Subtest: new demo adapter offers authorized dates and full item feedback with shared server validation
+ok 67 - new demo adapter offers authorized dates and full item feedback with shared server validation
+  ---
+  duration_ms: 10.17647
+  type: 'test'
+  ...
+1..67
+# tests 67
+# suites 0
+# pass 67
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1004.124038

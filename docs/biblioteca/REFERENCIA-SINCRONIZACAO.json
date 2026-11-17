@@ -1,0 +1,96 @@
+{
+  "referenceCommit": "4c6b2b0e4c6a2cd19affda2d5665928f44cb599a",
+  "minimumCorrectionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
+  "algorithm": "SHA-256",
+  "files": [
+    {
+      "repositoryFile": "apps-script/appsscript.json",
+      "installedNames": [
+        "appsscript.json"
+      ],
+      "group": "existing",
+      "sha256": "886c3603ef810a0233f768f237bf754000b3d9537663a419bd2983cc3782cd2d"
+    },
+    {
+      "repositoryFile": "apps-script/Backend.gs",
+      "installedNames": [
+        "Backend.gs"
+      ],
+      "group": "existing",
+      "sha256": "91ca52cfb0ff30e34af7bc0eb28865548609e8062baf1419b8b8b534840a58ee"
+    },
+    {
+      "repositoryFile": "apps-script/Auth.gs",
+      "installedNames": [
+        "Auth.gs"
+      ],
+      "group": "existing",
+      "sha256": "8e3d9bb44cba025374b9c6f4527f44c42ac3ada633c00343221678243371a1eb"
+    },
+    {
+      "repositoryFile": "apps-script/Homologation.gs",
+      "installedNames": [
+        "Homologation.gs"
+      ],
+      "group": "existing",
+      "sha256": "4a54307c05532e7c3d8b21359c8c14f89b3894bcabc9f138d87bdbb6443711d6"
+    },
+    {
+      "repositoryFile": "apps-script/Student.gs",
+      "installedNames": [
+        "StudentLogic.gs",
+        "Student.gs"
+      ],
+      "group": "existing",
+      "sha256": "2a54b56a5c2cc53e032a73adab4c8b95653f09bf02c624fa3b742be5a219c310"
+    },
+    {
+      "repositoryFile": "apps-script/Index.html",
+      "installedNames": [
+        "Index.html"
+      ],
+      "group": "existing",
+      "sha256": "6dbe3f45d42020830b4d908d79323db8f9b9dc2f34212963fbe388b9ee66573a"
+    },
+    {
+      "repositoryFile": "apps-script/Student.html",
+      "installedNames": [
+        "Student.html"
+      ],
+      "group": "existing",
+      "sha256": "b072db467169fae3a1aaabc186bfb914837a2510bfac72c5de3b54db110db34b"
+    },
+    {
+      "repositoryFile": "apps-script/OAuthReturn.html",
+      "installedNames": [
+        "OAuthReturn.html"
+      ],
+      "group": "existing",
+      "sha256": "1fbfa779c2e07ecd80638dca38e121c1a47dfe9710756314501e097c9d785eaa"
+    },
+    {
+      "repositoryFile": "apps-script/TrainingLibrary.gs",
+      "installedNames": [
+        "TrainingLibrary.gs"
+      ],
+      "group": "library",
+      "sha256": "5ec7fb2f4bf302755c1311ceda5f05341e5c72eaa68354ba80da9ce0e419db0f"
+    },
+    {
+      "repositoryFile": "apps-script/TrainingLoad.gs",
+      "installedNames": [
+        "TrainingLoad.gs"
+      ],
+      "group": "library",
+      "sha256": "cb43348b5adab86ce1daabeff62b8d8327b12e670ea06145f392fc8ba7e1320f"
+    },
+    {
+      "repositoryFile": "apps-script/TrainingCatalog.gs",
+      "installedNames": [
+        "TrainingCatalog.gs"
+      ],
+      "group": "library",
+      "sha256": "2b06771ec3a1d750f39afff126a3a2b5041333c7fb722f232ab1be1b0354ecc0"
+    }
+  ]
+}

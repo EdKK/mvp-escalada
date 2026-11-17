@@ -2,7 +2,7 @@
 from pathlib import Path
 import re
 root = Path(__file__).resolve().parent.parent
-source = (root / 'apps-script/Index.html').read_text()
+source = (root / 'demo/coach-etapa1-source.html').read_text() # frozen legacy demo; no live library mock
 backend = (root / 'apps-script/Backend.gs').read_text().split('// Serves the isolated integration UI')[0]
 backend += '\n' + (root / 'apps-script/Student.gs').read_text()
 backend = backend.replace("['beginLogin', 'finishLogin', 'logout', 'getSession'", "['getSession'")

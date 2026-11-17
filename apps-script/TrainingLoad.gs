@@ -61,10 +61,11 @@ function libraryRecordAssessment_(db,user,req){
     return {id:id,studentId:d.studentId,exerciseId:d.exerciseId,indicatorId:indicator.id,referenceType:indicator.referenceType,value:libraryNumber_(d.value,Number.MIN_VALUE,1e9,false),unitId:d.unitId,protocol:text_(d.protocol,2000),referenceDefinition:text_(d.referenceDefinition,2000),assessedOn:on,validUntil:until,supersedesId:parent,status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
   });
 }
-function libraryValidateLoad_(db,user,data){
+function libraryValidateLoad_(db,user,data,candidateItem){
   fields_(data,['workoutId','itemId','exerciseId','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','expectedRevision']);
   var w=workout_(db,user,text_(data.workoutId,100));
-  var item=rows_(db,'Items').filter(function(i){return i.id===data.itemId && i.workoutId===w.id;});if(item.length!==1)fail_('NOT_FOUND');
+  var item=candidateItem?[candidateItem]:rows_(db,'Items').filter(function(i){return i.id===data.itemId && i.workoutId===w.id;});
+  if(item.length!==1||item[0].id!==data.itemId||item[0].workoutId!==w.id)fail_('NOT_FOUND');
   var exercise=libraryExercise_(db,data.exerciseId),method=libraryOne_(db,'METODOS',data.methodId,true),protocol=data.protocolId?libraryOne_(db,'METODOS',data.protocolId,true):null;
   if(method.kind!=='method'||(protocol&&protocol.kind!=='protocol'))fail_('INVALID_DATA');
   [method,protocol].filter(Boolean).forEach(function(m){if(!libraryRows_(db,'EXERCICIO_METODOS').some(function(link){return link.exerciseId===exercise.id && link.methodId===m.id;}))fail_('INVALID_DATA');});

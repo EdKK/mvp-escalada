@@ -374,6 +374,7 @@ select.native-hidden {
       #loginPanel p{font-size:18px;line-height:1.6}
       #loginPanel button,#googleLoginLink{font-size:18px;min-height:56px}
     }
+  #libraryPanel select,#libraryPanel input,#libraryPanel textarea{font-size:16px;min-height:44px}#libraryPanel .row{margin-top:10px}#libraryPanel p{overflow-wrap:anywhere}#libraryPanel details{margin-top:12px}#libraryPanel summary{cursor:pointer;min-height:44px}#itemExercicio{font-size:16px}#savedPrescription{color:#bff7d0}
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>
@@ -476,7 +477,7 @@ select.native-hidden {
         <div class="row" style="margin-top:10px">
           <div>
             <label for="itemExercicio">Exercício</label>
-            <input id="itemExercicio" placeholder="Ex: Hangboard 7/3, Boulder limit, ARC 20min..." />
+            <select id="itemExercicio" required><option value="">Carregando biblioteca…</option></select>
           </div>
           <div>
             <label for="itemMetrica">Métrica principal</label>
@@ -493,7 +494,7 @@ select.native-hidden {
 
         <div class="row" style="margin-top:10px">
           <div>
-            <label for="itemQtd">Quantidade</label>
+            <label for="itemQtd" id="quantityLabel">Quantidade padrão</label>
             <input id="itemQtd" type="number" min="0" step="1" placeholder="Ex: 6" />
           </div>
           <div>
@@ -510,7 +511,7 @@ select.native-hidden {
 
         <div class="row" style="margin-top:10px">
           <div>
-            <label for="itemIntensVal">Intensidade (valor)</label>
+            <label for="itemIntensVal" id="intensityLabel">Intensidade (valor)</label>
             <input id="itemIntensVal" placeholder="Ex: 8, V5, 70%, +10kg..." />
           </div>
           <div>
@@ -524,15 +525,27 @@ select.native-hidden {
           <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
         </div>
 
-<details style="margin-top:14px"><summary>Prescrição estruturada para a nova tela do aluno</summary>
-<label><input id="structuredPrescription" type="checkbox" style="width:auto" /> Usar os campos estruturados abaixo</label>
-<div class="row"><div><label for="itemPosition">Ordem do exercício</label><input id="itemPosition" type="number" min="1" step="1" value="1" /></div><div><label for="itemSets">Séries (opcional)</label><input id="itemSets" type="number" min="1" step="1" /></div></div>
-<div class="row"><div><label for="itemDoseUnit">Unidade da quantidade acima</label><select id="itemDoseUnit"><option value="repetitions">Repetições</option><option value="seconds">Segundos</option><option value="hang_seconds">Segundos de suspensão</option><option value="minutes">Minutos</option><option value="meters">Metros</option><option value="attempts">Tentativas</option><option value="moves">Movimentos</option></select></div><div><label for="itemRestSeconds">Descanso em segundos (opcional)</label><input id="itemRestSeconds" type="number" min="0" step="1" /></div></div>
-<div class="row"><div><label for="structuredIntensityUnit">Unidade da intensidade</label><select id="structuredIntensityUnit"><option value="">Não informada</option><option>RPE</option><option>kg</option><option value="%1RM">% de 1RM</option><option value="%bodyweight">% do peso corporal</option><option value="grade">Graduação</option><option value="other">Outra (texto)</option></select></div><div><label for="structuredIntensityText">Graduação ou outra intensidade (texto)</label><input id="structuredIntensityText" /></div></div>
-<div class="row"><div><label for="structuredIntensityMin">Intensidade mínima / única</label><input id="structuredIntensityMin" type="number" step="any" /></div><div><label for="structuredIntensityMax">Intensidade máxima (opcional)</label><input id="structuredIntensityMax" type="number" step="any" /></div></div>
-<label><input id="itemRpeApplicable" type="checkbox" style="width:auto" /> Solicitar RPE percebida no feedback</label></details>
+<section id="libraryPanel" class="card" style="margin-top:14px">
+<p id="libraryDescription" class="muted" aria-live="polite">Selecione um exercício para ver a descrição e os parâmetros.</p>
+<p id="libraryCapacities" class="muted"></p>
+<div class="row"><div><label for="libraryMethod">Método</label><select id="libraryMethod" required></select></div><div><label for="libraryProtocol">Protocolo (opcional)</label><select id="libraryProtocol"></select></div></div>
+<div class="row"><div><label for="libraryCapacity">Capacidade/manifestação contextual</label><select id="libraryCapacity"></select></div><div><label for="libraryClassification">Classificação nesta prescrição</label><select id="libraryClassification"><option value="general">Geral</option><option value="directed">Direcionado</option><option value="specific">Específico</option></select></div></div>
+<div id="assessmentField"><label for="libraryAssessment">Avaliação individual do aluno da sessão</label><select id="libraryAssessment"></select><p id="assessmentInfo" class="muted"></p></div>
+<div id="gradeField" hidden><label for="gradeScale">Escala de graduação</label><input id="gradeScale" placeholder="Ex.: V-scale, francesa, brasileira" /></div>
+<p id="intensityHelp" class="muted"></p>
+<div class="row"><div><label for="libraryVolumeUnit">Unidade de volume</label><select id="libraryVolumeUnit"></select></div><div id="setsField"><label for="librarySets">Número de séries</label><input id="librarySets" type="number" min="1" max="100" step="1" /></div></div>
+<div id="suspensionsField" hidden><label for="librarySuspensions">Suspensões por série</label><input id="librarySuspensions" type="number" min="1" step="1" /></div>
+<div class="row" id="blocksField" hidden><div><label for="libraryBlocks">Número de blocos</label><input id="libraryBlocks" type="number" min="1" step="1" /></div><div><label for="libraryBouts">Trechos/boulders por bloco</label><input id="libraryBouts" type="number" min="1" step="1" /></div></div>
+<details><summary>Distribuição individual por série/bloco (opcional)</summary><label for="volumeDistribution" id="distributionLabel">Uma série por linha</label><textarea id="volumeDistribution"></textarea><p class="muted">Se preenchida, esta distribuição numérica substitui a repetição dos valores padrão; será gravada como séries estruturadas.</p></details>
+<input id="itemPosition" type="hidden" />
+<button id="correctCoachDraft" type="button" hidden>Corrigir parâmetros</button>
+<p id="librarySaveHint" class="muted">Selecione uma sessão e uma referência válida quando exigida. Nenhuma avaliação será criada automaticamente.</p>
+<section id="pendingCoachPanel" hidden><h3>Gravações interrompidas</h3><p class="muted">Retome a intenção existente para evitar duplicação após falha de conexão.</p><div id="pendingCoachSaves"></div></section>
+<p id="savedPrescription" class="muted" aria-live="polite"></p>
+</section>
+
         <div class="btnbar">
-          <button id="btnAddItem" class="primary">Adicionar item ao treino</button>
+          <button id="btnAddItem" class="primary">Salvar exercício e prescrição</button>
         </div>
 
         <div class="muted" style="margin-top:10px">
@@ -631,7 +644,7 @@ select.native-hidden {
 
 </div></div>
 <script>
-function createRpc(run, getSessionToken) {
+function createRpc(run, getSessionToken, method = 'api') {
   return function(request) {
     const token = getSessionToken && getSessionToken();
     if (token) request = Object.assign({}, request, {sessionToken:token});
@@ -639,15 +652,49 @@ function createRpc(run, getSessionToken) {
       run.withSuccessHandler(function(response) {
         if (response && response.ok) resolve(response.data);
         else reject(new Error(response && response.error ? response.error.code : 'INVALID_RESPONSE'));
-      }).withFailureHandler(function() { reject(new Error('TRANSPORT_ERROR')); }).api(request);
+      }).withFailureHandler(function() { reject(new Error('TRANSPORT_ERROR')); })[method](request);
     });
   };
 }
+var CoachLibraryModel = (() => {
+  const kinds={'unit-repetitions':'repetitions','unit-hand-moves':'hand_moves','unit-hang-seconds':'isometric','unit-seconds':'time','unit-meters':'distance'};
+  const metrics={'unit-repetitions':'Reps','unit-hand-moves':'Moves','unit-hang-seconds':'Segundos de suspensão','unit-seconds':'Segundos','unit-meters':'Metros'};
+  function number(value,integer=false){if(String(value).trim()==='')throw Error('Preencha os parâmetros de volume');const n=Number(value);if(!Number.isFinite(n)||n<=0||(integer&&!Number.isInteger(n)))throw Error('Quantidade inválida');return n;}
+  function active(rows){return rows.filter(r=>r.status==='active');}
+  function describe(exercise,catalog){
+    if(exercise.status!=='active')throw Error('Exercício inativo');
+    const linked=(table,links,field)=>active(catalog[table]).filter(r=>links.some(l=>l[field]===r.id));
+    const methods=linked('METODOS',exercise.methods,'methodId');
+    const indicator=active(catalog.INDICADORES).find(i=>i.id===exercise.primaryIndicatorId);if(!indicator)throw Error('Indicador indisponível');
+    return {exercise,indicator,methods:methods.filter(m=>m.kind==='method'),protocols:methods.filter(m=>m.kind==='protocol'),capacities:linked('CAPACIDADES',exercise.capacities,'capacityId'),units:active(catalog.UNIDADES).filter(u=>JSON.parse(exercise.volumeUnitIdsJson).includes(u.id))};
+  }
+  function volume(values){
+    const kind=kinds[values.unitId];if(!kind)throw Error('Unidade incompatível');
+    const input={kind,unitId:values.unitId},lines=(values.distribution||'').trim().split(/\r?\n/).filter(s=>s.trim());
+    if(lines.length){
+      if(kind==='hand_moves')input.blocks=lines.map(line=>({moves:line.split(',').map(v=>number(v,true))}));
+      else if(kind==='isometric')input.sets=lines.map(line=>{const m=line.trim().match(/^(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)$/);if(!m)throw Error('Use suspensões x segundos por linha');return {suspensions:number(m[1],true),seconds:number(m[2])};});
+      else {const field={repetitions:'repetitions',time:'seconds',distance:'meters'}[kind];input.sets=lines.map(v=>({[field]:number(v,kind==='repetitions')}));}
+    }else{
+      const q=number(values.quantity,['repetitions','hand_moves'].includes(kind));
+      if(kind==='hand_moves'){const blocks=number(values.blocks,true),bouts=number(values.bouts,true);if(blocks*bouts>100)throw Error('Máximo de 100 trechos');input.blocks=Array.from({length:blocks},()=>({moves:Array(bouts).fill(q)}));}
+      else {const sets=number(values.sets,true);if(sets>100)throw Error('Máximo de 100 séries');input.sets=Array.from({length:sets},()=>kind==='isometric'?{suspensions:number(values.suspensions,true),seconds:q}:{[{repetitions:'repetitions',time:'seconds',distance:'meters'}[kind]]:q});}
+    }
+    if((input.blocks?input.blocks.reduce((n,b)=>n+b.moves.length,0):input.sets.length)>100)throw Error('Máximo de 100 linhas');
+    return input;
+  }
+  function intensity(selection,values){const indicator=selection.indicator,out={indicatorId:indicator.id};if(indicator.kind==='relative'){if(!values.assessmentId)throw Error('Selecione uma avaliação válida');out.assessmentId=values.assessmentId;out.percent=number(values.value);}else if(indicator.kind==='ordinal'){if(!String(values.value).trim()||!String(values.scale).trim())throw Error('Informe grau e escala');out.value=String(values.value).trim();out.scale=String(values.scale).trim();}else if(indicator.kind==='undefined'){if(!String(values.value).trim())throw Error('Descreva a referência pendente');out.description=String(values.value).trim();}else out.value=number(values.value,true);return out;}
+  function selectionController(lib){let catalog,exercises=[],version=0,current=null;return {async load(){const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1]).sort((a,b)=>a.name.localeCompare(b.name));return {catalog,exercises};},async select(id){const ticket=++version;current=null;if(!exercises.some(e=>e.id===id))throw Error('Selecione um exercício ativo');const details=await lib('getExercise',{exerciseId:id});if(ticket!==version)return null;current=describe(details,catalog);return current;},get current(){return current;}};}
+  return {kinds,metrics,number,active,describe,volume,intensity,selectionController};
+})();
+
 // UI integration
 (async function() {
   const $ = id => document.getElementById(id);
   const notice = message => { $('notice').textContent = message; };
-  let rpc, selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
+  let rpc, libraryRpc, libraryController, selectedWorkout, exerciseSelection, assessments=[], assessmentVersion=0;
+  let pendingCoachSave=null, libraryReady=false;
+  let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
   const key = () => crypto.randomUUID();
   function write(action, data) {
@@ -663,10 +710,10 @@ function createRpc(run, getSessionToken) {
   }
   async function perform(fn) {
     if (busy) return;
-    busy=true; document.querySelectorAll('button').forEach(b => { b.disabled=true; });
+    busy=true; document.querySelectorAll('button').forEach(b => { b.disabled=true; });updateCoachControls();
     try { await fn(); notice('Operação concluída.'); }
     catch(e) { if(e.message==='UNAUTHENTICATED') clearSession(); notice('Não foi possível concluir: '+e.message+'. Tente novamente com os mesmos dados em caso de falha de conexão.'); }
-    finally { busy=false; document.querySelectorAll('button').forEach(b => { b.disabled=false; }); }
+    finally { busy=false; document.querySelectorAll('button').forEach(b => { b.disabled=false; });updateCoachControls(); }
   }
   function text(parent, value) { const p=document.createElement('p'); p.textContent=value; parent.appendChild(p); }
   async function detail(id) {
@@ -676,12 +723,15 @@ function createRpc(run, getSessionToken) {
     const feedback=await rpc({action:'listFeedback',data:{workoutId:id}});
     if(ticket!==generation) return;
     $('itemPosition').value=Math.max(0,...w.items.map((i,n)=>i.prescription?.position||n+1))+1;
+    selectedWorkout=w;
+    if(session?.role==='coach')$('coachAluno').value=w.studentId;
     selected=id; $('coachTreinoId').value=id; $('alunoTreinoId').value=id;
     text($('previewTreinoAluno'),w.date+' • '+w.goal+' • '+w.studentId);
     w.items.forEach(i => text($('previewTreinoAluno'),[i.block,i.category,i.exercise,i.metric,i.quantity,i.minutes+' min',i.notes].join(' • ')));
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
     (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
+    if(session?.role==='coach' && libraryReady){await refreshAssessments();await showLibraryPrescriptions(w.id);}
   }
   async function refresh(id) {
     const workouts=await rpc({action:'listWorkouts',data:{}});
@@ -698,22 +748,100 @@ function createRpc(run, getSessionToken) {
     const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,goal:$('coachObjetivoDia').value,...($('coachInstructions').value.trim()?{instructions:$('coachInstructions').value.trim().split('\n').map(s=>s.trim()).filter(Boolean)}:{})});
     await refresh(w.id);
   }));
-  function collectPrescription() {
-    const p={position:Number($('itemPosition').value),quantity:Number($('itemQtd').value),quantityUnit:$('itemDoseUnit').value,rpeApplicable:$('itemRpeApplicable').checked};
-    if($('itemSets').value!=='')p.sets=Number($('itemSets').value);
-    if($('itemRestSeconds').value!=='')p.restSeconds=Number($('itemRestSeconds').value);
-    const unit=$('structuredIntensityUnit').value;
-    if(unit){p.intensityUnit=unit;if(['grade','other'].includes(unit))p.intensityText=$('structuredIntensityText').value;else{if($('structuredIntensityMin').value==='')throw Error('Preencha a intensidade mínima');p.intensityMin=Number($('structuredIntensityMin').value);if($('structuredIntensityMax').value!=='')p.intensityMax=Number($('structuredIntensityMax').value);}}
-    return p;
+  const library = (action,data={})=>libraryRpc({action,data});
+  const labels={'unit-repetitions':'repetições','unit-hand-moves':'movimentos de mão','unit-hang-seconds':'segundos de suspensão','unit-seconds':'segundos','unit-meters':'metros'};
+  function options(id,rows,placeholder,caption=r=>r.name){
+    $(id).replaceChildren();if(placeholder!==null){const o=document.createElement('option');o.value='';o.textContent=placeholder;$(id).appendChild(o);}
+    rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=caption(r);$(id).appendChild(o);});
+  }
+  function updateCoachControls(){
+    if(!session||session.role!=='coach')return;
+    $('correctCoachDraft').hidden=!pendingCoachSave;
+    document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea').forEach(n=>n.disabled=busy||!!pendingCoachSave);
+    if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
+    else {$('alunoTreinoId').disabled=busy;}
+    $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
+    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!libraryReady||!exerciseSelection||!selected));
+    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':'Salvar exercício e prescrição';
+  }
+  async function loadLibrary(){
+    libraryReady=false;exerciseSelection=null;libraryController=CoachLibraryModel.selectionController(library);
+    try{const result=await libraryController.load();options('itemExercicio',result.exercises,'Selecione um exercício ativo');libraryReady=true;$('librarySaveHint').textContent=result.exercises.length+' exercícios ativos disponíveis. Nenhuma avaliação será criada automaticamente.';await loadPendingSaves();}
+    catch(e){options('itemExercicio',[],'Biblioteca indisponível');$('librarySaveHint').textContent='Não foi possível carregar a biblioteca: '+e.message+'. Confira os módulos e propriedades da homologação. A criação de sessões permanece disponível.';}
+    updateCoachControls();
+  }
+  async function chooseExercise(){
+    exerciseSelection=null;assessmentVersion++;$('libraryDescription').textContent='Carregando exercício…';updateCoachControls();
+    options('libraryMethod',[],'Selecione um método');options('libraryProtocol',[],'Sem protocolo');options('libraryAssessment',[],'Selecione uma sessão');
+    if(!$('itemExercicio').value){$('libraryDescription').textContent='Selecione um exercício ativo.';return;}
+    const selection=await libraryController.select($('itemExercicio').value);if(!selection)return;
+    exerciseSelection=selection;$('libraryDescription').textContent=selection.exercise.description;
+    $('libraryCapacities').textContent='Capacidades/manifestações associadas: '+(selection.capacities.map(c=>c.name).join(' • ')||'Não informadas');
+    options('libraryMethod',selection.methods,'Selecione um método');options('libraryProtocol',selection.protocols,'Sem protocolo');options('libraryCapacity',selection.capacities,'Não especificada');
+    options('libraryVolumeUnit',selection.units,null);$('libraryVolumeUnit').value=selection.exercise.primaryVolumeUnitId;
+    options('itemIntensTipo',[{id:selection.indicator.id,name:selection.indicator.name}],null);
+    $('itemIntensVal').value='';$('gradeScale').value='';$('itemQtd').value='';$('librarySets').value='';$('librarySuspensions').value='';$('libraryBlocks').value='';$('libraryBouts').value='';$('volumeDistribution').value='';
+    const kind=selection.indicator.kind;$('assessmentField').hidden=kind!=='relative';$('gradeField').hidden=kind!=='ordinal';
+    $('itemIntensVal').type=['relative','absolute'].includes(kind)?'number':'text';$('itemIntensVal').step='any';
+    $('intensityLabel').textContent=kind==='relative'?'Intensidade (% da referência selecionada)':kind==='ordinal'?'Grau de dificuldade':kind==='undefined'?'Referência qualitativa (metodologia pendente)':'Intensidade';
+    $('itemIntensVal').placeholder=kind==='relative'?'Ex.: 85':kind==='ordinal'?'Ex.: V4':kind==='undefined'?'Descreva a referência; sem percentual':'Valor';
+    $('intensityHelp').textContent=kind==='undefined'?'Campus board: não há cálculo numérico enquanto a metodologia estiver pendente.':kind==='ordinal'?'O grau é ordinal. Informe a escala; não será convertido em percentual.':'O percentual usa exclusivamente a avaliação individual selecionada, na unidade e no protocolo registrados.';
+    volumeFields();await refreshAssessments();updateCoachControls();
+  }
+  function volumeFields(){
+    const unit=$('libraryVolumeUnit').value,kind=CoachLibraryModel.kinds[unit];
+    $('setsField').hidden=kind==='hand_moves';$('blocksField').hidden=kind!=='hand_moves';$('suspensionsField').hidden=kind!=='isometric';
+    $('quantityLabel').textContent={isometric:'Duração de cada suspensão (segundos)',hand_moves:'Movimentos de mão por trecho/boulder',repetitions:'Repetições por série',time:'Segundos por série',distance:'Metros por série'}[kind]||'Quantidade';
+    options('itemMetrica',[{id:CoachLibraryModel.metrics[unit]||'',name:labels[unit]||'Selecione a unidade'}],null);
+    $('distributionLabel').textContent=kind==='isometric'?'Uma série por linha: suspensões x segundos (ex.: 6 x 7)':kind==='hand_moves'?'Um bloco por linha; movimentos por trecho separados por vírgula (ex.: 5,5,4,6)':'Uma série por linha: '+(labels[unit]||'quantidade');
+    $('itemQtd').step=['hand_moves','repetitions'].includes(kind)?'1':'any';$('itemMetrica').disabled=true;
+  }
+  async function refreshAssessments(){
+    if(pendingCoachSave)return;
+    const ticket=++assessmentVersion,previous=$('libraryAssessment').value;assessments=[];
+    options('libraryAssessment',[],'Selecione uma avaliação válida');$('assessmentInfo').textContent='';
+    if(!exerciseSelection||exerciseSelection.indicator.kind!=='relative')return;
+    if(!selectedWorkout){$('assessmentInfo').textContent='Crie ou selecione uma sessão antes de escolher a referência individual.';return;}
+    const exerciseId=exerciseSelection.exercise.id,workoutId=selectedWorkout.id;
+    const rows=await library('listAssessments',{workoutId,exerciseId});if(ticket!==assessmentVersion)return;
+    assessments=rows;options('libraryAssessment',rows,'Selecione uma avaliação válida',a=>`${a.value} ${a.unitId.replace('unit-','')} • ${a.assessedOn} • ${a.protocol}`);
+    if(rows.some(a=>a.id===previous))$('libraryAssessment').value=previous;
+    $('assessmentInfo').textContent=rows.length?'Referências filtradas pelo aluno e pela data da sessão.':'Nenhuma avaliação válida. Registre a referência pelo processo de avaliações da homologação; não será estimada automaticamente.';
+  }
+  async function showLibraryPrescriptions(workoutId){
+    const rows=await library('listLibraryPrescriptions',{workoutId});if(selected!==workoutId)return;
+    const latest=new Map();rows.forEach(p=>{if(!latest.has(p.itemId)||latest.get(p.itemId).revision<p.revision)latest.set(p.itemId,p);});
+    latest.forEach(p=>{const intensity=JSON.parse(p.intensityJson).primary,volume=JSON.parse(p.volumeJson),snapshot=JSON.parse(p.snapshotJson);const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:intensity.kind==='ordinal'?`${intensity.value} (${intensity.scale})`:intensity.description||String(intensity.value);text($('previewTreinoAluno'),`${snapshot.exercise.name} • ${snapshot.method.name}${snapshot.protocol?' / '+snapshot.protocol.name:''} • ${value} • volume: ${volume.total} ${labels[volume.unitId]} • revisão ${p.revision}`);});
+  }
+  async function loadPendingSaves(){
+    const rows=await library('listPendingCoachSaves',{});$('pendingCoachSaves').replaceChildren();$('pendingCoachPanel').hidden=!rows.length;
+    rows.forEach(row=>button($('pendingCoachSaves'),'Retomar item '+row.itemId,async()=>{pendingCoachSave={requestId:row.requestId,data:row.data};updateCoachControls();await sendCoachSave();}));
+  }
+  function collectCoachSave(){
+    if(!selectedWorkout||!selected)throw Error('Crie ou selecione uma sessão');
+    if(selectedWorkout.studentId!==$('coachAluno').value)throw Error('O aluno escolhido difere da sessão. Crie ou selecione a sessão correta.');
+    if(!exerciseSelection||exerciseSelection.exercise.id!==$('itemExercicio').value)throw Error('Selecione um exercício ativo');
+    if(!$('libraryMethod').value)throw Error('Selecione um método compatível');
+    if($('itemMin').value==='')throw Error('Informe os minutos planejados');
+    const data={workoutId:selected,exerciseId:exerciseSelection.exercise.id,block:$('itemBloco').value,category:$('itemCategoria').value,metric:$('itemMetrica').value,quantity:CoachLibraryModel.number($('itemQtd').value),minutes:Number($('itemMin').value),notes:$('itemNotas').value,methodId:$('libraryMethod').value,classification:$('libraryClassification').value,intensity:CoachLibraryModel.intensity(exerciseSelection,{value:$('itemIntensVal').value,scale:$('gradeScale').value,assessmentId:$('libraryAssessment').value}),volume:CoachLibraryModel.volume({unitId:$('libraryVolumeUnit').value,quantity:$('itemQtd').value,sets:$('librarySets').value,suspensions:$('librarySuspensions').value,blocks:$('libraryBlocks').value,bouts:$('libraryBouts').value,distribution:$('volumeDistribution').value})};
+    if($('libraryProtocol').value)data.protocolId=$('libraryProtocol').value;if($('libraryCapacity').value)data.capacityId=$('libraryCapacity').value;
+    return data;
+  }
+  async function sendCoachSave(){
+    const result=await libraryRpc({action:'saveCoachPrescription',data:pendingCoachSave.data,requestId:pendingCoachSave.requestId});
+    pendingCoachSave=null;$('savedPrescription').textContent=`Prescrição salva: ${result.prescription.id} • volume ${result.prescription.totalVolume} ${labels[result.prescription.volumeUnitId]}.`;
+    $('itemNotas').value='';$('itemQtd').value='';$('itemIntensVal').value='';$('volumeDistribution').value='';updateCoachControls();
+    try{await detail(result.item.workoutId);await loadPendingSaves();}catch(e){$('librarySaveHint').textContent='Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.';}
   }
   $('btnAddItem').addEventListener('click',()=>perform(async()=>{
-    if(!selected) throw Error('Selecione um treino');
-    if(!$('itemQtd').value || !$('itemMin').value) throw Error('Preencha quantidade e minutos');
-    const intensity=$('itemIntensVal').value.trim();
-    await write('addItem',{workoutId:selected,block:$('itemBloco').value,category:$('itemCategoria').value,exercise:$('itemExercicio').value,metric:$('itemMetrica').value,quantity:Number($('itemQtd').value),minutes:Number($('itemMin').value),...($('structuredPrescription').checked?{prescription:collectPrescription()}:{}),notes:[$('itemNotas').value, intensity ? 'Intensidade: '+$('itemIntensTipo').value+' '+intensity : ''].filter(Boolean).join('\n')});
-    $('itemExercicio').value=''; $('itemNotas').value=''; $('itemIntensVal').value='';
-    await detail(selected);
+    if(!pendingCoachSave)pendingCoachSave={requestId:key(),data:JSON.parse(JSON.stringify(collectCoachSave()))};
+    updateCoachControls();try{await sendCoachSave();}catch(e){$('librarySaveHint').textContent='Gravação não confirmada: '+e.message+'. Use Retomar gravação pendente com os mesmos dados. Não crie outra intenção para contornar a falha.';throw e;}
   }));
+  $('correctCoachDraft').addEventListener('click',()=>perform(async()=>{if(!pendingCoachSave)return;const status=await library('coachSaveStatus',{requestId:pendingCoachSave.requestId});if(status.state!=='not_started')throw Error('A gravação já iniciou. Retome a intenção existente para preservar os registros.');pendingCoachSave=null;$('librarySaveHint').textContent='Nenhum registro foi criado. Corrija os parâmetros e salve novamente.';updateCoachControls();}));
+  $('itemExercicio').addEventListener('change',()=>perform(chooseExercise));
+  $('libraryVolumeUnit').addEventListener('change',()=>{volumeFields();$('volumeDistribution').value='';});
+  $('libraryAssessment').addEventListener('change',()=>{const a=assessments.find(a=>a.id===$('libraryAssessment').value);$('assessmentInfo').textContent=a?`Referência: ${a.value} ${a.unitId.replace('unit-','')} • ${a.protocol} • ${a.referenceDefinition}`:'Selecione uma avaliação válida.';});
+
   $('btnEnviarRetorno').addEventListener('click',()=>perform(async()=>{
     if(!selected) throw Error('Selecione um treino');
     if(!$('alunoDor').value || !$('alunoRpe').value) throw Error('Preencha dor e RPE');
@@ -722,7 +850,7 @@ function createRpc(run, getSessionToken) {
   }));
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
   function clearSession() {
-    sessionToken=''; session=null; selected=''; loginAttempt=null; generation++; pending.clear();
+    sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;
     $('googleLoginLink').hidden=true; $('googleLoginLink').removeAttribute('href'); $('btnFinishLogin').hidden=true;
     ['listaTreinos','alunoTreinoId','previewTreinoAluno','listaRetornos','coachAluno'].forEach(id=>$(id).replaceChildren());
@@ -739,6 +867,7 @@ function createRpc(run, getSessionToken) {
       const students=await rpc({action:'listStudents',data:{}});
       $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.id; $('coachAluno').appendChild(o);});
     }
+    if(session.role==='coach')await loadLibrary();
     const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
     $('alunoDor').value='0'; $('alunoRpe').value='6';
     await refresh();
@@ -765,6 +894,7 @@ function createRpc(run, getSessionToken) {
   try {
     if(typeof google==='undefined' || !google.script || !google.script.run) throw Error('Abra no ambiente Google Apps Script');
     rpc=createRpc(google.script.run,()=>sessionToken);
+    libraryRpc=createRpc(google.script.run,()=>sessionToken,'libraryApi');
     button($('appPanel'),'Atualizar treinos',()=>refresh(selected));
   } catch(e) { notice('Acesso indisponível: '+e.message); document.querySelectorAll('button').forEach(b=>{b.disabled=true;}); }
 

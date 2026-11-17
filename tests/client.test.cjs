@@ -30,7 +30,8 @@ test('deployment files are consistent and UI references existing unique IDs',()=
   for(const m of script.matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.includes(m[1]),m[1]);
   const backend=fs.readFileSync('apps-script/Backend.gs','utf8');
   assert.match(backend,/createHtmlOutputFromFile\('Index'\)/);
-  for(const m of script.matchAll(/(?:action:|write\()'([^']+)'/g)) assert.ok(backend.includes("'"+m[1]+"'"),m[1]);
+  const routes=backend+fs.readFileSync('apps-script/TrainingLibrary.gs','utf8');
+  for(const m of script.matchAll(/(?:action:|write\()'([^']+)'/g)) assert.ok(routes.includes("'"+m[1]+"'"),m[1]);
 });
 test('RPC attaches in-memory session without mutating caller payload',async()=>{
   let success,sent;

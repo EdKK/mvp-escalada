@@ -102,7 +102,7 @@ function libraryApi(request){
   var lock;
   try{
     fields_(request,['action','data','requestId','sessionToken']);
-    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription'];
+    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus'];
     if(actions.indexOf(request.action)<0)fail_('INVALID_ACTION');
     var identity=sessionIdentity_(request.sessionToken);lock=LockService.getScriptLock();if(!lock.tryLock(5000))fail_('BUSY');
     var db=libraryDb_(),user=userForEmail_(db,identity.email),d=request.data,result;
@@ -115,6 +115,11 @@ function libraryApi(request){
       if(request.action==='catalog'){fields_(d,[]);result={};['CAPACIDADES','METODOS','UNIDADES','INDICADORES'].forEach(function(name){result[name]=libraryRows_(db,name);});}
       else if(request.action==='listExercises'){fields_(d,[]);result=libraryRows_(db,'EXERCICIOS');}
       else if(request.action==='getExercise'){fields_(d,['exerciseId']);result=libraryOne_(db,'EXERCICIOS',d.exerciseId,false);result.methods=libraryRows_(db,'EXERCICIO_METODOS').filter(function(r){return r.exerciseId===result.id;});result.capacities=libraryRows_(db,'EXERCICIO_CAPACIDADES').filter(function(r){return r.exerciseId===result.id;});}
+      else if(request.action==='listAssessments')result=coachAssessments_(db,user,d);
+      else if(request.action==='listLibraryPrescriptions')result=coachPrescriptions_(db,user,d);
+      else if(request.action==='listPendingCoachSaves')result=coachPendingSaves_(db,user,d);
+      else if(request.action==='coachSaveStatus')result=coachSaveStatus_(db,user,d);
+      else if(request.action==='saveCoachPrescription')result=coachSavePrescription_(db,user,request);
       else if(request.action==='createExercise')result=libraryCreateExercise_(db,user,request);
       else if(request.action==='linkExerciseMethod')result=libraryAssociate_(db,user,request,'EXERCICIO_METODOS','METODOS','methodId');
       else if(request.action==='linkExerciseCapacity')result=libraryAssociate_(db,user,request,'EXERCICIO_CAPACIDADES','CAPACIDADES','capacityId');

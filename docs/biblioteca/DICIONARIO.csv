@@ -1,0 +1,89 @@
+aba,campo,tipo,unidade,obrigatoriedade,referencia,observacoes
+CAPACIDADES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+CAPACIDADES,name,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+CAPACIDADES,kind,string,não aplicável,sim,,"Tipo explícito; capacidades/manifestação, método/protocolo ou tipo de indicador conforme tabela."
+CAPACIDADES,capacityId,string,não aplicável,condicional; vazio quando não aplicável,CAPACIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+CAPACIDADES,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+CAPACIDADES,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+METODOS,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+METODOS,name,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+METODOS,kind,string,não aplicável,sim,,"Tipo explícito; capacidades/manifestação, método/protocolo ou tipo de indicador conforme tabela."
+METODOS,parentId,string,não aplicável,condicional; vazio quando não aplicável,METODOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+METODOS,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+METODOS,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+UNIDADES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+UNIDADES,name,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+UNIDADES,symbol,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+UNIDADES,dimension,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+UNIDADES,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+UNIDADES,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+INDICADORES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+INDICADORES,name,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+INDICADORES,kind,string,não aplicável,sim,,"Tipo explícito; capacidades/manifestação, método/protocolo ou tipo de indicador conforme tabela."
+INDICADORES,referenceType,string,não aplicável,condicional; vazio quando não aplicável,,max_force / one_rm / max_heart_rate / max_rom; vazio para indicador não relativo.
+INDICADORES,referenceUnitsJson,JSON serializado em string,não aplicável,sim,,Array JSON de IDs UNIDADES permitidos na referência.
+INDICADORES,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+INDICADORES,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+EXERCICIOS,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+EXERCICIOS,name,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIOS,nameKey,string,não aplicável,sim,,"Nome normalizado único por exercício: sem acentos, caixa ou espaços duplicados."
+EXERCICIOS,description,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIOS,modality,string,não aplicável,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIOS,primaryIndicatorId,string,não aplicável,sim,INDICADORES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIOS,primaryVolumeUnitId,string,não aplicável,sim,UNIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIOS,volumeUnitIdsJson,JSON serializado em string,não aplicável,sim,,Array JSON não vazio e sem repetição; inclui primaryVolumeUnitId.
+EXERCICIOS,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+EXERCICIOS,origin,string,não aplicável,sim,,seed-example / coach.
+EXERCICIOS,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+EXERCICIO_CAPACIDADES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+EXERCICIO_CAPACIDADES,exerciseId,string,não aplicável,sim,EXERCICIOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIO_CAPACIDADES,capacityId,string,não aplicável,sim,CAPACIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIO_CAPACIDADES,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+EXERCICIO_METODOS,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+EXERCICIO_METODOS,exerciseId,string,não aplicável,sim,EXERCICIOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIO_METODOS,methodId,string,não aplicável,sim,METODOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+EXERCICIO_METODOS,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+AVALIACOES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+AVALIACOES,studentId,string,não aplicável,sim,Users.id (role=student),Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+AVALIACOES,exerciseId,string,não aplicável,sim,EXERCICIOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+AVALIACOES,indicatorId,string,não aplicável,sim,INDICADORES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+AVALIACOES,referenceType,string,não aplicável,sim,,max_force / one_rm / max_heart_rate / max_rom; vazio para indicador não relativo.
+AVALIACOES,value,number finito,AVALIACOES.unitId,sim,,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+AVALIACOES,unitId,string,não aplicável,sim,UNIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+AVALIACOES,protocol,string,não aplicável,sim,,"Descrição do protocolo da avaliação, obrigatória."
+AVALIACOES,referenceDefinition,string,não aplicável,sim,,"Critério e contexto da referência: agarra, apoio, carga total/adicional, articulação etc."
+AVALIACOES,assessedOn,date YYYY-MM-DD,não aplicável,sim,,Data do teste; deve ser <= data da sessão para uso.
+AVALIACOES,validUntil,date YYYY-MM-DD,não aplicável,sim,,Validade explicitamente definida pelo treinador; >= assessedOn.
+AVALIACOES,supersedesId,string,não aplicável,condicional; vazio quando não aplicável,AVALIACOES.id,ID da linha histórica anterior; nunca sobrescrevê-la.
+AVALIACOES,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+AVALIACOES,createdBy,string,não aplicável,sim,Users.id (role=coach),Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+AVALIACOES,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+PRESCRICOES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+PRESCRICOES,workoutId,string,não aplicável,sim,Workouts.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,itemId,string,não aplicável,sim,Items.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,studentId,string,não aplicável,sim,Users.id (role=student),Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,exerciseId,string,não aplicável,sim,EXERCICIOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,methodId,string,não aplicável,sim,METODOS.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,protocolId,string,não aplicável,condicional; vazio quando não aplicável,METODOS.id (kind=protocol),Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,capacityId,string,não aplicável,condicional; vazio quando não aplicável,CAPACIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,classification,string,não aplicável,sim,,"general / directed / specific; contextual nesta prescrição, não no exercício."
+PRESCRICOES,intensityJson,JSON serializado em string,não aplicável,sim,,"Objeto JSON {primary,auxiliary}; mantém cada unidade/contexto separado."
+PRESCRICOES,volumeJson,JSON serializado em string,não aplicável,sim,,"Plano JSON {mode:prescribed,kind,unitId,total,lines}; UUIDs dos filhos reservados para recuperação."
+PRESCRICOES,totalVolume,number finito,PRESCRICOES.volumeUnitId,sim,,Soma das linhas compatíveis desta prescrição.
+PRESCRICOES,volumeUnitId,string,não aplicável,sim,UNIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,assessmentId,string,não aplicável,condicional; vazio quando não aplicável,AVALIACOES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,snapshotJson,JSON serializado em string,não aplicável,sim,,"Objeto JSON imutável com contexto, exercício e referência completa utilizados."
+PRESCRICOES,revision,integer,não aplicável,sim,,"Inteiro crescente por item. expectedRevision é parâmetro da API, não coluna."
+PRESCRICOES,supersedesId,string,não aplicável,condicional; vazio quando não aplicável,PRESCRICOES.id,ID da linha histórica anterior; nunca sobrescrevê-la.
+PRESCRICOES,status,string,não aplicável,sim,,active/inactive. Revisões anteriores preservadas; corrente definida por revision/supersessão.
+PRESCRICOES,createdBy,string,não aplicável,sim,Users.id (role=coach),Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICOES,createdAt,timestamp ISO 8601,não aplicável,sim,,Timestamp ISO 8601 do servidor; catálogo inicial usa timestamp fixo da versão.
+PRESCRICAO_SERIES,id,string,não aplicável,sim,,ID estável; UUID para novos registros e filhos; IDs semânticos no catálogo inicial. Não é número de linha.
+PRESCRICAO_SERIES,prescriptionId,string,não aplicável,sim,PRESCRICOES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICAO_SERIES,blockOrder,integer,não aplicável,sim,,Ordem lógica do bloco; nunca número de linha.
+PRESCRICAO_SERIES,setOrder,integer,não aplicável,sim,,Ordem lógica da série/boulder no bloco.
+PRESCRICAO_SERIES,quantity,number finito,"volumeUnitId, conforme kind do plano",sim,,Isometria usa 1; demais tipos usam quantidade da série/boulder.
+PRESCRICAO_SERIES,occurrences,integer,contagem de suspensões ou 1,sim,,Suspensões na série isométrica; 1 nos demais tipos.
+PRESCRICAO_SERIES,durationSeconds,number finito,segundos,condicional; vazio quando não aplicável,,Duração de cada suspensão; vazio para não isométricos.
+PRESCRICAO_SERIES,volumeUnitId,string,não aplicável,sim,UNIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
+PRESCRICAO_SERIES,total,number finito,"volumeUnitId, conforme kind do plano",sim,,"Volume calculado da linha, sem unidade universal."

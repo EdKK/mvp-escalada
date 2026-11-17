@@ -26,7 +26,7 @@ function librarySheet_(db,name) {
 function libraryRows_(db,name) {
   var s=librarySheet_(db,name),count=s.getLastRow()-1;
   if(count<=0)return [];
-  return s.getRange(2,1,count,LIBRARY_SCHEMA_[name].length).getValues().map(function(row){var out={};LIBRARY_SCHEMA_[name].forEach(function(key,i){out[key]=row[i] instanceof Date?row[i].toISOString().slice(0,10):row[i];});return out;});
+  return s.getRange(2,1,count,LIBRARY_SCHEMA_[name].length).getValues().map(function(row){var out={};LIBRARY_SCHEMA_[name].forEach(function(key,i){out[key]=row[i] instanceof Date?(['assessedOn','validUntil'].indexOf(key)>=0?row[i].toISOString().slice(0,10):row[i].toISOString()):row[i];});return out;});
 }
 function libraryAppend_(db,name,row) {
   // Guard every write, including manual initialization. No production fallback.
@@ -62,7 +62,12 @@ function libraryWrite_(db,user,req,table,build) {
   var id=reservations.length?reservations[0].entityId:id_();
   var existing=libraryRows_(db,table).filter(function(r){return r.id===id;});
   if(existing.length>1)fail_('SCHEMA_ERROR');
-  if(existing.length){libraryRepairChildren_(db,table,existing[0]);return existing[0];}
+  if(existing.length){
+    // Idempotency does not grant enduring access after a link is revoked.
+    if(table==='AVALIACOES'||table==='PRESCRICOES')libraryStudent_(db,user,existing[0].studentId);
+    if(table==='PRESCRICOES')workout_(db,user,existing[0].workoutId);
+    libraryRepairChildren_(db,table,existing[0]);return existing[0];
+  }
   var record=build(id);record.id=id;
   if(!reservations.length){append_(db,'Requests',{id:id_(),userId:user.id,key:key,fingerprint:fingerprint,entity:table,entityId:id});SpreadsheetApp.flush();}
   libraryAppend_(db,table,record);SpreadsheetApp.flush();libraryRepairChildren_(db,table,record);return record;

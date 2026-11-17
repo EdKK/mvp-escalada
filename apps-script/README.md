@@ -6,7 +6,7 @@ Os cinco arquivos originais na raiz permanecem intactos. Apps Script serve Index
 
 Seguir [HOMOLOGACAO.md](../docs/HOMOLOGACAO.md) e [AUTENTICACAO-GMAIL.md](../docs/AUTENTICACAO-GMAIL.md). **A configuração atual substitui a dependência de Session.getActiveUser por OAuth Google explícito**, adequado às três contas Gmail pessoais de teste. Não depende de domínio Workspace. Não usar os procedimentos antigos de login automático.
 
-Arquivos a copiar para o projeto Apps Script: Backend.gs, Auth.gs, Homologation.gs, Index.html e appsscript.json. Executar como proprietário; alunos não recebem acesso ao script ou à planilha. Configuração e credenciais OAuth ficam somente em Script Properties. Não há senha Gmail, refresh token ou credencial Google no navegador/repositório.
+Arquivos a copiar para o projeto Apps Script: Backend.gs, Auth.gs, Homologation.gs, Index.html, OAuthReturn.html e appsscript.json. Executar como proprietário; alunos não recebem acesso ao script ou à planilha. Configuração e credenciais OAuth ficam somente em Script Properties. Não há senha Gmail, refresh token ou credencial Google no navegador/repositório.
 
 ## Esquema
 

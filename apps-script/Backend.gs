@@ -173,7 +173,7 @@ function doGet(e) {
   if (p && (p.state !== undefined || p.code !== undefined || p.error !== undefined)) {
     var ok = completeGoogleLogin_(p);
     // No tokens or claims in the callback page or URL. Only original tab can finish login.
-    return HtmlService.createHtmlOutput(ok ? '<p>Autenticação concluída. Volte à aba original do MVP Escalada e clique em Concluir entrada.</p>' : '<p>Não foi possível autenticar. Volte à aba original e inicie uma nova entrada.</p>').setTitle('MVP Escalada — entrada');
+    return oauthReturnPage_(ok);
   }
   if(!p || p.view!=='coach') {
     var redirect=PropertiesService.getScriptProperties().getProperty('GOOGLE_REDIRECT_URI') || '';
@@ -181,4 +181,21 @@ function doGet(e) {
     return HtmlService.createHtmlOutput(HtmlService.createHtmlOutputFromFile('Student').getContent().replace('@@COACH_URL@@',coachUrl+'?view=coach')).setTitle('MVP Escalada — Aluno');
   }
   return HtmlService.createHtmlOutputFromFile('Index').setTitle('MVP Escalada');
+}
+
+// Presentation only. Callback URLs/claims/tokens are never interpolated into HTML.
+function oauthReturnPage_(ok) {
+  var redirect=PropertiesService.getScriptProperties().getProperty('GOOGLE_REDIRECT_URI') || '';
+  var validUrl=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(redirect);
+  var values={
+    RESULT:ok?'success':'failure',
+    ICON:ok?'<path d="m12 24 8 8 16-18"/>':'<path d="m15 15 18 18m0-18L15 33"/>',
+    TITLE:ok?'Autenticação concluída':'Não foi possível autenticar',
+    INSTRUCTION:ok?"Volte ao MVP Escalada e toque em 'Concluir entrada'.":'Volte à aba original do MVP Escalada e prepare uma nova entrada.',
+    FALLBACK:'Tentaremos fechar esta aba para voltar ao MVP. Se isso não funcionar, abra o seletor de abas do Safari ou do seu navegador e volte à aba original. Não recarregue a aba original.',
+    RECOVERY_HIDDEN:validUrl?'':'hidden',
+    APP_URL:validUrl?redirect:'#'
+  };
+  var html=HtmlService.createHtmlOutputFromFile('OAuthReturn').getContent().replace(/@@([A-Z_]+)@@/g,function(_,key){return values[key];});
+  return HtmlService.createHtmlOutput(html).addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover').setTitle('MVP Escalada — entrada');
 }

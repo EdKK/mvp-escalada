@@ -46,7 +46,7 @@ python3 student/build.py
 node --test tests/*.test.cjs
 ```
 
-Arquivos gerados: demo/index.html (demonstração anterior/treinador), demo/student.html (nova tela simulada), apps-script/Student.html (nova tela com OAuth e RPC). Copiar também Student.gs para o projeto Google junto a Backend.gs, Auth.gs, Homologation.gs, Index.html e manifesto. O /exec abre a nova tela do aluno; /exec?view=coach preserva a interface do treinador. O cliente OAuth continua usando exatamente o /exec base como callback; não alterar redirect para a query view. A identidade e os escopos permanecem conforme AUTENTICACAO-GMAIL.md. Nenhum projeto Google é implantado nesta entrega.
+Arquivos gerados: demo/index.html (demonstração anterior/treinador), demo/student.html (nova tela simulada), apps-script/Student.html (nova tela com OAuth e RPC). Copiar também Student.gs para o projeto Google junto a Backend.gs, Auth.gs, Homologation.gs, Index.html, OAuthReturn.html e manifesto. O /exec abre a nova tela do aluno; /exec?view=coach preserva a interface do treinador. O cliente OAuth continua usando exatamente o /exec base como callback; não alterar redirect para a query view. A identidade e os escopos permanecem conforme AUTENTICACAO-GMAIL.md. Nenhum projeto Google é implantado nesta entrega.
 
 Hospedagem da demonstração: raiz do Site abre a nova tela; coach.html preserva a demo anterior. Os armazenamentos das duas demonstrações são separados e reiniciam na navegação/reload. A demonstração do aluno possui datas fictícias 02/04/06/08 de setembro e perfis A, B e Sem treinos. Está isolada do OAuth/Sheets; não inserir dados reais. student/assets registra origem/licenças dos recursos visuais.
 

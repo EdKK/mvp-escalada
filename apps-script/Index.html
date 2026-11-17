@@ -357,6 +357,23 @@ select.native-hidden {
 .cselect-caret{ opacity:.85; }
 .cselect-muted{ opacity:.75; font-size: 12px; }
 
+
+    /* Acessibilidade da autenticação em telas pequenas. Não altera a lógica OAuth. */
+    #notice{max-width:540px;margin:20px auto 0;padding:0 18px;line-height:1.5;font-size:16px}
+    #loginPanel{width:calc(100% - 32px);max-width:540px;margin:20px auto;padding:28px}
+    #loginPanel h1{font-size:clamp(24px,5vw,30px);line-height:1.25;margin:0 0 16px}
+    #loginPanel p{font-size:17px;line-height:1.55;margin:0 0 20px}
+    #loginPanel button,#googleLoginLink{font-size:17px;line-height:1.4;min-height:52px;padding:14px 18px}
+    #loginPanel button{width:100%;margin:0 0 14px}
+    #googleLoginLink:not([hidden]){display:flex;align-items:center;justify-content:center;text-align:center;width:100%;border:1px solid var(--accent);border-radius:12px;color:var(--txt);background:rgba(110,231,255,.12);margin:0 0 14px;text-decoration:none;font-weight:700}
+    #loginPanel button:focus-visible,#googleLoginLink:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+    @media(max-width:600px){
+      #notice{margin-top:16px;font-size:17px}
+      #loginPanel{width:calc(100% - 24px);margin:16px auto;padding:22px 18px}
+      #loginPanel h1{font-size:27px}
+      #loginPanel p{font-size:18px;line-height:1.6}
+      #loginPanel button,#googleLoginLink{font-size:18px;min-height:56px}
+    }
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>

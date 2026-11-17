@@ -46,7 +46,7 @@ class ComparisonTests(unittest.TestCase):
         r = MODULE.compare(self.folder)
         self.assertTrue(r['existingFilesExact'])
         self.assertFalse(r['libraryFilesExact'])
-        self.assertEqual(sum(f['status'] == 'AUSENTE_NA_COPIA' for f in r['files']), 3)
+        self.assertEqual(sum(f['status'] == 'AUSENTE_NA_COPIA' for f in r['files']), sum(row['group'] == 'library' for row in self.manifest['files']))
 
     def test_duplicate_student_modules_and_unknown_server_files_block_exactness(self):
         self.copies()

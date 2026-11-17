@@ -1,5 +1,5 @@
 {
-  "referenceCommit": "4c6b2b0e4c6a2cd19affda2d5665928f44cb599a",
+  "referenceCommit": "bae615f5f7be2de14902606651f76f63c2ae874f",
   "minimumCorrectionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
   "algorithm": "SHA-256",
   "files": [
@@ -50,7 +50,7 @@
         "Index.html"
       ],
       "group": "existing",
-      "sha256": "6dbe3f45d42020830b4d908d79323db8f9b9dc2f34212963fbe388b9ee66573a"
+      "sha256": "ebc4d9df6015f574cf896d6c9fa7e893ab09c8bb0db553b457c30fd224bf153a"
     },
     {
       "repositoryFile": "apps-script/Student.html",
@@ -74,7 +74,7 @@
         "TrainingLibrary.gs"
       ],
       "group": "library",
-      "sha256": "5ec7fb2f4bf302755c1311ceda5f05341e5c72eaa68354ba80da9ce0e419db0f"
+      "sha256": "d3c9aba2d1e500f7941f6e4eaf91ef3c9f8ea1311e0c4f949d6a58de25283003"
     },
     {
       "repositoryFile": "apps-script/TrainingLoad.gs",
@@ -82,7 +82,7 @@
         "TrainingLoad.gs"
       ],
       "group": "library",
-      "sha256": "cb43348b5adab86ce1daabeff62b8d8327b12e670ea06145f392fc8ba7e1320f"
+      "sha256": "1a4cb7b8af9b9ad5fb6d78ceb74f6676f0f18491bd1e03925f126ef517d6413d"
     },
     {
       "repositoryFile": "apps-script/TrainingCatalog.gs",
@@ -91,6 +91,14 @@
       ],
       "group": "library",
       "sha256": "2b06771ec3a1d750f39afff126a3a2b5041333c7fb722f232ab1be1b0354ecc0"
+    },
+    {
+      "repositoryFile": "apps-script/CoachLibrary.gs",
+      "installedNames": [
+        "CoachLibrary.gs"
+      ],
+      "group": "library",
+      "sha256": "8c3a4d89ff291c3d3309a2f122ae0ef7120a1f1db97142b59d3469d0b50ee37e"
     }
   ]
 }

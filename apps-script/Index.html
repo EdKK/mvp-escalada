@@ -375,6 +375,45 @@ select.native-hidden {
       #loginPanel button,#googleLoginLink{font-size:18px;min-height:56px}
     }
   #libraryPanel select,#libraryPanel input,#libraryPanel textarea{font-size:16px;min-height:44px}#libraryPanel .row{margin-top:10px}#libraryPanel p{overflow-wrap:anywhere}#libraryPanel details{margin-top:12px}#libraryPanel summary{cursor:pointer;min-height:44px}#itemExercicio{font-size:16px}#savedPrescription{color:#bff7d0}
+
+    /* Coach-only layout: all functional controls remain in panelCoach/appPanel. */
+    #appPanel.coach-layout-active > header{max-width:none;padding:24px 24px 10px}
+    #appPanel.coach-layout-active > .wrap{max-width:none;padding:14px 24px 40px}
+    #appPanel.coach-layout-active #panelStudent{display:none}
+    #panelCoach [hidden]{display:none !important}
+    #panelCoach:not(.hidden){display:grid;grid-template-columns:minmax(160px,15fr) minmax(0,85fr);gap:20px;align-items:start}
+    #panelCoach .coach-workspace,#panelCoach .coach-columns > *,#panelCoach .row > *{min-width:0}
+    #panelCoach .coach-sidebar{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px}
+    #panelCoach .coach-nav-title{margin:0 0 8px;font-size:15px;font-weight:700}
+    #panelCoach .coach-sidebar a{display:block;padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--txt);text-decoration:none;font-weight:600;overflow-wrap:anywhere}
+    #panelCoach .coach-sidebar a:hover,#panelCoach .coach-sidebar a:focus-visible{background:rgba(110,231,255,.10);border-color:var(--accent)}
+    #panelCoach .coach-columns{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,45fr);gap:20px;align-items:start;margin-top:20px}
+    #panelCoach .coach-session,#panelCoach .coach-results,#panelCoach #coachPrescription{padding:20px}
+    #panelCoach .coach-field-group + .coach-field-group{border-top:1px solid var(--line);margin-top:20px;padding-top:8px}
+    #panelCoach h2{font-size:18px;line-height:1.4}
+    #panelCoach h3{font-size:15px;line-height:1.4;margin:12px 0}
+    #panelCoach label,#panelCoach .muted{font-size:14px;line-height:1.5}
+    #panelCoach input,#panelCoach select,#panelCoach textarea{font-size:16px;min-height:44px;min-width:0;max-width:100%}
+    #panelCoach button{font-size:14px;min-height:44px;white-space:normal;overflow-wrap:anywhere}
+    #panelCoach .coach-results p,#panelCoach .pill{overflow-wrap:anywhere}
+    #panelCoach .pill{white-space:normal}
+    #panelCoach .coach-results > div:not(:empty){border-top:1px solid var(--line);margin-top:20px;padding-top:20px}
+    #panelCoach #sharedWorkoutFeedback{background:none;border:0;box-shadow:none;padding:0}
+    #panelCoach #listaTreinos{margin-top:12px}
+    #panelCoach [id]{scroll-margin-top:20px}
+    #panelCoach a:focus-visible,#panelCoach button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+    @media(max-width:1200px){#panelCoach .coach-columns{grid-template-columns:1fr}#panelCoach .coach-sidebar{top:12px}}
+    @media(max-width:760px){
+      #appPanel.coach-layout-active > header{padding:20px 12px 8px}
+      #appPanel.coach-layout-active > .wrap{padding:12px 12px 32px}
+      #panelCoach:not(.hidden){grid-template-columns:minmax(0,1fr);gap:12px}
+      #panelCoach .coach-sidebar{position:static;flex-direction:row;flex-wrap:wrap;gap:8px;padding:12px}
+      #panelCoach .coach-sidebar .coach-nav-title,#panelCoach .coach-sidebar p.muted{flex-basis:100%;margin:0}
+      #panelCoach .coach-sidebar a{flex:1;text-align:center;padding:10px}
+      #panelCoach .coach-session,#panelCoach .coach-results,#panelCoach #coachPrescription{padding:14px}
+      #panelCoach .coach-columns{margin-top:12px;gap:12px}
+      #panelCoach .split{flex-wrap:wrap}
+    }
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>
@@ -399,9 +438,16 @@ select.native-hidden {
 <div class="wrap">
   <!-- TREINADOR -->
   <section id="panelCoach" role="tabpanel" aria-labelledby="tabCoach">
-    <div class="grid">
-      <div class="card">
-        <div class="split">
+  <nav class="coach-sidebar card" aria-label="Navegação do treinador">
+    <p class="coach-nav-title">Área do treinador</p>
+    <a href="#coachSession" target="_self">Alunos</a>
+    <a href="#coachLibrarySection" target="_self">Biblioteca</a>
+    <a href="#coachPrescription" target="_self">Montar treino</a>
+    <p class="muted">Atalhos para os controles desta página.</p>
+  </nav>
+  <div class="coach-workspace">
+    <section id="coachSession" class="card coach-session" aria-label="Identificação da sessão">
+<div class="split">
           <h2>Criar treino (sessão detalhada)</h2>
           <span class="pill" id="coachStorageInfo">—</span>
         </div>
@@ -441,11 +487,13 @@ select.native-hidden {
           <button id="btnCriarTreino" class="primary">Criar treino</button>
         </div>
 
-        <div class="hr"></div>
-
-        <h2>Adicionar item (1 linha = 1 bloco/exercício)</h2>
-
-        <div class="row">
+            </section>
+    <div class="coach-columns">
+      <section id="coachPrescription" class="card" aria-labelledby="coachPrescriptionTitle">
+        <h2 id="coachPrescriptionTitle">Montar treino — prescrição</h2>
+        <section id="libraryPanel">
+          <div id="coachLibrarySection"><section class="coach-field-group"><h3>Exercício e contexto</h3>
+<div class="row">
           <div>
             <label for="itemBloco">Bloco</label>
             <select id="itemBloco">
@@ -473,8 +521,7 @@ select.native-hidden {
             </select>
           </div>
         </div>
-
-        <div class="row" style="margin-top:10px">
+<div class="row" style="margin-top:10px">
           <div>
             <label for="itemExercicio">Exercício</label>
             <select id="itemExercicio" required><option value="">Carregando biblioteca…</option></select>
@@ -491,13 +538,15 @@ select.native-hidden {
             </select>
           </div>
         </div>
-
-        <div class="row" style="margin-top:10px">
-          <div>
-            <label for="itemQtd" id="quantityLabel">Quantidade padrão</label>
-            <input id="itemQtd" type="number" min="0" step="1" placeholder="Ex: 6" />
-          </div>
-          <div>
+<p id="libraryDescription" class="muted" aria-live="polite">Selecione um exercício para ver a descrição e os parâmetros.</p>
+<p id="libraryCapacities" class="muted"></p>
+<div class="row"><div><label for="libraryMethod">Método</label><select id="libraryMethod" required></select></div><div><label for="libraryProtocol">Protocolo (opcional)</label><select id="libraryProtocol"></select></div></div>
+<div class="row"><div><label for="libraryCapacity">Capacidade/manifestação contextual</label><select id="libraryCapacity"></select></div><div><label for="libraryClassification">Classificação nesta prescrição</label><select id="libraryClassification"><option value="general">Geral</option><option value="directed">Direcionado</option><option value="specific">Específico</option></select></div></div>
+</section></div>
+<section class="coach-field-group"><h3>Intensidade e referência individual</h3>
+<div id="assessmentField"><label for="libraryAssessment">Avaliação individual do aluno da sessão</label><select id="libraryAssessment"></select><p id="assessmentInfo" class="muted"></p></div>
+<div id="gradeField" hidden><label for="gradeScale">Escala de graduação</label><input id="gradeScale" placeholder="Ex.: V-scale, francesa, brasileira" /></div>
+<div class="row"><div>
             <label for="itemIntensTipo">Intensidade (tipo)</label>
             <select id="itemIntensTipo">
               <option value="RPE">RPE</option>
@@ -506,64 +555,51 @@ select.native-hidden {
               <option value="Peso">Peso</option>
               <option value="Livre">Livre</option>
             </select>
-          </div>
-        </div>
-
-        <div class="row" style="margin-top:10px">
-          <div>
+          </div><div>
             <label for="itemIntensVal" id="intensityLabel">Intensidade (valor)</label>
             <input id="itemIntensVal" placeholder="Ex: 8, V5, 70%, +10kg..." />
-          </div>
-          <div>
-            <label for="itemMin">Min planejados</label>
-            <input id="itemMin" type="number" min="0" step="5" placeholder="Ex: 15" />
-          </div>
-        </div>
-
-        <div style="margin-top:10px">
-          <label for="itemNotas">Notas do treinador</label>
-          <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
-        </div>
-
-<section id="libraryPanel" class="card" style="margin-top:14px">
-<p id="libraryDescription" class="muted" aria-live="polite">Selecione um exercício para ver a descrição e os parâmetros.</p>
-<p id="libraryCapacities" class="muted"></p>
-<div class="row"><div><label for="libraryMethod">Método</label><select id="libraryMethod" required></select></div><div><label for="libraryProtocol">Protocolo (opcional)</label><select id="libraryProtocol"></select></div></div>
-<div class="row"><div><label for="libraryCapacity">Capacidade/manifestação contextual</label><select id="libraryCapacity"></select></div><div><label for="libraryClassification">Classificação nesta prescrição</label><select id="libraryClassification"><option value="general">Geral</option><option value="directed">Direcionado</option><option value="specific">Específico</option></select></div></div>
-<div id="assessmentField"><label for="libraryAssessment">Avaliação individual do aluno da sessão</label><select id="libraryAssessment"></select><p id="assessmentInfo" class="muted"></p></div>
-<div id="gradeField" hidden><label for="gradeScale">Escala de graduação</label><input id="gradeScale" placeholder="Ex.: V-scale, francesa, brasileira" /></div>
+          </div></div>
 <p id="intensityHelp" class="muted"></p>
+</section><section class="coach-field-group"><h3>Volume e duração</h3>
 <div class="row"><div><label for="libraryVolumeUnit">Unidade de volume</label><select id="libraryVolumeUnit"></select></div><div id="setsField"><label for="librarySets">Número de séries</label><input id="librarySets" type="number" min="1" max="100" step="1" /></div></div>
 <div id="suspensionsField" hidden><label for="librarySuspensions">Suspensões por série</label><input id="librarySuspensions" type="number" min="1" step="1" /></div>
 <div class="row" id="blocksField" hidden><div><label for="libraryBlocks">Número de blocos</label><input id="libraryBlocks" type="number" min="1" step="1" /></div><div><label for="libraryBouts">Trechos/boulders por bloco</label><input id="libraryBouts" type="number" min="1" step="1" /></div></div>
+<div class="row"><div>
+            <label for="itemQtd" id="quantityLabel">Quantidade padrão</label>
+            <input id="itemQtd" type="number" min="0" step="1" placeholder="Ex: 6" />
+          </div><div>
+            <label for="itemMin">Min planejados</label>
+            <input id="itemMin" type="number" min="0" step="5" placeholder="Ex: 15" />
+          </div></div>
 <details><summary>Distribuição individual por série/bloco (opcional)</summary><label for="volumeDistribution" id="distributionLabel">Uma série por linha</label><textarea id="volumeDistribution"></textarea><p class="muted">Se preenchida, esta distribuição numérica substitui a repetição dos valores padrão; será gravada como séries estruturadas.</p></details>
+</section><section class="coach-field-group"><h3>Observações e gravação</h3>
+<div style="margin-top:10px">
+          <label for="itemNotas">Notas do treinador</label>
+          <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
+        </div>
 <input id="itemPosition" type="hidden" />
 <button id="correctCoachDraft" type="button" hidden>Corrigir parâmetros</button>
 <p id="librarySaveHint" class="muted">Selecione uma sessão e uma referência válida quando exigida. Nenhuma avaliação será criada automaticamente.</p>
 <section id="pendingCoachPanel" hidden><h3>Gravações interrompidas</h3><p class="muted">Retome a intenção existente para evitar duplicação após falha de conexão.</p><div id="pendingCoachSaves"></div></section>
 <p id="savedPrescription" class="muted" aria-live="polite"></p>
+<div class="btnbar"><button id="btnAddItem" class="primary">Salvar exercício e prescrição</button></div>
+<p class="muted">O aluno acessa o treino em sua própria conta Google.</p>
 </section>
-
-        <div class="btnbar">
-          <button id="btnAddItem" class="primary">Salvar exercício e prescrição</button>
-        </div>
-
-        <div class="muted" style="margin-top:10px">
-          O aluno acessa o treino em sua própria conta Google.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="split">
-          <h2>Treinos criados</h2>
-          
-        </div>
-        <div class="muted">Clique num treino para ver itens. Use o TreinoID para o aluno responder.</div>
-        <div class="hr"></div>
-        <div id="listaTreinos" class="list"></div>
-      </div>
+        </section>
+      </section>
+      <aside class="coach-results card" aria-labelledby="coachResultsTitle">
+        <h2 id="coachResultsTitle">Treino prescrito</h2>
+        <section aria-labelledby="coachSessionsTitle"><h3 id="coachSessionsTitle">Sessões cadastradas</h3>
+          <p class="muted">Selecione uma sessão para consultar seus exercícios e retornos.</p>
+          <span id="coachRefreshSlot"></span>
+          <div id="listaTreinos" class="list"></div>
+        </section>
+        <div id="coachDetailsSlot"></div>
+        <div id="coachFeedbackSlot"></div>
+      </aside>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- ALUNO -->
   <section id="panelStudent" role="tabpanel" aria-labelledby="tabStudent" class="hidden">
@@ -629,11 +665,11 @@ select.native-hidden {
         </div>
 
         <div class="hr"></div>
-        <h2>Detalhes do treino selecionado</h2>
-        <div id="previewTreinoAluno" class="muted">Selecione um TreinoID acima.</div>
+        <section id="sharedWorkoutDetails"><h2>Detalhes do treino selecionado</h2>
+        <div id="previewTreinoAluno" class="muted">Selecione um TreinoID acima.</div></section>
       </div>
 
-      <div class="card">
+      <div class="card" id="sharedWorkoutFeedback">
         <h2>Retornos recebidos</h2>
         <div class="muted">Histórico autorizado do treino selecionado.</div>
         <div class="hr"></div>
@@ -694,6 +730,7 @@ var CoachLibraryModel = (() => {
   const notice = message => { $('notice').textContent = message; };
   let rpc, libraryRpc, libraryController, selectedWorkout, exerciseSelection, assessments=[], assessmentVersion=0;
   let pendingCoachSave=null, libraryReady=false;
+  let coachRefreshButton;
   let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
   const key = () => crypto.randomUUID();
@@ -707,6 +744,7 @@ var CoachLibraryModel = (() => {
   function button(parent, label, handler) {
     const b=document.createElement('button'); b.textContent=label;
     b.addEventListener('click', () => perform(handler)); parent.appendChild(b);
+    return b;
   }
   async function perform(fn) {
     if (busy) return;
@@ -851,13 +889,30 @@ var CoachLibraryModel = (() => {
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
   function clearSession() {
     sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
+    placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;
     $('googleLoginLink').hidden=true; $('googleLoginLink').removeAttribute('href'); $('btnFinishLogin').hidden=true;
     ['listaTreinos','alunoTreinoId','previewTreinoAluno','listaRetornos','coachAluno'].forEach(id=>$(id).replaceChildren());
     document.querySelectorAll('#appPanel input, #appPanel textarea').forEach(el=>{el.value='';});
   }
+  const coachLayoutHomes = new Map();
+  function placeCoachConsultation(isCoach) {
+    $('appPanel').classList.toggle('coach-layout-active', isCoach);
+    [['sharedWorkoutDetails','coachDetailsSlot'],['sharedWorkoutFeedback','coachFeedbackSlot']].forEach(([id,slot])=>{
+      const element=$(id);
+      if(!coachLayoutHomes.has(id)){
+        const home=document.createComment('Original position: '+id);
+        element.parentNode.insertBefore(home,element);
+        coachLayoutHomes.set(id,home);
+      }
+      if(isCoach) $(slot).appendChild(element);
+      else { const home=coachLayoutHomes.get(id);home.parentNode.insertBefore(element,home.nextSibling); }
+    });
+    if(coachRefreshButton) (isCoach?$('coachRefreshSlot'):$('appPanel')).appendChild(coachRefreshButton);
+  }
   async function loadApp() {
     session=await rpc({action:'getSession',data:{}});
+    placeCoachConsultation(session.role==='coach');
     $('alunoNome').value=session.id;
     $('tabCoach').hidden=true; $('tabStudent').hidden=true;
     $('panelCoach').classList.toggle('hidden',session.role!=='coach');
@@ -895,7 +950,7 @@ var CoachLibraryModel = (() => {
     if(typeof google==='undefined' || !google.script || !google.script.run) throw Error('Abra no ambiente Google Apps Script');
     rpc=createRpc(google.script.run,()=>sessionToken);
     libraryRpc=createRpc(google.script.run,()=>sessionToken,'libraryApi');
-    button($('appPanel'),'Atualizar treinos',()=>refresh(selected));
+    coachRefreshButton=button($('appPanel'),'Atualizar treinos',()=>refresh(selected));
   } catch(e) { notice('Acesso indisponível: '+e.message); document.querySelectorAll('button').forEach(b=>{b.disabled=true;}); }
 
 })();

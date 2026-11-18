@@ -1,22 +1,36 @@
 /* DOM and Google RPC substitutes exercise event handlers; no browser rendering claim. */
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const crypto=require('node:crypto');const {fixture}=require('./helpers/gas.cjs');
 const html=fs.readFileSync('apps-script/Index.html','utf8'),script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
-function dom(){const elements=new Map(),all=[];
- class Element{constructor(tag,id=''){this.tagName=tag.toUpperCase();this.id=id;this.value='';this.children=[];this.events={};this.disabled=false;this.hidden=false;this.textContent='';this.classList={toggle(){},add(){},remove(){}};all.push(this);if(id)elements.set(id,this);}appendChild(n){this.children.push(n);n.parentNode=this;if(this.tagName==='SELECT'&&this.children.length===1)this.value=n.value;return n;}append(...nodes){nodes.forEach(n=>this.appendChild(n));}replaceChildren(...nodes){this.children=[];if(this.tagName==='SELECT')this.value='';this.append(...nodes);}addEventListener(name,fn){this.events[name]=fn;}removeAttribute(name){delete this[name];}setAttribute(name,value){this[name]=value;}}
- for(const m of html.matchAll(/<([a-z][\w-]*)\b([^>]*\bid="([^"]+)"[^>]*)>/g)){const e=new Element(m[1],m[3]);const value=m[2].match(/\bvalue="([^"]*)"/);if(value)e.value=value[1];e.hidden=/\bhidden\b/.test(m[2]);}
- for(const m of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const first=m[2].match(/<option([^>]*)>([^<]*)<\/option>/);if(first)elements.get(m[1]).value=first[1].match(/value="([^"]*)"/)?.[1]??first[2];}
- const document={getElementById:id=>{assert.ok(elements.has(id),'missing DOM id '+id);return elements.get(id);},createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text}),querySelectorAll:selector=>{const types=['BUTTON','INPUT','SELECT','TEXTAREA'].filter(t=>new RegExp('\\b'+t.toLowerCase()+'\\b').test(selector));return all.filter(e=>types.includes(e.tagName));}};
- return {document,elements,all};
+function dom(source=html){const elements=new Map(),all=[];
+ class Element{
+  constructor(tag,id=''){this.tagName=tag.toUpperCase();this.id=id;this.value='';this.children=[];this.events={};this.disabled=false;this.hidden=false;this.textContent='';const classes=new Set();this.classList={toggle(c,force){const on=force??!classes.has(c);on?classes.add(c):classes.delete(c);return on;},add(c){classes.add(c);},remove(c){classes.delete(c);},contains(c){return classes.has(c);}};all.push(this);if(id)elements.set(id,this);}
+  get nextSibling(){if(!this.parentNode)return null;return this.parentNode.children[this.parentNode.children.indexOf(this)+1]||null;}
+  appendChild(n){return this.insertBefore(n,null);}
+  insertBefore(n,before){if(n.parentNode)n.parentNode.children.splice(n.parentNode.children.indexOf(n),1);const index=before?this.children.indexOf(before):this.children.length;assert.ok(index>=0);this.children.splice(index,0,n);n.parentNode=this;if(this.tagName==='SELECT'&&this.children.length===1)this.value=n.value;return n;}
+  append(...nodes){nodes.forEach(n=>this.appendChild(n));}
+  replaceChildren(...nodes){this.children.forEach(n=>n.parentNode=null);this.children=[];if(this.tagName==='SELECT')this.value='';this.append(...nodes);}
+  addEventListener(name,fn){this.events[name]=fn;}removeAttribute(name){delete this[name];}setAttribute(name,value){this[name]=value;}
+ }
+ const stack=[],voids=new Set(['input','meta','link','br','hr','img']);
+ for(const m of source.split('<script>')[0].replace(/<style>[\s\S]*?<\/style>/g,'').replace(/<!--[\s\S]*?-->/g,'').matchAll(/<(\/?)([a-z][\w-]*)\b([^>]*)>/g)){
+  if(m[1]){assert.equal(stack.pop()?.tagName,m[2].toUpperCase(),'balanced HTML '+m[2]);continue;}
+  const attrs=m[3],id=attrs.match(/\bid="([^"]+)"/)?.[1]||'',e=new Element(m[2],id),value=attrs.match(/\bvalue="([^"]*)"/);if(value)e.value=value[1];e.hidden=/\bhidden\b/.test(attrs);for(const c of (attrs.match(/\bclass="([^"]*)"/)?.[1]||'').split(/\s+/).filter(Boolean))e.classList.add(c);
+  if(stack.length)stack.at(-1).appendChild(e);if(!voids.has(m[2]))stack.push(e);
+ }
+ for(const m of source.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const first=m[2].match(/<option([^>]*)>([^<]*)<\/option>/);if(first)elements.get(m[1]).value=first[1].match(/value="([^"]*)"/)?.[1]??first[2];}
+ const descendant=(e,id)=>{for(let p=e.parentNode;p;p=p.parentNode)if(p.id===id)return true;return false;};
+ const document={getElementById:id=>{assert.ok(elements.has(id),'missing DOM id '+id);return elements.get(id);},createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text}),createComment:text=>({textContent:text}),querySelectorAll:selector=>all.filter(e=>selector.split(',').some(part=>{const scope=part.match(/#([\w-]+)/)?.[1],tag=part.trim().match(/([a-z]+)$/)?.[1];return e.tagName===tag?.toUpperCase()&&(!scope||descendant(e,scope));}))};
+ return {document,elements,all,descendant};
 }
 async function boot(options={}){
  const f=options.backend||fixture();if(!options.backend){for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();f.context.libraryApi({action:'recordAssessment',data:{studentId:'s1',exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment',sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})});}
- const d=dom();let lose=!!options.loseSaveResponse;
- class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}}
- const context=vm.createContext({document:d.document,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(script,context);
+ const d=dom(options.source);const requests=[];let lose=!!options.loseSaveResponse;
+ class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}}
+ const context=vm.createContext({document:d.document,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
  const click=async id=>{const e=d.elements.get(id);assert.equal(e.disabled,false,'button disabled '+id);await e.events.click();};
  const change=async(id,value)=>{d.elements.get(id).value=value;await d.elements.get(id).events.change();};
  await click('btnLogin');await click('btnFinishLogin');
- return {f,...d,click,change,set(id,value){d.elements.get(id).value=value;}};
+ return {f,...d,context,requests,click,change,set(id,value){d.elements.get(id).value=value;}};
 }
 async function fill(ui){ui.set('coachData','2026-11-18');ui.set('coachObjetivoDia','Força');ui.set('coachInstructions','Aquecer\nRespeitar intervalos');await ui.click('btnCriarTreino');await ui.change('itemExercicio','exercise-bench');ui.set('libraryMethod','method-max-effort');ui.set('libraryAssessment',ui.f.tables.AVALIACOES[1][0]);ui.set('itemIntensVal','85');ui.set('librarySets','5');ui.set('itemQtd','3');ui.set('itemMin','5');ui.set('itemNotas','Técnica preservada');}
 test('trainer UI loads library and preserves session fields through select/prescribe/save/read',async()=>{
@@ -29,4 +43,27 @@ test('UI retry after a lost successful response reuses the same intent and does 
 test('UI reload discovers incomplete server intent and resumes without creating a second item',async()=>{
  const ui=await boot();await fill(ui);ui.f.fail('PRESCRICOES');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,1);
  const next=await boot({backend:ui.f});const buttons=next.elements.get('pendingCoachSaves').children;assert.equal(buttons.length,1);await buttons[0].events.click();assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,2);assert.equal(ui.f.tables.PRESCRICAO_SERIES.length,6);
+});
+
+const baselineHtml=require('node:child_process').execFileSync('git',['show','737a4afda80702fe15dcc377c36ef6ca438e30eb:apps-script/Index.html'],{encoding:'utf8'});
+test('layout preserves original field IDs, labels, handlers and request payloads',async()=>{
+ const before=await boot({source:baselineHtml}),after=await boot();
+ for(const [id,element] of before.elements){assert.ok(after.elements.has(id),id);assert.deepEqual(Object.keys(after.elements.get(id).events),Object.keys(element.events),'events '+id);}
+ const labels=source=>[...source.matchAll(/<label\b[^>]*\bfor="([^"]+)"/g)].map(m=>m[1]).sort();assert.deepEqual(labels(html),labels(baselineHtml));
+ for(const ui of [before,after]){await fill(ui);await ui.click('btnAddItem');}
+ const saves=ui=>ui.requests.filter(r=>['createWorkout','saveCoachPrescription'].includes(r.request.action)).map(r=>({method:r.method,action:r.request.action,data:{...r.request.data,...(r.request.action==='saveCoachPrescription'?{workoutId:'SESSION',intensity:{...r.request.data.intensity,assessmentId:'ASSESSMENT'}}:{})}}));
+ assert.deepEqual(saves(after),saves(before));
+});
+test('coach-only mounting preserves functional ancestry and restores shared consultation on logout/student login',async()=>{
+ const ui=await boot();assert.ok(ui.elements.get('appPanel').classList.contains('coach-layout-active'));
+ assert.equal(ui.elements.get('sharedWorkoutDetails').parentNode.id,'coachDetailsSlot');assert.equal(ui.elements.get('sharedWorkoutFeedback').parentNode.id,'coachFeedbackSlot');
+ for(const id of ['coachAluno','coachData','coachTreinoId','itemExercicio','itemQtd','libraryAssessment','btnAddItem','correctCoachDraft'])assert.ok(ui.descendant(ui.elements.get(id),'panelCoach'),id);
+ await ui.click('btnLogout');assert.equal(ui.elements.get('appPanel').classList.contains('coach-layout-active'),false);assert.ok(ui.descendant(ui.elements.get('previewTreinoAluno'),'panelStudent'));assert.ok(ui.descendant(ui.elements.get('listaRetornos'),'panelStudent'));
+ await ui.click('btnLogin');await ui.click('btnFinishLogin');assert.equal(ui.elements.get('sharedWorkoutDetails').parentNode.id,'coachDetailsSlot');
+ const student=await boot({student:true});assert.equal(student.elements.get('appPanel').classList.contains('coach-layout-active'),false);assert.ok(student.descendant(student.elements.get('previewTreinoAluno'),'panelStudent'));assert.ok(student.elements.get('panelCoach').classList.contains('hidden'));assert.equal(student.requests.some(r=>r.method==='libraryApi'),false);
+});
+test('conditional fields and session consultation remain functional after rearranging controls',async()=>{
+ const ui=await boot();await fill(ui);await ui.click('btnAddItem');assert.ok(ui.elements.get('previewTreinoAluno').children.some(e=>/Supino/.test(e.textContent)));assert.match(ui.elements.get('listaRetornos').children[0].textContent,/Nenhum retorno/);
+ await ui.change('itemExercicio','exercise-boulder');assert.equal(ui.elements.get('gradeField').hidden,false);assert.equal(ui.elements.get('assessmentField').hidden,true);assert.equal(ui.elements.get('blocksField').hidden,false);assert.equal(ui.elements.get('setsField').hidden,true);
+ await ui.change('itemExercicio','exercise-finger-iso');assert.equal(ui.elements.get('suspensionsField').hidden,false);assert.equal(ui.elements.get('setsField').hidden,false);assert.equal(ui.elements.get('blocksField').hidden,true);assert.equal(ui.elements.get('assessmentField').hidden,false);
 });

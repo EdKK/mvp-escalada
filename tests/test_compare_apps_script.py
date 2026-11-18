@@ -3,6 +3,8 @@ import contextlib
 import importlib.util
 import io
 import json
+import subprocess
+import hashlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -18,10 +20,31 @@ class ComparisonTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.folder = Path(self.tmp.name)
         self.manifest = json.loads(MODULE.MANIFEST.read_text())
+        # The repository manifest deliberately pins the PRE-layout homologation.
+        # Exercise its eight existing comparison scenarios on those exact bytes.
+        self.repo_root = MODULE.ROOT
+        reference_tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(reference_tmp.cleanup)
+        reference_root = Path(reference_tmp.name)
+        for row in self.manifest['files']:
+            target = reference_root / row['repositoryFile']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(subprocess.check_output(['git', 'show', self.manifest['referenceCommit'] + ':' + row['repositoryFile']], cwd=self.repo_root))
+        MODULE.ROOT = reference_root
+        self.addCleanup(setattr, MODULE, 'ROOT', self.repo_root)
 
     def copies(self):
         for row in self.manifest['files']:
             (self.folder / row['installedNames'][0]).write_bytes((MODULE.ROOT / row['repositoryFile']).read_bytes())
+
+    def test_layout_divergence_is_reported_without_rewriting_historical_manifest(self):
+        MODULE.ROOT = self.repo_root
+        result = MODULE.compare()
+        self.assertFalse(result['referenceIntact'])
+        changed = [row['repositoryFile'] for row in self.manifest['files']
+                   if hashlib.sha256((self.repo_root / row['repositoryFile']).read_bytes()).hexdigest() != row['sha256']]
+        self.assertEqual(changed, ['apps-script/Index.html'])
+        self.assertFalse(result['liveGoogleVerified'])
 
     def test_reference_only_never_claims_google_comparison(self):
         r = MODULE.compare()

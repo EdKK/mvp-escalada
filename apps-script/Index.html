@@ -427,6 +427,51 @@ select.native-hidden {
       #panelCoach .coach-columns{margin-top:12px;gap:12px}
       #panelCoach .split{flex-wrap:wrap}
     }
+
+    /* Static student overview inside the coach area; no data bindings or controls. */
+    #coachStudentsPanel .students-heading h2{margin:0 0 8px;font-size:22px}
+    #coachStudentsPanel .students-heading p{margin:0 0 20px}
+    #coachStudentsPanel .students-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+    #coachStudentsPanel .students-card{padding:22px;min-width:0}
+    #coachStudentsPanel .students-card-heading{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    #coachStudentsPanel .students-card-heading h3{font-size:18px;margin:0;line-height:1.4}
+    #coachStudentsPanel .students-card-number{display:grid;place-items:center;flex:0 0 34px;height:34px;border:1px solid var(--line);border-radius:10px;color:var(--accent);background:rgba(110,231,255,.08);font-family:var(--mono);font-size:13px}
+    #coachStudentsPanel h4{font-size:14px;margin:0 0 12px;line-height:1.5}
+    #coachStudentsPanel .students-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+    #coachStudentsPanel .students-fields > div{padding:12px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:10px;min-width:0}
+    #coachStudentsPanel dt,#coachStudentsPanel .students-finance span{color:var(--muted);font-size:12px;line-height:1.5}
+    #coachStudentsPanel dd{margin:6px 0 0;font-size:14px;overflow-wrap:anywhere}
+    #coachStudentsPanel .students-divider{height:1px;background:var(--line);margin:20px 0}
+    #coachStudentsPanel .students-finance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    #coachStudentsPanel .students-finance strong{display:block;margin-top:8px;font-size:18px}
+    #coachStudentsPanel .students-note{font-size:12px;color:var(--muted);line-height:1.6}
+    #coachStudentsPanel .students-placeholder{border-top:1px solid var(--line);padding-top:18px;margin-top:18px}
+    #coachStudentsPanel .students-placeholder p,#coachStudentsPanel .students-guidance-space p{font-size:14px;line-height:1.6;color:var(--muted);margin:0}
+    #coachStudentsPanel .students-status-list{display:flex;flex-direction:column;gap:10px;list-style:none;padding:0;margin:18px 0 22px}
+    #coachStudentsPanel .students-status-list li{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px}
+    #coachStudentsPanel .students-status-list strong{display:block;font-size:14px}
+    #coachStudentsPanel .students-status-list span:not(.students-status-dot){display:block;font-size:12px;color:var(--muted);margin-top:4px}
+    #coachStudentsPanel .students-status-dot{width:12px;height:12px;flex:0 0 12px;border-radius:50%}
+    #coachStudentsPanel .students-status-green{background:var(--good)}
+    #coachStudentsPanel .students-status-yellow{background:var(--warn)}
+    #coachStudentsPanel .students-status-red{background:var(--bad)}
+    #coachStudentsPanel .students-guidance-space{min-height:94px;border:1px dashed var(--line);border-radius:12px;padding:16px}
+    #coachStudentsPanel .students-guidance-space span{display:block;margin-top:12px}
+    #coachStudentsPanel .students-chart{margin:16px 0}
+    #coachStudentsPanel figcaption{font-size:14px;margin-bottom:8px}
+    #coachStudentsPanel figcaption span{font-size:12px;color:var(--muted)}
+    #coachStudentsPanel .students-chart svg{width:100%;height:auto;display:block}
+    #coachStudentsPanel .students-chart-grid{stroke:var(--line);stroke-width:1;fill:none}
+    #coachStudentsPanel .students-chart-labels{fill:var(--muted);font-family:var(--sans);font-size:11px}
+    #coachStudentsPanel .students-chart-line{stroke:var(--accent);stroke-width:3;fill:none}
+    #coachStudentsPanel .students-chart-area{fill:rgba(110,231,255,.07)}
+    #coachStudentsPanel .students-chart-points{fill:var(--accent);stroke:var(--card);stroke-width:2}
+    #coachStudentsPanel .students-session-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+    #coachStudentsPanel caption{text-align:left;color:var(--muted);font-size:12px;padding:0 0 10px}
+    #coachStudentsPanel th,#coachStudentsPanel td{padding:10px 8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+    #coachStudentsPanel thead th{font-weight:500;color:var(--muted)}
+    @media(max-width:1050px){#coachStudentsPanel .students-grid{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:480px){#coachStudentsPanel .students-card{padding:16px}#coachStudentsPanel .students-fields{grid-template-columns:minmax(0,1fr)}#coachStudentsPanel .students-finance{grid-template-columns:minmax(0,1fr)}}
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>
@@ -460,7 +505,53 @@ select.native-hidden {
     </div>
   </nav>
   <div class="coach-workspace">
-    <section id="coachStudentsPanel" class="card" role="tabpanel" aria-labelledby="coachTabStudents" hidden><h2>Alunos</h2></section>
+    <section id="coachStudentsPanel" role="tabpanel" aria-labelledby="coachTabStudents" hidden>
+      <div class="students-heading"><h2>Alunos</h2><p class="muted">Estrutura visual em preparação. Nenhum dado de aluno é consultado ou registrado nesta aba.</p></div>
+      <div class="students-grid">
+        <section class="card students-card" aria-labelledby="studentsRegistrationTitle">
+          <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">01</span><h3 id="studentsRegistrationTitle">Cadastro e controle financeiro</h3></div>
+          <h4>Dados cadastrais</h4>
+          <dl class="students-fields"><div><dt>Nome do aluno</dt><dd>Não preenchido</dd></div><div><dt>Contato</dt><dd>Não preenchido</dd></div><div><dt>Plano de acompanhamento</dt><dd>Não preenchido</dd></div><div><dt>Início do acompanhamento</dt><dd>Não preenchido</dd></div></dl>
+          <div class="students-divider"></div>
+          <h4>Mensalidades e pagamentos</h4>
+          <div class="students-finance"><div><span>Mensalidade</span><strong>—</strong></div><div><span>Próximo vencimento</span><strong>—</strong></div><div><span>Último pagamento</span><strong>—</strong></div></div>
+          <p class="students-note">Área reservada para informações futuras. Sem cobrança ou controle financeiro ativo.</p>
+        </section>
+        <section class="card students-card" aria-labelledby="studentsAssessmentTitle">
+          <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">02</span><h3 id="studentsAssessmentTitle">Avaliação física</h3></div>
+          <h4>Dados antropométricos</h4>
+          <dl class="students-fields"><div><dt>Massa corporal</dt><dd>— kg</dd></div><div><dt>Estatura</dt><dd>— cm</dd></div></dl>
+          <div class="students-placeholder"><h4>Avaliações físicas</h4><p>Espaço reservado para resultados e referências individuais.</p></div>
+          <div class="students-placeholder"><h4>Testes de desempenho</h4><p>Espaço reservado para protocolos, datas e resultados.</p></div>
+          <p class="students-note">Nenhuma avaliação ou teste é carregado neste cartão.</p>
+        </section>
+        <section class="card students-card" aria-labelledby="studentsGuidelinesTitle">
+          <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">03</span><h3 id="studentsGuidelinesTitle">Diretrizes individuais de treino</h3></div>
+          <p class="students-note">Legenda ilustrativa — nenhum estado está atribuído a um aluno.</p>
+          <ul class="students-status-list">
+            <li><span class="students-status-dot students-status-green" aria-hidden="true"></span><div><strong>Treino liberado</strong><span>Indicador verde</span></div></li>
+            <li><span class="students-status-dot students-status-yellow" aria-hidden="true"></span><div><strong>Treino com ressalvas</strong><span>Indicador amarelo</span></div></li>
+            <li><span class="students-status-dot students-status-red" aria-hidden="true"></span><div><strong>Treino interrompido</strong><span>Indicador vermelho</span></div></li>
+          </ul>
+          <h4>Orientações individuais</h4>
+          <div class="students-guidance-space"><p>Espaço reservado para orientações e cuidados individuais.</p><span class="students-note">Somente estrutura visual; conteúdo não editável.</span></div>
+        </section>
+        <section class="card students-card" aria-labelledby="studentsSessionsTitle">
+          <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">04</span><h3 id="studentsSessionsTitle">Últimas quatro sessões</h3></div>
+          <p class="students-note">Exemplo fictício, sem vínculo com as sessões cadastradas.</p>
+          <figure class="students-chart"><figcaption>Duração por sessão <span>(minutos · ilustrativo)</span></figcaption>
+            <svg viewBox="0 0 460 155" role="img" aria-label="Exemplo fictício: sessões 1 a 4 com duração de 40, 55, 45 e 60 minutos.">
+              <g class="students-chart-grid"><path d="M40 30H432 M40 75H432 M40 120H432"/></g>
+              <g class="students-chart-labels"><text x="9" y="34">60</text><text x="9" y="79">45</text><text x="9" y="124">30</text><text x="40" y="147">Sessão 1</text><text x="153" y="147">Sessão 2</text><text x="266" y="147">Sessão 3</text><text x="379" y="147">Sessão 4</text></g>
+              <path class="students-chart-area" d="M64 90L177 45L290 75L403 30V120H64Z"/>
+              <path class="students-chart-line" d="M64 90L177 45L290 75L403 30"/>
+              <g class="students-chart-points"><circle cx="64" cy="90" r="5"/><circle cx="177" cy="45" r="5"/><circle cx="290" cy="75" r="5"/><circle cx="403" cy="30" r="5"/></g>
+            </svg>
+          </figure>
+          <table class="students-session-table"><caption>Resumo ilustrativo das quatro sessões</caption><thead><tr><th scope="col">Sessão</th><th scope="col">Duração</th><th scope="col">Situação</th></tr></thead><tbody><tr><th scope="row">1</th><td>40 min</td><td>Concluída</td></tr><tr><th scope="row">2</th><td>55 min</td><td>Concluída</td></tr><tr><th scope="row">3</th><td>45 min</td><td>Parcial</td></tr><tr><th scope="row">4</th><td>60 min</td><td>Concluída</td></tr></tbody></table>
+        </section>
+      </div>
+    </section>
     <section id="coachLibraryPanel" class="card" role="tabpanel" aria-labelledby="coachTabLibrary" hidden><h2>Biblioteca</h2></section>
     <section id="coachBuildPanel" role="tabpanel" aria-labelledby="coachTabBuild">
     <section id="coachSession" class="card coach-session" aria-label="Identificação da sessão">

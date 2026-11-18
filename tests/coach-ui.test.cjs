@@ -16,7 +16,7 @@ function dom(source=html){const elements=new Map(),all=[];
  for(const m of source.split('<script>')[0].replace(/<style>[\s\S]*?<\/style>/g,'').replace(/<!--[\s\S]*?-->/g,'').matchAll(/<(\/?)([a-z][\w-]*)\b([^>]*)>/g)){
   if(m[1]){assert.equal(stack.pop()?.tagName,m[2].toUpperCase(),'balanced HTML '+m[2]);continue;}
   const attrs=m[3],id=attrs.match(/\bid="([^"]+)"/)?.[1]||'',e=new Element(m[2],id),value=attrs.match(/\bvalue="([^"]*)"/);if(value)e.value=value[1];e.hidden=/\bhidden\b/.test(attrs);for(const c of (attrs.match(/\bclass="([^"]*)"/)?.[1]||'').split(/\s+/).filter(Boolean))e.classList.add(c);
-  if(stack.length)stack.at(-1).appendChild(e);if(!voids.has(m[2]))stack.push(e);
+  if(stack.length)stack.at(-1).appendChild(e);if(!voids.has(m[2])&&!attrs.trim().endsWith('/'))stack.push(e);
  }
  for(const m of source.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const first=m[2].match(/<option([^>]*)>([^<]*)<\/option>/);if(first)elements.get(m[1]).value=first[1].match(/value="([^"]*)"/)?.[1]??first[2];}
  const descendant=(e,id)=>{for(let p=e.parentNode;p;p=p.parentNode)if(p.id===id)return true;return false;};
@@ -98,7 +98,7 @@ test('coach tabs default to build and preserve the same unsaved prescription nod
  await fill(ui);const draft=['coachAluno','coachTreinoId','itemExercicio','libraryMethod','libraryAssessment','itemIntensVal','librarySets','itemQtd','itemMin','itemNotas'].map(id=>({id,node:ui.elements.get(id),value:ui.elements.get(id).value}));
  const calls=ui.requests.length,tables=JSON.stringify(ui.f.tables);
  for(const [button,panel,title] of [['coachTabStudents','coachStudentsPanel','Alunos'],['coachTabLibrary','coachLibraryPanel','Biblioteca']]){
-  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.equal(ui.elements.get(panel).children.length,1);assert.equal(ui.elements.get(panel).children[0].tagName,'H2');assert.match(html,new RegExp('hidden><h2>'+title+'</h2></section>'));
+  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');if(panel==='coachLibraryPanel'){assert.equal(ui.elements.get(panel).children.length,1);assert.equal(ui.elements.get(panel).children[0].tagName,'H2');assert.match(html,new RegExp('hidden><h2>'+title+'</h2></section>'));}else assert.ok(ui.descendant(ui.elements.get('studentsRegistrationTitle'),'coachStudentsPanel'));
  }
  await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
  assert.equal(ui.requests.length,calls);assert.equal(JSON.stringify(ui.f.tables),tables);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
@@ -111,4 +111,17 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
  await ui.click('btnReviewSession');assert.equal(ui.elements.get('btnConfirmSession').hidden,false);const review=ui.elements.get('coachFinishStatus').textContent;await ui.click('coachTabStudents');await ui.click('coachTabBuild');assert.equal(ui.elements.get('coachFinishStatus').textContent,review);await ui.click('btnConfirmSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/Montagem concluída visualmente/);
  let prevented=false;ui.elements.get('coachTabBuild').events.keydown({key:'Home',preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(ui.elements.get('coachStudentsPanel').hidden,false);assert.equal(ui.elements.get('coachTabStudents').focused,true);
  await ui.click('btnLogout');await ui.click('btnLogin');await ui.click('btnFinishLogin');assert.equal(ui.elements.get('coachBuildPanel').hidden,false);assert.equal(ui.elements.get('coachStudentsPanel').hidden,true);assert.equal(ui.elements.get('coachLibraryPanel').hidden,true);
+});
+
+
+test('student overview is static with four cards; build markup and all JavaScript stay byte-identical to navigation baseline',()=>{
+ const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
+ assert.equal(script,baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
+ const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
+ assert.equal(build(html),build(baseline));
+ const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
+ assert.equal((overview.match(/class="card students-card"/g)||[]).length,4);assert.doesNotMatch(overview,/<(?:input|select|textarea|button|a)\b|contenteditable=/);
+ for(const title of ['Cadastro e controle financeiro','Avaliação física','Diretrizes individuais de treino','Últimas quatro sessões'])assert.ok(overview.includes(title));
+ assert.equal((overview.match(/<tbody>([\s\S]*?)<\/tbody>/)[1].match(/<tr>/g)||[]).length,4);
+ assert.match(overview,/Exemplo fictício, sem vínculo com as sessões cadastradas/);assert.match(overview,/role="img"/);assert.match(overview,/students-status-green/);assert.match(overview,/students-status-yellow/);assert.match(overview,/students-status-red/);
 });

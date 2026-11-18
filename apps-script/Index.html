@@ -376,6 +376,15 @@ select.native-hidden {
     }
   #libraryPanel select,#libraryPanel input,#libraryPanel textarea{font-size:16px;min-height:44px}#libraryPanel .row{margin-top:10px}#libraryPanel p{overflow-wrap:anywhere}#libraryPanel details{margin-top:12px}#libraryPanel summary{cursor:pointer;min-height:44px}#itemExercicio{font-size:16px}#savedPrescription{color:#bff7d0}
 
+    #panelCoach select{color-scheme:dark}
+    #panelCoach select option,#panelCoach select optgroup{background:#101a33;color:#eaf0ff}
+    #panelCoach select option:checked{background:#123e78;color:#ffffff}
+    #panelCoach select:disabled,#panelCoach select option:disabled{background:#182438;color:#b7c5df;opacity:1}
+    #panelCoach .coach-session-id{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+    #panelCoach .coach-session-id input{font-family:var(--mono);font-size:14px}
+    #panelCoach .coach-exercise{padding:14px 0;border-bottom:1px solid var(--line)}
+    #panelCoach .coach-exercise h3{color:var(--accent)}
+    #panelCoach #coachFinishPanel{margin-top:20px;border-top:1px solid var(--line);padding-top:12px}
     /* Coach-only layout: all functional controls remain in panelCoach/appPanel. */
     #appPanel.coach-layout-active > header{max-width:none;padding:24px 24px 10px}
     #appPanel.coach-layout-active > .wrap{max-width:none;padding:14px 24px 40px}
@@ -448,7 +457,7 @@ select.native-hidden {
   <div class="coach-workspace">
     <section id="coachSession" class="card coach-session" aria-label="Identificação da sessão">
 <div class="split">
-          <h2>Criar treino (sessão detalhada)</h2>
+          <h2>Criar sessão de treino</h2>
           <span class="pill" id="coachStorageInfo">—</span>
         </div>
 
@@ -463,12 +472,7 @@ select.native-hidden {
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px">
-          <div>
-            <label for="coachTreinoId">TreinoID</label>
-            <input id="coachTreinoId" readonly aria-label="ID gerado pelo servidor" />
-            <div class="muted">O ID é criado pelo servidor. Selecione um treino para adicionar itens.</div>
-          </div>
+        <div class="row">
           <div>
             <label for="coachObjetivoDia">Objetivo do dia</label>
             <select id="coachObjetivoDia">
@@ -484,13 +488,20 @@ select.native-hidden {
         <label for="coachInstructions">Orientações passo a passo (uma por linha)</label><textarea id="coachInstructions" placeholder="Aquecer 10 min.&#10;Respeitar os intervalos."></textarea>
         <div class="btnbar">
           
-          <button id="btnCriarTreino" class="primary">Criar treino</button>
+          <button id="btnCriarTreino" class="primary">Criar sessão e gerar TreinoID</button>
         </div>
 
+        <div class="coach-session-id">          <div>
+            <label for="coachTreinoId">TreinoID</label>
+            <input id="coachTreinoId" readonly aria-label="ID gerado pelo servidor" />
+            <div class="muted">O ID é criado pelo servidor. Selecione um treino para adicionar itens.</div>
+          </div>
+</div>
             </section>
     <div class="coach-columns">
       <section id="coachPrescription" class="card" aria-labelledby="coachPrescriptionTitle">
-        <h2 id="coachPrescriptionTitle">Montar treino — prescrição</h2>
+        <h2 id="coachPrescriptionTitle" tabindex="-1">Montar treino — prescrição</h2>
+        <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
         <section id="libraryPanel">
           <div id="coachLibrarySection"><section class="coach-field-group"><h3>Exercício e contexto</h3>
 <div class="row">
@@ -582,7 +593,7 @@ select.native-hidden {
 <p id="librarySaveHint" class="muted">Selecione uma sessão e uma referência válida quando exigida. Nenhuma avaliação será criada automaticamente.</p>
 <section id="pendingCoachPanel" hidden><h3>Gravações interrompidas</h3><p class="muted">Retome a intenção existente para evitar duplicação após falha de conexão.</p><div id="pendingCoachSaves"></div></section>
 <p id="savedPrescription" class="muted" aria-live="polite"></p>
-<div class="btnbar"><button id="btnAddItem" class="primary">Salvar exercício e prescrição</button></div>
+<div class="btnbar"><button id="btnAddItem" class="primary">Salvar e adicionar próximo exercício</button></div>
 <p class="muted">O aluno acessa o treino em sua própria conta Google.</p>
 </section>
         </section>
@@ -596,6 +607,13 @@ select.native-hidden {
         </section>
         <div id="coachDetailsSlot"></div>
         <div id="coachFeedbackSlot"></div>
+        <section id="coachFinishPanel" aria-label="Revisão e encerramento visual">
+          <h3>Revisar montagem</h3>
+          <p>Os exercícios são armazenados individualmente durante a prescrição. Finalizar encerra somente este fluxo visual.</p>
+          <button id="btnReviewSession" type="button">Finalizar sessão</button>
+          <p id="coachFinishStatus" role="status" aria-live="polite"></p>
+          <button id="btnConfirmSession" type="button" hidden>Confirmar encerramento visual</button>
+        </section>
       </aside>
     </div>
   </div>
@@ -731,6 +749,11 @@ var CoachLibraryModel = (() => {
   let rpc, libraryRpc, libraryController, selectedWorkout, exerciseSelection, assessments=[], assessmentVersion=0;
   let pendingCoachSave=null, libraryReady=false;
   let coachRefreshButton;
+  let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
+  const coachRenderedItems=new Map();
+  const coachDraftFields=['itemBloco','itemCategoria','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','libraryMethod','libraryProtocol','libraryCapacity','libraryClassification','libraryAssessment','gradeScale','libraryVolumeUnit','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution'];
+  const coachDraftSignature=()=>JSON.stringify(coachDraftFields.map(id=>$(id).value));
+  const coachDraftDirty=()=>coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
   let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
   const key = () => crypto.randomUUID();
@@ -756,16 +779,26 @@ var CoachLibraryModel = (() => {
   function text(parent, value) { const p=document.createElement('p'); p.textContent=value; parent.appendChild(p); }
   async function detail(id) {
     const ticket=++generation;
-    $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren();
+    $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren();coachRenderedItems.clear();
     const w=await rpc({action:'getWorkout',data:{workoutId:id}});
     const feedback=await rpc({action:'listFeedback',data:{workoutId:id}});
     if(ticket!==generation) return;
     $('itemPosition').value=Math.max(0,...w.items.map((i,n)=>i.prescription?.position||n+1))+1;
+    if(selected!==id){coachReview=null;$('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;}
     selectedWorkout=w;
     if(session?.role==='coach')$('coachAluno').value=w.studentId;
     selected=id; $('coachTreinoId').value=id; $('alunoTreinoId').value=id;
     text($('previewTreinoAluno'),w.date+' • '+w.goal+' • '+w.studentId);
-    w.items.forEach(i => text($('previewTreinoAluno'),[i.block,i.category,i.exercise,i.metric,i.quantity,i.minutes+' min',i.notes].join(' • ')));
+    w.items.forEach((i,index) => {
+      let parent=$('previewTreinoAluno');
+      if(session?.role==='coach'){
+        parent=document.createElement('article');parent.className='coach-exercise';
+        const heading=document.createElement('h3');heading.textContent='Exercício '+(index+1)+' — '+i.exercise;parent.appendChild(heading);
+        $('previewTreinoAluno').appendChild(parent);coachRenderedItems.set(i.id,parent);
+      }
+      text(parent,[i.block,i.category,i.exercise,i.metric,i.quantity,i.minutes+' min',i.notes].join(' • '));
+    });
+    if(session?.role==='coach')$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
     (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
@@ -785,6 +818,8 @@ var CoachLibraryModel = (() => {
   $('btnCriarTreino').addEventListener('click',()=>perform(async()=>{
     const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,goal:$('coachObjetivoDia').value,...($('coachInstructions').value.trim()?{instructions:$('coachInstructions').value.trim().split('\n').map(s=>s.trim()).filter(Boolean)}:{})});
     await refresh(w.id);
+    $('coachPrescriptionTitle').focus();
+    $('coachPrescription').scrollIntoView({block:'start',behavior:'smooth'});
   }));
   const library = (action,data={})=>libraryRpc({action,data});
   const labels={'unit-repetitions':'repetições','unit-hand-moves':'movimentos de mão','unit-hang-seconds':'segundos de suspensão','unit-seconds':'segundos','unit-meters':'metros'};
@@ -796,11 +831,13 @@ var CoachLibraryModel = (() => {
     if(!session||session.role!=='coach')return;
     $('correctCoachDraft').hidden=!pendingCoachSave;
     document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea').forEach(n=>n.disabled=busy||!!pendingCoachSave);
-    if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
+    if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft','btnReviewSession','btnConfirmSession'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
     else {$('alunoTreinoId').disabled=busy;}
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
     $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!libraryReady||!exerciseSelection||!selected));
-    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':'Salvar exercício e prescrição';
+    $('btnReviewSession').disabled=busy||!selected;
+    $('btnConfirmSession').disabled=busy||!!pendingCoachSave||!coachReview||!coachReview.ready||coachDraftDirty();
+    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':'Salvar e adicionar próximo exercício';
   }
   async function loadLibrary(){
     libraryReady=false;exerciseSelection=null;libraryController=CoachLibraryModel.selectionController(library);
@@ -849,10 +886,10 @@ var CoachLibraryModel = (() => {
   async function showLibraryPrescriptions(workoutId){
     const rows=await library('listLibraryPrescriptions',{workoutId});if(selected!==workoutId)return;
     const latest=new Map();rows.forEach(p=>{if(!latest.has(p.itemId)||latest.get(p.itemId).revision<p.revision)latest.set(p.itemId,p);});
-    latest.forEach(p=>{const intensity=JSON.parse(p.intensityJson).primary,volume=JSON.parse(p.volumeJson),snapshot=JSON.parse(p.snapshotJson);const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:intensity.kind==='ordinal'?`${intensity.value} (${intensity.scale})`:intensity.description||String(intensity.value);text($('previewTreinoAluno'),`${snapshot.exercise.name} • ${snapshot.method.name}${snapshot.protocol?' / '+snapshot.protocol.name:''} • ${value} • volume: ${volume.total} ${labels[volume.unitId]} • revisão ${p.revision}`);});
+    latest.forEach(p=>{const intensity=JSON.parse(p.intensityJson).primary,volume=JSON.parse(p.volumeJson),snapshot=JSON.parse(p.snapshotJson);const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:intensity.kind==='ordinal'?`${intensity.value} (${intensity.scale})`:intensity.description||String(intensity.value);text(coachRenderedItems.get(p.itemId)||$('previewTreinoAluno'),`${snapshot.exercise.name} • ${snapshot.method.name}${snapshot.protocol?' / '+snapshot.protocol.name:''} • ${value} • volume: ${volume.total} ${labels[volume.unitId]} • revisão ${p.revision}`);});
   }
   async function loadPendingSaves(){
-    const rows=await library('listPendingCoachSaves',{});$('pendingCoachSaves').replaceChildren();$('pendingCoachPanel').hidden=!rows.length;
+    const rows=await library('listPendingCoachSaves',{});pendingCoachEntries=rows;$('pendingCoachSaves').replaceChildren();$('pendingCoachPanel').hidden=!rows.length;
     rows.forEach(row=>button($('pendingCoachSaves'),'Retomar item '+row.itemId,async()=>{pendingCoachSave={requestId:row.requestId,data:row.data};updateCoachControls();await sendCoachSave();}));
   }
   function collectCoachSave(){
@@ -868,9 +905,47 @@ var CoachLibraryModel = (() => {
   async function sendCoachSave(){
     const result=await libraryRpc({action:'saveCoachPrescription',data:pendingCoachSave.data,requestId:pendingCoachSave.requestId});
     pendingCoachSave=null;$('savedPrescription').textContent=`Prescrição salva: ${result.prescription.id} • volume ${result.prescription.totalVolume} ${labels[result.prescription.volumeUnitId]}.`;
-    $('itemNotas').value='';$('itemQtd').value='';$('itemIntensVal').value='';$('volumeDistribution').value='';updateCoachControls();
+    resetCoachDraft();$('librarySaveHint').textContent='Exercício gravado. Selecione o próximo exercício ou revise a sessão para finalizar a montagem.';updateCoachControls();
     try{await detail(result.item.workoutId);await loadPendingSaves();}catch(e){$('librarySaveHint').textContent='Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.';}
   }
+  function resetCoachDraft(){
+    exerciseSelection=null;assessmentVersion++;assessments=[];
+    ['itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','gradeScale'].forEach(id=>$(id).value='');
+    ['libraryMethod','libraryProtocol','libraryCapacity','libraryAssessment','libraryVolumeUnit','itemIntensTipo','itemMetrica'].forEach(id=>options(id,[],'Selecione um exercício'));
+    ['assessmentField','gradeField','suspensionsField','blocksField'].forEach(id=>$(id).hidden=true);
+    $('quantityLabel').textContent='Quantidade por série/trecho';$('intensityLabel').textContent='Intensidade';$('itemIntensVal').type='text';$('itemIntensVal').placeholder='Selecione um exercício';
+    $('setsField').hidden=false;$('libraryDescription').textContent='Selecione o próximo exercício da biblioteca.';
+    ['libraryCapacities','assessmentInfo','intensityHelp'].forEach(id=>$(id).textContent='');
+    coachDraftBaseline=coachDraftSignature();coachReview=null;$('btnConfirmSession').hidden=true;
+    $('coachFinishStatus').textContent='';
+  }
+  async function reviewCoachSession(){
+    if(!selected)throw Error('Selecione uma sessão');
+    coachReview=null;$('btnConfirmSession').hidden=true;
+    $('coachFinishStatus').textContent='Conferindo exercícios e gravações pendentes…';
+    await loadPendingSaves();await detail(selected);
+    const count=selectedWorkout.items.length;
+    const pending=!!pendingCoachSave||pendingCoachEntries.length>=20||pendingCoachEntries.some(row=>row.data.workoutId===selected);
+    const dirty=coachDraftDirty();
+    coachReview={id:selected,ready:!pending&&!dirty&&count>0};
+    $('coachFinishStatus').textContent=count+' exercício(s) gravado(s). '+(pending?'Há gravação pendente: retome a intenção existente antes de finalizar. ':dirty?'Há parâmetros ainda não salvos: salve o exercício antes de finalizar. ':count?'Revise os exercícios no painel acima e confirme o encerramento visual. ':'Inclua ao menos um exercício antes de finalizar. ')+'Nenhum exercício será reenviado.';
+    $('btnConfirmSession').hidden=!coachReview.ready;
+  }
+  $('btnReviewSession').addEventListener('click',()=>perform(reviewCoachSession));
+  $('btnConfirmSession').addEventListener('click',()=>perform(async()=>{
+    const reviewed=coachReview?.id;
+    if(!reviewed||reviewed!==selected)throw Error('Revise a sessão selecionada');
+    await reviewCoachSession();
+    if(!coachReview.ready)return;
+    $('coachFinishStatus').textContent='Montagem concluída visualmente — '+selectedWorkout.items.length+' exercício(s) gravado(s). Não houve nova gravação, publicação ou bloqueio da sessão. Você pode continuar a montagem nesta página.';
+    coachReview=null;$('btnConfirmSession').hidden=true;
+  }));
+  function invalidateCoachReview(){
+    coachReview=null;$('btnConfirmSession').hidden=true;
+    $('coachFinishStatus').textContent='Há alterações no formulário. A finalização exige nova revisão.';
+  }
+  $('coachPrescription').addEventListener('input',invalidateCoachReview);
+  $('coachPrescription').addEventListener('change',invalidateCoachReview);
   $('btnAddItem').addEventListener('click',()=>perform(async()=>{
     if(!pendingCoachSave)pendingCoachSave={requestId:key(),data:JSON.parse(JSON.stringify(collectCoachSave()))};
     updateCoachControls();try{await sendCoachSave();}catch(e){$('librarySaveHint').textContent='Gravação não confirmada: '+e.message+'. Use Retomar gravação pendente com os mesmos dados. Não crie outra intenção para contornar a falha.';throw e;}
@@ -889,6 +964,8 @@ var CoachLibraryModel = (() => {
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
   function clearSession() {
     sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
+    pendingCoachEntries=[];coachDraftBaseline='';coachReview=null;
+    $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;
     placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;
     $('googleLoginLink').hidden=true; $('googleLoginLink').removeAttribute('href'); $('btnFinishLogin').hidden=true;
@@ -922,7 +999,7 @@ var CoachLibraryModel = (() => {
       const students=await rpc({action:'listStudents',data:{}});
       $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.id; $('coachAluno').appendChild(o);});
     }
-    if(session.role==='coach')await loadLibrary();
+    if(session.role==='coach'){await loadLibrary();coachDraftBaseline=coachDraftSignature();}
     const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
     $('alunoDor').value='0'; $('alunoRpe').value='6';
     await refresh();

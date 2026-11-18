@@ -1,6 +1,6 @@
 """Real local Chromium rendering, with strictly fictitious Google services.
 Run: python tests/coach-layout-browser.py
-Screenshots: /tmp/mvp-coach-desktop.png and /tmp/mvp-coach-narrow.png.
+Screenshots: /tmp/mvp-fluxo-desktop.png and /tmp/mvp-fluxo-narrow.png.
 No network calls to Google, no deployment, no real OAuth or Sheets execution.
 """
 from pathlib import Path
@@ -53,13 +53,13 @@ try:
         page.locator('#itemMin').fill('5')
         print('PASS: student/session selection and creation; exercise/reference loading')
         page.evaluate('window.scrollTo(0,0)')
-        page.screenshot(path='/tmp/mvp-coach-desktop.png', full_page=True)
+        page.screenshot(path='/tmp/mvp-fluxo-desktop.png', full_page=True)
         for width in [1920,1600,1366,1024,768,390]:
             page.set_viewport_size({'width':width,'height':900})
             assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'), f'horizontal overflow {width}'
             assert page.locator('#coachPrescription').bounding_box()['width'] > 250
             assert page.locator('#coachResultsTitle').is_visible()
-        page.screenshot(path='/tmp/mvp-coach-narrow.png', full_page=True)
+        page.screenshot(path='/tmp/mvp-fluxo-narrow.png', full_page=True)
         print('PASS: no horizontal overflow at 1920,1600,1366,1024,768,390 pixels')
         page.set_viewport_size({'width':1600,'height':1100})
         for target in ['coachSession','coachLibrarySection','coachPrescription']:
@@ -67,7 +67,19 @@ try:
             assert page.url.endswith('#'+target)
             box=page.locator('#'+target).bounding_box()
             assert -1<=box['y']<900, (target,box)
-        print('PASS: sidebar anchors and desktop layout')
+        def contrast(colors):
+            import re
+            def lum(value):
+                channels=[int(n)/255 for n in re.findall(r'\d+',value)[:3]]
+                return sum(w*(v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4) for w,v in zip([.2126,.7152,.0722],channels))
+            a,b=sorted([lum(colors['color']),lum(colors['background'])]);return (b+.05)/(a+.05)
+        colors=page.locator('#coachObjetivoDia option').evaluate_all('(options)=>options.map(e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor}))')
+        assert all(contrast(c)>=4.5 for c in colors)
+        page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>e.disabled=true')
+        disabled=page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor})')
+        assert contrast(disabled)>=4.5
+        page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>e.disabled=false')
+        print('PASS: sidebar anchors, desktop layout, normal/selected/disabled option contrast >=4.5:1')
         page.request.post(base+'/test-control',data={'delayNext':600,'loseNext':False})
         page.locator('#btnAddItem').click()
         expect(page.locator('#itemQtd')).to_be_disabled()
@@ -76,20 +88,53 @@ try:
         expect(page.locator('#previewTreinoAluno')).to_contain_text('85%')
         expect(page.locator('#listaRetornos')).to_contain_text('Nenhum retorno registrado.')
         page.evaluate('window.scrollTo(0,0)')
-        page.screenshot(path='/tmp/mvp-coach-desktop.png', full_page=True)
+        page.screenshot(path='/tmp/mvp-fluxo-desktop.png', full_page=True)
         print('PASS: in-flight locks; saved prescription and feedback consultation')
-        page.locator('#itemQtd').fill('3');page.locator('#itemIntensVal').fill('85')
+        session_id=page.locator('#coachTreinoId').input_value()
+        def fill_next():
+            page.locator('#itemExercicio').select_option('exercise-bench')
+            expect(page.locator('#libraryMethod')).to_be_enabled()
+            page.locator('#libraryMethod').select_option('method-max-effort')
+            page.locator('#libraryAssessment').select_option(index=1)
+            page.locator('#itemQtd').fill('3');page.locator('#itemIntensVal').fill('85')
+            page.locator('#librarySets').fill('5');page.locator('#itemMin').fill('5')
+        expect(page.locator('#itemExercicio')).to_have_value('')
+        expect(page.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 2')
+        fill_next()
         page.request.post(base+'/test-control',data={'loseNext':True})
         page.locator('#btnAddItem').click()
         expect(page.locator('#btnAddItem')).to_have_text('Retomar gravação pendente')
         expect(page.locator('#btnAddItem')).to_be_enabled()
+        expect(page.locator('#itemQtd')).to_have_value('3')
+        expect(page.locator('#itemIntensVal')).to_have_value('85')
+        expect(page.locator('#itemExercicio')).to_have_value('exercise-bench')
         before=page.request.post(base+'/test-tables',data={}).json()
         page.locator('#btnAddItem').click()
-        expect(page.locator('#btnAddItem')).to_have_text('Salvar exercício e prescrição')
-        expect(page.locator('#btnAddItem')).to_be_enabled()
+        expect(page.locator('#btnAddItem')).to_have_text('Salvar e adicionar próximo exercício')
+        expect(page.locator('#itemExercicio')).to_be_enabled()
+        expect(page.locator('#itemExercicio')).to_have_value('')
         after=page.request.post(base+'/test-tables',data={}).json()
         assert len(before['Items'])==len(after['Items']) and len(before['PRESCRICOES'])==len(after['PRESCRICOES'])
         print('PASS: lost-response retry preserves IDs and record counts')
+        page.locator('#itemNotas').fill('Parâmetros ainda não salvos')
+        page.locator('#btnReviewSession').click()
+        expect(page.locator('#coachFinishStatus')).to_contain_text('parâmetros ainda não salvos')
+        expect(page.locator('#itemNotas')).to_have_value('Parâmetros ainda não salvos')
+        fill_next();page.locator('#itemNotas').fill('Terceiro exercício fictício');page.locator('#btnAddItem').click()
+        expect(page.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 4')
+        expect(page.locator('#coachTreinoId')).to_have_value(session_id)
+        expect(page.locator('#coachAluno')).to_have_value('s2')
+        expect(page.locator('.coach-exercise h3')).to_have_text(['Exercício 1 — Supino','Exercício 2 — Supino','Exercício 3 — Supino'])
+        before=page.request.post(base+'/test-tables',data={}).json()
+        page.locator('#btnReviewSession').click()
+        expect(page.locator('#coachFinishStatus')).to_contain_text('3 exercício(s) gravado(s)')
+        page.locator('#btnConfirmSession').click()
+        expect(page.locator('#coachFinishStatus')).to_contain_text('Montagem concluída visualmente')
+        after=page.request.post(base+'/test-tables',data={}).json()
+        assert before==after, 'Finalization must not write any table'
+        page.evaluate('window.scrollTo(0,0)')
+        page.screenshot(path='/tmp/mvp-fluxo-finalizado.png',full_page=True)
+        print('PASS: three progressive items, sequential numbering, dirty-draft warning, finalization with zero writes')
         page.locator('#itemExercicio').select_option('exercise-boulder')
         expect(page.locator('#blocksField')).to_be_visible();expect(page.locator('#gradeField')).to_be_visible();expect(page.locator('#assessmentField')).to_be_hidden()
         page.locator('#itemExercicio').select_option('exercise-finger-iso')
@@ -103,6 +148,10 @@ try:
         assert page.locator('#listaRetornos').evaluate("e=>!!e.closest('#panelStudent')")
         assert not page.locator('#appPanel').evaluate("e=>e.classList.contains('coach-layout-active')")
         print('PASS: logout/student login restores shared layout; dedicated student files unchanged')
+        page.reload()
+        expect(page.locator('#loginPanel')).to_be_visible()
+        expect(page.locator('#appPanel')).to_be_hidden()
+        print('PASS: reload still requires login; no unsafe token persistence introduced')
         assert not errors, errors
         browser.close()
         print('PASS: no browser JavaScript errors')

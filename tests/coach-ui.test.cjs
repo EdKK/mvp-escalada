@@ -9,6 +9,7 @@ function dom(source=html){const elements=new Map(),all=[];
   insertBefore(n,before){if(n.parentNode)n.parentNode.children.splice(n.parentNode.children.indexOf(n),1);const index=before?this.children.indexOf(before):this.children.length;assert.ok(index>=0);this.children.splice(index,0,n);n.parentNode=this;if(this.tagName==='SELECT'&&this.children.length===1)this.value=n.value;return n;}
   append(...nodes){nodes.forEach(n=>this.appendChild(n));}
   replaceChildren(...nodes){this.children.forEach(n=>n.parentNode=null);this.children=[];if(this.tagName==='SELECT')this.value='';this.append(...nodes);}
+  focus(){this.focused=true;}scrollIntoView(){this.scrolled=true;}
   addEventListener(name,fn){this.events[name]=fn;}removeAttribute(name){delete this[name];}setAttribute(name,value){this[name]=value;}
  }
  const stack=[],voids=new Set(['input','meta','link','br','hr','img']);
@@ -38,7 +39,7 @@ test('trainer UI loads library and preserves session fields through select/presc
  await ui.click('btnAddItem');assert.equal(ui.f.tables.Workouts.length,2);assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,2);assert.equal(ui.f.tables.PRESCRICAO_SERIES.length,6);assert.equal(ui.f.tables.WorkoutGuidance.length,2);assert.match(ui.elements.get('savedPrescription').textContent,/volume 15 repetições/);assert.equal(ui.elements.get('pendingCoachPanel').hidden,true);
 });
 test('UI retry after a lost successful response reuses the same intent and does not duplicate',async()=>{
- const ui=await boot({loseSaveResponse:true});await fill(ui);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.elements.get('itemQtd').disabled,true);assert.equal(ui.elements.get('btnAddItem').textContent,'Retomar gravação pendente');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,2);assert.equal(ui.f.tables.PRESCRICAO_SERIES.length,6);
+ const ui=await boot({loseSaveResponse:true});await fill(ui);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.elements.get('itemQtd').disabled,true);assert.equal(ui.elements.get('btnAddItem').textContent,'Retomar gravação pendente');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,2);assert.equal(ui.f.tables.PRESCRICAO_SERIES.length,6);assert.doesNotMatch(ui.elements.get('librarySaveHint').textContent,/TRANSPORT_ERROR/);
 });
 test('UI reload discovers incomplete server intent and resumes without creating a second item',async()=>{
  const ui=await boot();await fill(ui);ui.f.fail('PRESCRICOES');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,1);
@@ -63,7 +64,31 @@ test('coach-only mounting preserves functional ancestry and restores shared cons
  const student=await boot({student:true});assert.equal(student.elements.get('appPanel').classList.contains('coach-layout-active'),false);assert.ok(student.descendant(student.elements.get('previewTreinoAluno'),'panelStudent'));assert.ok(student.elements.get('panelCoach').classList.contains('hidden'));assert.equal(student.requests.some(r=>r.method==='libraryApi'),false);
 });
 test('conditional fields and session consultation remain functional after rearranging controls',async()=>{
- const ui=await boot();await fill(ui);await ui.click('btnAddItem');assert.ok(ui.elements.get('previewTreinoAluno').children.some(e=>/Supino/.test(e.textContent)));assert.match(ui.elements.get('listaRetornos').children[0].textContent,/Nenhum retorno/);
+ const ui=await boot();await fill(ui);await ui.click('btnAddItem');assert.ok(ui.elements.get('previewTreinoAluno').children.some(e=>e.children.some(child=>/Supino/.test(child.textContent))));assert.match(ui.elements.get('listaRetornos').children[0].textContent,/Nenhum retorno/);
  await ui.change('itemExercicio','exercise-boulder');assert.equal(ui.elements.get('gradeField').hidden,false);assert.equal(ui.elements.get('assessmentField').hidden,true);assert.equal(ui.elements.get('blocksField').hidden,false);assert.equal(ui.elements.get('setsField').hidden,true);
  await ui.change('itemExercicio','exercise-finger-iso');assert.equal(ui.elements.get('suspensionsField').hidden,false);assert.equal(ui.elements.get('setsField').hidden,false);assert.equal(ui.elements.get('blocksField').hidden,true);assert.equal(ui.elements.get('assessmentField').hidden,false);
+});
+
+const fillNext=async ui=>{await ui.change('itemExercicio','exercise-bench');ui.set('libraryMethod','method-max-effort');ui.set('libraryAssessment',ui.f.tables.AVALIACOES[1][0]);ui.set('itemIntensVal','85');ui.set('librarySets','5');ui.set('itemQtd','3');ui.set('itemMin','5');};
+const exerciseHeadings=ui=>ui.elements.get('previewTreinoAluno').children.filter(e=>e.tagName==='ARTICLE').map(e=>e.children[0].textContent);
+test('three progressive saves keep one session, render sequential items, and reset only confirmed drafts',async()=>{
+ const ui=await boot();await fill(ui);const workoutId=ui.elements.get('coachTreinoId').value,student=ui.elements.get('coachAluno').value;
+ assert.ok(ui.elements.get('coachPrescriptionTitle').focused);assert.ok(ui.elements.get('coachPrescription').scrolled);
+ for(let n=1;n<=3;n++){if(n>1)await fillNext(ui);await ui.click('btnAddItem');assert.equal(ui.elements.get('coachTreinoId').value,workoutId);assert.equal(ui.elements.get('coachAluno').value,student);assert.equal(ui.elements.get('itemExercicio').value,'');assert.equal(ui.elements.get('itemMin').value,'');assert.equal(ui.elements.get('itemNotas').value,'');assert.match(ui.elements.get('coachNextExercise').textContent,new RegExp('Próximo: Exercício '+(n+1)));}
+ assert.equal(ui.f.tables.Workouts.length,2);assert.equal(ui.f.tables.Items.length,4);assert.deepEqual(exerciseHeadings(ui),['Exercício 1 — Supino','Exercício 2 — Supino','Exercício 3 — Supino']);
+ const before=JSON.stringify(ui.f.tables),writes=ui.requests.filter(r=>r.request.action==='saveCoachPrescription').length;
+ await ui.click('btnReviewSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/3 exercício/);assert.equal(ui.elements.get('btnConfirmSession').hidden,false);
+ await ui.click('btnConfirmSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/Montagem concluída visualmente/);assert.equal(JSON.stringify(ui.f.tables),before);assert.equal(ui.requests.filter(r=>r.request.action==='saveCoachPrescription').length,writes);
+});
+test('finalization warns about dirty drafts and pending writes without clearing parameters or resending items',async()=>{
+ const ui=await boot();await fill(ui);ui.f.fail('PRESCRICOES');await ui.click('btnAddItem');
+ for(const [id,value] of [['itemExercicio','exercise-bench'],['itemIntensVal','85'],['itemQtd','3'],['itemNotas','Técnica preservada']])assert.equal(ui.elements.get(id).value,value);
+ await ui.click('btnReviewSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/gravação pendente/);assert.equal(ui.elements.get('btnConfirmSession').hidden,true);
+ await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);await fillNext(ui);ui.set('itemNotas','Ainda não salvo');
+ await ui.click('btnReviewSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/parâmetros ainda não salvos/);assert.equal(ui.elements.get('itemNotas').value,'Ainda não salvo');assert.equal(ui.elements.get('btnConfirmSession').hidden,true);
+});
+test('review confirmation rechecks draft changes and selector contrast is coach scoped',async()=>{
+ const ui=await boot();await fill(ui);await ui.click('btnAddItem');await ui.click('btnReviewSession');ui.set('itemNotas','Alteração após revisão');
+ await ui.click('btnConfirmSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/parâmetros ainda não salvos/);assert.equal(ui.f.tables.Items.length,2);
+ assert.match(html,/#panelCoach select option,#panelCoach select optgroup\{background:#101a33;color:#eaf0ff\}/);assert.match(html,/#panelCoach select option:checked\{background:#123e78;color:#ffffff\}/);assert.match(html,/#panelCoach select:disabled,#panelCoach select option:disabled\{background:#182438;color:#b7c5df;opacity:1\}/);
 });

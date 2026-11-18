@@ -92,3 +92,23 @@ test('review confirmation rechecks draft changes and selector contrast is coach 
  await ui.click('btnConfirmSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/parâmetros ainda não salvos/);assert.equal(ui.f.tables.Items.length,2);
  assert.match(html,/#panelCoach select option,#panelCoach select optgroup\{background:#101a33;color:#eaf0ff\}/);assert.match(html,/#panelCoach select option:checked\{background:#123e78;color:#ffffff\}/);assert.match(html,/#panelCoach select:disabled,#panelCoach select option:disabled\{background:#182438;color:#b7c5df;opacity:1\}/);
 });
+
+test('coach tabs default to build and preserve the same unsaved prescription nodes and RPC state',async()=>{
+ const ui=await boot();assert.equal(ui.elements.get('coachBuildPanel').hidden,false);assert.equal(ui.elements.get('coachTabBuild')['aria-selected'],'true');
+ await fill(ui);const draft=['coachAluno','coachTreinoId','itemExercicio','libraryMethod','libraryAssessment','itemIntensVal','librarySets','itemQtd','itemMin','itemNotas'].map(id=>({id,node:ui.elements.get(id),value:ui.elements.get(id).value}));
+ const calls=ui.requests.length,tables=JSON.stringify(ui.f.tables);
+ for(const [button,panel,title] of [['coachTabStudents','coachStudentsPanel','Alunos'],['coachTabLibrary','coachLibraryPanel','Biblioteca']]){
+  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.equal(ui.elements.get(panel).children.length,1);assert.equal(ui.elements.get(panel).children[0].tagName,'H2');assert.match(html,new RegExp('hidden><h2>'+title+'</h2></section>'));
+ }
+ await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
+ assert.equal(ui.requests.length,calls);assert.equal(JSON.stringify(ui.f.tables),tables);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
+ assert.doesNotMatch(html,/Atalhos para os controles desta página|href="#coach(?:Session|LibrarySection|Prescription)"/);
+});
+test('tabs preserve pending intents and review state, support keyboard navigation, and reset only the selected tab on login',async()=>{
+ const ui=await boot({loseSaveResponse:true});await fill(ui);await ui.click('btnAddItem');const first=ui.requests.find(r=>r.request.action==='saveCoachPrescription').request;
+ await ui.click('coachTabLibrary');await ui.click('coachTabStudents');await ui.click('coachTabBuild');assert.equal(ui.elements.get('itemQtd').value,'3');assert.equal(ui.elements.get('itemQtd').disabled,true);assert.equal(ui.elements.get('btnAddItem').textContent,'Retomar gravação pendente');
+ await ui.click('btnAddItem');const writes=ui.requests.filter(r=>r.request.action==='saveCoachPrescription');assert.equal(writes.length,2);assert.deepEqual(writes[1].request,first);assert.equal(ui.f.tables.Items.length,2);
+ await ui.click('btnReviewSession');assert.equal(ui.elements.get('btnConfirmSession').hidden,false);const review=ui.elements.get('coachFinishStatus').textContent;await ui.click('coachTabStudents');await ui.click('coachTabBuild');assert.equal(ui.elements.get('coachFinishStatus').textContent,review);await ui.click('btnConfirmSession');assert.match(ui.elements.get('coachFinishStatus').textContent,/Montagem concluída visualmente/);
+ let prevented=false;ui.elements.get('coachTabBuild').events.keydown({key:'Home',preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(ui.elements.get('coachStudentsPanel').hidden,false);assert.equal(ui.elements.get('coachTabStudents').focused,true);
+ await ui.click('btnLogout');await ui.click('btnLogin');await ui.click('btnFinishLogin');assert.equal(ui.elements.get('coachBuildPanel').hidden,false);assert.equal(ui.elements.get('coachStudentsPanel').hidden,true);assert.equal(ui.elements.get('coachLibraryPanel').hidden,true);
+});

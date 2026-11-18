@@ -62,11 +62,30 @@ try:
         page.screenshot(path='/tmp/mvp-fluxo-narrow.png', full_page=True)
         print('PASS: no horizontal overflow at 1920,1600,1366,1024,768,390 pixels')
         page.set_viewport_size({'width':1600,'height':1100})
-        for target in ['coachSession','coachLibrarySection','coachPrescription']:
-            page.locator(f'.coach-sidebar a[href="#{target}"]').click()
-            assert page.url.endswith('#'+target)
-            box=page.locator('#'+target).bounding_box()
-            assert -1<=box['y']<900, (target,box)
+        draft_ids=['coachAluno','coachTreinoId','itemExercicio','libraryMethod','libraryAssessment','itemQtd','itemIntensVal','librarySets','itemMin']
+        values={id:page.locator('#'+id).input_value() for id in draft_ids}
+        page.evaluate("window.originalPrescription=document.getElementById('coachPrescription')")
+        initial_url=page.url
+        for button,panel,title in [('coachTabStudents','coachStudentsPanel','Alunos'),('coachTabLibrary','coachLibraryPanel','Biblioteca')]:
+            page.locator('#'+button).click()
+            expect(page.locator('#'+panel)).to_be_visible()
+            expect(page.locator('#coachBuildPanel')).to_be_hidden()
+            expect(page.locator('#'+button)).to_have_attribute('aria-selected','true')
+            expect(page.locator('#'+panel)).to_have_text(title)
+            assert page.locator('#'+panel).evaluate('e=>e.children.length')==1
+            assert page.url==initial_url
+        page.locator('#coachTabBuild').click()
+        expect(page.locator('#coachBuildPanel')).to_be_visible()
+        assert page.evaluate("window.originalPrescription===document.getElementById('coachPrescription')")
+        assert all(page.locator('#'+id).input_value()==value for id,value in values.items())
+        page.locator('#coachTabBuild').focus();page.keyboard.press('Home')
+        expect(page.locator('#coachTabStudents')).to_be_focused()
+        expect(page.locator('#coachStudentsPanel')).to_be_visible()
+        page.keyboard.press('End')
+        expect(page.locator('#coachBuildPanel')).to_be_visible()
+        page.evaluate('window.scrollTo(0,0)')
+        page.screenshot(path='/tmp/mvp-navegacao-treinador.png',full_page=True)
+        print('PASS: independent empty tabs, default build, keyboard and unchanged unsaved draft/DOM/URL')
         def contrast(colors):
             import re
             def lum(value):
@@ -79,7 +98,7 @@ try:
         disabled=page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor})')
         assert contrast(disabled)>=4.5
         page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>e.disabled=false')
-        print('PASS: sidebar anchors, desktop layout, normal/selected/disabled option contrast >=4.5:1')
+        print('PASS: desktop layout, normal/selected/disabled option contrast >=4.5:1')
         page.request.post(base+'/test-control',data={'delayNext':600,'loseNext':False})
         page.locator('#btnAddItem').click()
         expect(page.locator('#itemQtd')).to_be_disabled()
@@ -108,6 +127,8 @@ try:
         expect(page.locator('#itemQtd')).to_have_value('3')
         expect(page.locator('#itemIntensVal')).to_have_value('85')
         expect(page.locator('#itemExercicio')).to_have_value('exercise-bench')
+        page.locator('#coachTabLibrary').click();expect(page.locator('#coachLibraryPanel')).to_be_visible()
+        page.locator('#coachTabBuild').click();expect(page.locator('#itemQtd')).to_have_value('3')
         before=page.request.post(base+'/test-tables',data={}).json()
         page.locator('#btnAddItem').click()
         expect(page.locator('#btnAddItem')).to_have_text('Salvar e adicionar próximo exercício')

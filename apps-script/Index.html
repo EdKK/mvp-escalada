@@ -393,9 +393,12 @@ select.native-hidden {
     #panelCoach:not(.hidden){display:grid;grid-template-columns:minmax(160px,15fr) minmax(0,85fr);gap:20px;align-items:start}
     #panelCoach .coach-workspace,#panelCoach .coach-columns > *,#panelCoach .row > *{min-width:0}
     #panelCoach .coach-sidebar{position:sticky;top:20px;display:flex;flex-direction:column;gap:10px}
+    #panelCoach .coach-tablist{display:flex;flex-direction:column;gap:10px}
+    #panelCoach .coach-sidebar [role="tab"][aria-selected="true"]{background:rgba(110,231,255,.15);border-color:var(--accent);box-shadow:inset 3px 0 var(--accent)}
+    #panelCoach .coach-sidebar [role="tab"]{text-align:left;width:100%}
     #panelCoach .coach-nav-title{margin:0 0 8px;font-size:15px;font-weight:700}
-    #panelCoach .coach-sidebar a{display:block;padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--txt);text-decoration:none;font-weight:600;overflow-wrap:anywhere}
-    #panelCoach .coach-sidebar a:hover,#panelCoach .coach-sidebar a:focus-visible{background:rgba(110,231,255,.10);border-color:var(--accent)}
+    #panelCoach .coach-sidebar [role="tab"]{display:block;padding:12px;border:1px solid var(--line);border-radius:10px;color:var(--txt);text-decoration:none;font-weight:600;overflow-wrap:anywhere}
+    #panelCoach .coach-sidebar [role="tab"]:hover,#panelCoach .coach-sidebar [role="tab"]:focus-visible{background:rgba(110,231,255,.10);border-color:var(--accent)}
     #panelCoach .coach-columns{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,45fr);gap:20px;align-items:start;margin-top:20px}
     #panelCoach .coach-session,#panelCoach .coach-results,#panelCoach #coachPrescription{padding:20px}
     #panelCoach .coach-field-group + .coach-field-group{border-top:1px solid var(--line);margin-top:20px;padding-top:8px}
@@ -418,7 +421,8 @@ select.native-hidden {
       #panelCoach:not(.hidden){grid-template-columns:minmax(0,1fr);gap:12px}
       #panelCoach .coach-sidebar{position:static;flex-direction:row;flex-wrap:wrap;gap:8px;padding:12px}
       #panelCoach .coach-sidebar .coach-nav-title,#panelCoach .coach-sidebar p.muted{flex-basis:100%;margin:0}
-      #panelCoach .coach-sidebar a{flex:1;text-align:center;padding:10px}
+      #panelCoach .coach-tablist{flex-direction:row;flex-basis:100%;flex-wrap:wrap}
+      #panelCoach .coach-sidebar [role="tab"]{flex:1;text-align:center;padding:10px}
       #panelCoach .coach-session,#panelCoach .coach-results,#panelCoach #coachPrescription{padding:14px}
       #panelCoach .coach-columns{margin-top:12px;gap:12px}
       #panelCoach .split{flex-wrap:wrap}
@@ -449,12 +453,16 @@ select.native-hidden {
   <section id="panelCoach" role="tabpanel" aria-labelledby="tabCoach">
   <nav class="coach-sidebar card" aria-label="Navegação do treinador">
     <p class="coach-nav-title">Área do treinador</p>
-    <a href="#coachSession" target="_self">Alunos</a>
-    <a href="#coachLibrarySection" target="_self">Biblioteca</a>
-    <a href="#coachPrescription" target="_self">Montar treino</a>
-    <p class="muted">Atalhos para os controles desta página.</p>
+    <div class="coach-tablist" role="tablist" aria-label="Áreas do treinador" aria-orientation="vertical">
+      <button id="coachTabStudents" type="button" role="tab" aria-selected="false" aria-controls="coachStudentsPanel" tabindex="-1">Alunos</button>
+      <button id="coachTabLibrary" type="button" role="tab" aria-selected="false" aria-controls="coachLibraryPanel" tabindex="-1">Biblioteca</button>
+      <button id="coachTabBuild" type="button" role="tab" aria-selected="true" aria-controls="coachBuildPanel" tabindex="0">Montar treino</button>
+    </div>
   </nav>
   <div class="coach-workspace">
+    <section id="coachStudentsPanel" class="card" role="tabpanel" aria-labelledby="coachTabStudents" hidden><h2>Alunos</h2></section>
+    <section id="coachLibraryPanel" class="card" role="tabpanel" aria-labelledby="coachTabLibrary" hidden><h2>Biblioteca</h2></section>
+    <section id="coachBuildPanel" role="tabpanel" aria-labelledby="coachTabBuild">
     <section id="coachSession" class="card coach-session" aria-label="Identificação da sessão">
 <div class="split">
           <h2>Criar sessão de treino</h2>
@@ -616,6 +624,7 @@ select.native-hidden {
         </section>
       </aside>
     </div>
+    </section>
   </div>
 </section>
 
@@ -835,6 +844,7 @@ var CoachLibraryModel = (() => {
     else {$('alunoTreinoId').disabled=busy;}
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
     $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!libraryReady||!exerciseSelection||!selected));
+    coachTabs.forEach(tab=>$(tab.button).disabled=busy);
     $('btnReviewSession').disabled=busy||!selected;
     $('btnConfirmSession').disabled=busy||!!pendingCoachSave||!coachReview||!coachReview.ready||coachDraftDirty();
     $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':'Salvar e adicionar próximo exercício';
@@ -972,6 +982,29 @@ var CoachLibraryModel = (() => {
     ['listaTreinos','alunoTreinoId','previewTreinoAluno','listaRetornos','coachAluno'].forEach(id=>$(id).replaceChildren());
     document.querySelectorAll('#appPanel input, #appPanel textarea').forEach(el=>{el.value='';});
   }
+  const coachTabs=[
+    {key:'students',button:'coachTabStudents',panel:'coachStudentsPanel'},
+    {key:'library',button:'coachTabLibrary',panel:'coachLibraryPanel'},
+    {key:'build',button:'coachTabBuild',panel:'coachBuildPanel'}
+  ];
+  function selectCoachTab(key){
+    if(session?.role!=='coach'||!coachTabs.some(tab=>tab.key===key))return;
+    coachTabs.forEach(tab=>{
+      const active=tab.key===key;
+      $(tab.panel).hidden=!active;
+      $(tab.button).setAttribute('aria-selected',String(active));
+      $(tab.button).setAttribute('tabindex',active?'0':'-1');
+    });
+  }
+  coachTabs.forEach((tab,index)=>{
+    $(tab.button).addEventListener('click',()=>selectCoachTab(tab.key));
+    $(tab.button).addEventListener('keydown',event=>{
+      if(busy||session?.role!=='coach')return;
+      const next={ArrowDown:(index+1)%coachTabs.length,ArrowUp:(index+coachTabs.length-1)%coachTabs.length,Home:0,End:coachTabs.length-1}[event.key];
+      if(next===undefined)return;
+      event.preventDefault();selectCoachTab(coachTabs[next].key);$(coachTabs[next].button).focus();
+    });
+  });
   const coachLayoutHomes = new Map();
   function placeCoachConsultation(isCoach) {
     $('appPanel').classList.toggle('coach-layout-active', isCoach);
@@ -990,6 +1023,7 @@ var CoachLibraryModel = (() => {
   async function loadApp() {
     session=await rpc({action:'getSession',data:{}});
     placeCoachConsultation(session.role==='coach');
+    if(session.role==='coach')selectCoachTab('build');
     $('alunoNome').value=session.id;
     $('tabCoach').hidden=true; $('tabStudent').hidden=true;
     $('panelCoach').classList.toggle('hidden',session.role!=='coach');

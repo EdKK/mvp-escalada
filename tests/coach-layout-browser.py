@@ -71,25 +71,29 @@ try:
             expect(page.locator('#'+panel)).to_be_visible()
             expect(page.locator('#coachBuildPanel')).to_be_hidden()
             expect(page.locator('#'+button)).to_have_attribute('aria-selected','true')
-            if panel=='coachLibraryPanel':
-                expect(page.locator('#'+panel)).to_have_text(title)
-                assert page.locator('#'+panel).evaluate('e=>e.children.length')==1
+            is_library=panel=='coachLibraryPanel'
+            card_selector='.library-overview-card' if is_library else '.students-card'
+            prefix='#'+panel
+            expect(page.locator(prefix+' '+card_selector)).to_have_count(4)
+            expect(page.locator(prefix+' input, '+prefix+' select, '+prefix+' button, '+prefix+' textarea, '+prefix+' a')).to_have_count(0)
+            if is_library:
+                expect(page.locator(prefix+' .library-search-placeholder')).to_have_attribute('aria-label','Campo de busca ilustrativo, sem interação')
+                expect(page.locator('#libraryIntensityTitle')).to_have_text('Intensidade')
+                expect(page.locator('#libraryVolumeTitle')).to_have_text('Volume')
             else:
-                expect(page.locator('#coachStudentsPanel .students-card')).to_have_count(4)
-                expect(page.locator('#coachStudentsPanel table tbody tr')).to_have_count(4)
-                expect(page.locator('#coachStudentsPanel input, #coachStudentsPanel select, #coachStudentsPanel button, #coachStudentsPanel textarea')).to_have_count(0)
-                cards=page.locator('#coachStudentsPanel .students-card').all()
-                boxes=[c.bounding_box() for c in cards]
-                assert boxes[0]['x']<boxes[1]['x'] and abs(boxes[0]['y']-boxes[1]['y'])<1
-                assert boxes[2]['x']<boxes[3]['x'] and abs(boxes[2]['y']-boxes[3]['y'])<1
-                assert boxes[2]['y']>boxes[0]['y']
-                page.evaluate('window.scrollTo(0,0)')
-                page.screenshot(path='/tmp/mvp-layout-alunos.png',full_page=True)
-                for width in [1366,1024,390]:
-                    page.set_viewport_size({'width':width,'height':1000})
-                    assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'), f'student card overflow {width}'
-                page.screenshot(path='/tmp/mvp-layout-alunos-estreito.png',full_page=True)
-                page.set_viewport_size({'width':1600,'height':1100})
+                expect(page.locator(prefix+' table tbody tr')).to_have_count(4)
+            boxes=[c.bounding_box() for c in page.locator(prefix+' '+card_selector).all()]
+            assert boxes[0]['x']<boxes[1]['x'] and abs(boxes[0]['y']-boxes[1]['y'])<1
+            assert boxes[2]['x']<boxes[3]['x'] and abs(boxes[2]['y']-boxes[3]['y'])<1
+            assert boxes[2]['y']>boxes[0]['y']
+            page.evaluate('window.scrollTo(0,0)')
+            screenshot='biblioteca' if is_library else 'alunos'
+            page.screenshot(path='/tmp/mvp-layout-'+screenshot+'.png',full_page=True)
+            for width in [1366,1024,390]:
+                page.set_viewport_size({'width':width,'height':1000})
+                assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'), f'{screenshot} overflow {width}'
+            page.screenshot(path='/tmp/mvp-layout-'+screenshot+'-estreito.png',full_page=True)
+            page.set_viewport_size({'width':1600,'height':1100})
             assert page.url==initial_url
         page.locator('#coachTabBuild').click()
         expect(page.locator('#coachBuildPanel')).to_be_visible()
@@ -102,7 +106,7 @@ try:
         expect(page.locator('#coachBuildPanel')).to_be_visible()
         page.evaluate('window.scrollTo(0,0)')
         page.screenshot(path='/tmp/mvp-navegacao-treinador.png',full_page=True)
-        print('PASS: four static student cards in 2x2 grid, responsive widths, empty library and unchanged unsaved build draft/DOM/URL')
+        print('PASS: four static student/library cards in 2x2 grids, responsive widths, illustrative noninteractive search and unchanged unsaved build draft/DOM/URL')
         def contrast(colors):
             import re
             def lum(value):

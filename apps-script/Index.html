@@ -472,6 +472,35 @@ select.native-hidden {
     #coachStudentsPanel thead th{font-weight:500;color:var(--muted)}
     @media(max-width:1050px){#coachStudentsPanel .students-grid{grid-template-columns:minmax(0,1fr)}}
     @media(max-width:480px){#coachStudentsPanel .students-card{padding:16px}#coachStudentsPanel .students-fields{grid-template-columns:minmax(0,1fr)}#coachStudentsPanel .students-finance{grid-template-columns:minmax(0,1fr)}}
+
+    /* Illustrative library overview: presentation only, isolated from prescription. */
+    #coachLibraryPanel .library-overview-heading h2{margin:0 0 8px;font-size:22px}
+    #coachLibraryPanel .library-overview-heading p{margin:0 0 20px}
+    #coachLibraryPanel .library-overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+    #coachLibraryPanel .library-overview-card{padding:22px;min-width:0;display:flex;flex-direction:column}
+    #coachLibraryPanel .library-overview-card-heading{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    #coachLibraryPanel .library-overview-card-heading h3{font-size:18px;margin:0;line-height:1.4}
+    #coachLibraryPanel .library-overview-number{display:grid;place-items:center;flex:0 0 34px;height:34px;border:1px solid var(--line);border-radius:10px;color:var(--accent);background:rgba(110,231,255,.08);font-family:var(--mono);font-size:13px}
+    #coachLibraryPanel .library-search-placeholder{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);color:var(--muted);font-size:14px;line-height:1.5}
+    #coachLibraryPanel .library-search-placeholder > span:first-child{color:var(--accent);font-size:24px;line-height:1}
+    #coachLibraryPanel .library-overview-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin:12px 0 16px;padding:0}
+    #coachLibraryPanel .library-overview-list li{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;line-height:1.5}
+    #coachLibraryPanel .library-overview-list li::before{content:'';width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--accent)}
+    #coachLibraryPanel .library-overview-note{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 12px}
+    #coachLibraryPanel .library-overview-reference{display:flex;flex-wrap:wrap;gap:6px 8px;border-top:1px solid var(--line);padding-top:14px;margin: auto 0 0;font-size:11px;line-height:1.6;color:var(--muted)}
+    #coachLibraryPanel .library-overview-reference span{flex-basis:100%}
+    #coachLibraryPanel code{background:rgba(110,231,255,.06);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);overflow-wrap:anywhere;max-width:100%}
+    #coachLibraryPanel h4{font-size:14px;line-height:1.5;margin:0 0 8px}
+    #coachLibraryPanel .library-overview-placeholder{padding:16px;border:1px solid var(--line);border-radius:12px;margin-bottom:14px;background:rgba(255,255,255,.025)}
+    #coachLibraryPanel .library-overview-placeholder p{font-size:14px;line-height:1.6;color:var(--muted);margin:0}
+    #coachLibraryPanel .library-overview-link{padding:16px;border:1px dashed var(--line);border-radius:12px;margin-bottom:14px}
+    #coachLibraryPanel .library-overview-link p{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 0;font-size:13px;color:var(--muted)}
+    #coachLibraryPanel .library-overview-link p span:nth-child(2){color:var(--accent)}
+    #coachLibraryPanel .library-overview-measures + .library-overview-measures{border-top:1px solid var(--line);padding-top:16px}
+    #coachLibraryPanel .library-overview-measures h4{color:var(--accent)}
+    #coachLibraryPanel .library-overview-measures .library-overview-list li{padding:8px 12px}
+    @media(max-width:1050px){#coachLibraryPanel .library-overview-grid{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:480px){#coachLibraryPanel .library-overview-card{padding:16px}}
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>
@@ -552,7 +581,39 @@ select.native-hidden {
         </section>
       </div>
     </section>
-    <section id="coachLibraryPanel" class="card" role="tabpanel" aria-labelledby="coachTabLibrary" hidden><h2>Biblioteca</h2></section>
+    <section id="coachLibraryPanel" role="tabpanel" aria-labelledby="coachTabLibrary" hidden>
+      <div class="library-overview-heading"><h2>Biblioteca</h2><p id="libraryVisualNotice" class="muted">Conteúdo ilustrativo para organização da biblioteca. Nenhum dado é consultado ou alterado nesta aba.</p></div>
+      <div class="library-overview-grid">
+        <section class="card library-overview-card" aria-labelledby="libraryExercisesTitle">
+          <div class="library-overview-card-heading"><span class="library-overview-number" aria-hidden="true">01</span><h3 id="libraryExercisesTitle">Exercícios</h3></div>
+          <div class="library-search-placeholder" role="img" aria-label="Campo de busca ilustrativo, sem interação"><span aria-hidden="true">⌕</span><span aria-hidden="true">Buscar exercício · ilustrativo</span></div>
+          <ul class="library-overview-list"><li>Escalada em via</li><li>Boulder</li><li>Campus board</li><li>Fingerboard</li><li>Exercícios complementares</li></ul>
+          <p class="library-overview-note">Categorias de exemplo. Busca e manutenção de exercícios não estão disponíveis nesta estrutura visual.</p>
+          <p class="library-overview-reference"><span>Referência prevista</span><code>EXERCICIOS</code></p>
+        </section>
+        <section class="card library-overview-card" aria-labelledby="libraryCapacitiesTitle">
+          <div class="library-overview-card-heading"><span class="library-overview-number" aria-hidden="true">02</span><h3 id="libraryCapacitiesTitle">Capacidades físicas</h3></div>
+          <p class="library-overview-note">Organização ilustrativa das capacidades associadas aos exercícios.</p>
+          <ul class="library-overview-list"><li>Força máxima</li><li>Força explosiva</li><li>Resistência muscular</li><li>Flexibilidade</li><li>Coordenação</li></ul>
+          <p class="library-overview-reference"><span>Referências previstas</span><code>CAPACIDADES</code><code>EXERCICIO_CAPACIDADES</code></p>
+        </section>
+        <section class="card library-overview-card" aria-labelledby="libraryMethodsTitle">
+          <div class="library-overview-card-heading"><span class="library-overview-number" aria-hidden="true">03</span><h3 id="libraryMethodsTitle">Métodos de treinamento</h3></div>
+          <div class="library-overview-placeholder"><h4>Listagem dos métodos</h4><p>Espaço reservado para a apresentação dos métodos de treinamento.</p></div>
+          <div class="library-overview-placeholder"><h4>Protocolos de treinamento</h4><p>Espaço reservado para protocolos e suas descrições.</p></div>
+          <div class="library-overview-link"><h4>Vinculação entre exercícios e métodos</h4><p><span>Exercício</span><span aria-hidden="true">→</span><span>Método / protocolo</span></p></div>
+          <p class="library-overview-note">Relação ilustrativa, sem associação ou alteração de registros.</p>
+          <p class="library-overview-reference"><span>Referências previstas</span><code>METODOS</code><code>EXERCICIO_METODOS</code></p>
+        </section>
+        <section class="card library-overview-card" aria-labelledby="libraryIndicatorsTitle">
+          <div class="library-overview-card-heading"><span class="library-overview-number" aria-hidden="true">04</span><h3 id="libraryIndicatorsTitle">Indicadores e unidades</h3></div>
+          <section class="library-overview-measures" aria-labelledby="libraryIntensityTitle"><h4 id="libraryIntensityTitle">Intensidade</h4><ul class="library-overview-list"><li>Grau de dificuldade</li><li>Carga absoluta</li><li>Carga relativa</li><li>Percepção subjetiva de esforço</li></ul></section>
+          <section class="library-overview-measures" aria-labelledby="libraryVolumeTitle"><h4 id="libraryVolumeTitle">Volume</h4><ul class="library-overview-list"><li>Movimentos efetivos de mão</li><li>Repetições</li><li>Tempo acumulado de suspensão</li></ul></section>
+          <p class="library-overview-note">Referências ilustrativas, sem cálculos, conversões ou novos indicadores.</p>
+          <p class="library-overview-reference"><span>Referências previstas</span><code>INDICADORES</code><code>UNIDADES</code></p>
+        </section>
+      </div>
+    </section>
     <section id="coachBuildPanel" role="tabpanel" aria-labelledby="coachTabBuild">
     <section id="coachSession" class="card coach-session" aria-label="Identificação da sessão">
 <div class="split">

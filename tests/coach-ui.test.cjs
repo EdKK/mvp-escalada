@@ -98,7 +98,7 @@ test('coach tabs default to build and preserve the same unsaved prescription nod
  await fill(ui);const draft=['coachAluno','coachTreinoId','itemExercicio','libraryMethod','libraryAssessment','itemIntensVal','librarySets','itemQtd','itemMin','itemNotas'].map(id=>({id,node:ui.elements.get(id),value:ui.elements.get(id).value}));
  const calls=ui.requests.length,tables=JSON.stringify(ui.f.tables);
  for(const [button,panel,title] of [['coachTabStudents','coachStudentsPanel','Alunos'],['coachTabLibrary','coachLibraryPanel','Biblioteca']]){
-  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');if(panel==='coachLibraryPanel'){assert.equal(ui.elements.get(panel).children.length,1);assert.equal(ui.elements.get(panel).children[0].tagName,'H2');assert.match(html,new RegExp('hidden><h2>'+title+'</h2></section>'));}else assert.ok(ui.descendant(ui.elements.get('studentsRegistrationTitle'),'coachStudentsPanel'));
+  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.ok(ui.descendant(ui.elements.get(panel==='coachLibraryPanel'?'libraryExercisesTitle':'studentsRegistrationTitle'),panel));
  }
  await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
  assert.equal(ui.requests.length,calls);assert.equal(JSON.stringify(ui.f.tables),tables);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
@@ -124,4 +124,18 @@ test('student overview is static with four cards; build markup and all JavaScrip
  for(const title of ['Cadastro e controle financeiro','Avaliação física','Diretrizes individuais de treino','Últimas quatro sessões'])assert.ok(overview.includes(title));
  assert.equal((overview.match(/<tbody>([\s\S]*?)<\/tbody>/)[1].match(/<tr>/g)||[]).length,4);
  assert.match(overview,/Exemplo fictício, sem vínculo com as sessões cadastradas/);assert.match(overview,/role="img"/);assert.match(overview,/students-status-green/);assert.match(overview,/students-status-yellow/);assert.match(overview,/students-status-red/);
+});
+
+
+test('library overview adds four presentation-only cards while student/build markup and functional script remain unchanged',()=>{
+ const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
+ assert.equal(script,baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
+ const students=source=>source.slice(source.indexOf('<section id="coachStudentsPanel"'),source.indexOf('<section id="coachLibraryPanel"'));
+ const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
+ assert.equal(students(html),students(baseline));assert.equal(build(html),build(baseline));
+ const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
+ assert.equal((library.match(/class="card library-overview-card"/g)||[]).length,4);
+ assert.doesNotMatch(library,/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
+ for(const text of ['Exercícios','Escalada em via','Boulder','Campus board','Fingerboard','Exercícios complementares','Capacidades físicas','Força máxima','Força explosiva','Resistência muscular','Flexibilidade','Coordenação','Métodos de treinamento','Protocolos de treinamento','Vinculação entre exercícios e métodos','Indicadores e unidades','Intensidade','Volume','Grau de dificuldade','Carga absoluta','Carga relativa','Percepção subjetiva de esforço','Movimentos efetivos de mão','Repetições','Tempo acumulado de suspensão','EXERCICIOS','CAPACIDADES','EXERCICIO_CAPACIDADES','METODOS','EXERCICIO_METODOS','INDICADORES','UNIDADES'])assert.ok(library.includes(text),text);
+ assert.match(library,/Campo de busca ilustrativo, sem interação/);assert.match(library,/Nenhum dado é consultado ou alterado/);
 });

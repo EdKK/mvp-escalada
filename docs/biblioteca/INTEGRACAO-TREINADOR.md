@@ -1,5 +1,7 @@
 # Etapa 2 — Biblioteca na interface do treinador
 
+> Registro da integração original. A ligação posterior entre a prescrição e o aluno está documentada em [CORRECAO-CICLO.md](CORRECAO-CICLO.md).
+
 Branch: `feature/biblioteca-exercicios`. Sem implantação automática, migração ou inicialização. OAuth, Backend.gs, Student.gs/StudentLogic.gs, Student.html, OAuthReturn.html e appsscript.json foram preservados.
 
 ## Implementação

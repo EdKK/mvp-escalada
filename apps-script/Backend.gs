@@ -146,7 +146,7 @@ function api(request) {
       fields_(request.data, ['workoutId']);
       result = workout_(db, user, text_(request.data.workoutId, 100));
       result.items = rows_(db, 'Items').filter(function(i) { return i.workoutId === result.id; });
-      result=hydrateStudentWorkout_(db,result);
+      result=hydrateStudentWorkout_(db,result,user);
     } else if(request.action==='submitItemFeedback') result=saveItemFeedback_(db,user,request);
     else result = create_(db, user, request);
     return {ok: true, data: result};

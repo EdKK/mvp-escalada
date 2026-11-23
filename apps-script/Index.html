@@ -871,6 +871,10 @@ function createRpc(run, getSessionToken, method = 'api') {
     });
   };
 }
+function coachExecutedFeedback(f){
+  const units={repetitions:'repetições',moves:'movimentos',hang_seconds:'s de suspensão',seconds:'segundos',minutes:'minutos',meters:'metros',attempts:'tentativas'};
+  return [f.actualSets!==''&&f.actualSets!==undefined?'Séries/blocos executados: '+f.actualSets:'',f.actualQuantity!==''&&f.actualQuantity!==undefined?'Quantidade executada: '+f.actualQuantity+' '+(units[f.quantityUnit]||f.quantityUnit||''):''].filter(Boolean);
+}
 var CoachLibraryModel = (() => {
   const kinds={'unit-repetitions':'repetitions','unit-hand-moves':'hand_moves','unit-hang-seconds':'isometric','unit-seconds':'time','unit-meters':'distance'};
   const metrics={'unit-repetitions':'Reps','unit-hand-moves':'Moves','unit-hang-seconds':'Segundos de suspensão','unit-seconds':'Segundos','unit-meters':'Metros'};
@@ -961,7 +965,7 @@ var CoachLibraryModel = (() => {
     });
     if(session?.role==='coach')$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',f.comment].filter(Boolean).join(' • '));});
+    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
     if(session?.role==='coach' && libraryReady){await refreshAssessments();await showLibraryPrescriptions(w.id);}
   }

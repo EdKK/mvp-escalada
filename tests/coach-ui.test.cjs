@@ -46,6 +46,8 @@ test('UI reload discovers incomplete server intent and resumes without creating 
  const next=await boot({backend:ui.f});const buttons=next.elements.get('pendingCoachSaves').children;assert.equal(buttons.length,1);await buttons[0].events.click();assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,2);assert.equal(ui.f.tables.PRESCRICAO_SERIES.length,6);
 });
 
+// Only the audited executed-dose display is allowed to differ from layout snapshots.
+const withoutExecutedFields=source=>source.replace(/function coachExecutedFeedback\(f\)\{[\s\S]*?\n\}\n/,'').replace('...coachExecutedFeedback(f),','');
 const baselineHtml=require('node:child_process').execFileSync('git',['show','737a4afda80702fe15dcc377c36ef6ca438e30eb:apps-script/Index.html'],{encoding:'utf8'});
 test('layout preserves original field IDs, labels, handlers and request payloads',async()=>{
  const before=await boot({source:baselineHtml}),after=await boot();
@@ -116,7 +118,7 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 
 test('student overview is static with four cards; build markup and all JavaScript stay byte-identical to navigation baseline',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(script,baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
+ assert.equal(withoutExecutedFields(script),baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(build(html),build(baseline));
  const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
@@ -129,7 +131,7 @@ test('student overview is static with four cards; build markup and all JavaScrip
 
 test('library overview adds four presentation-only cards while student/build markup and functional script remain unchanged',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(script,baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
+ assert.equal(withoutExecutedFields(script),baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
  const students=source=>source.slice(source.indexOf('<section id="coachStudentsPanel"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));assert.equal(build(html),build(baseline));

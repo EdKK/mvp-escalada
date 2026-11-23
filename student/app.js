@@ -56,7 +56,12 @@
       if(prev)title.append(el('span','status-label',M.statuses[prev.status]));
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics');
-      metrics.append(metric('Séries',p.sets!==''&&p.sets!==undefined?`${p.sets} séries`:'Não informadas','stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric('Descanso',p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'),metric('Intensidade',M.intensity(p),'intensity'));body.append(metrics);
+      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric('Descanso',p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'),metric('Intensidade',M.intensity(p),'intensity'));body.append(metrics);
+      if(p.source==='library'){
+        const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
+        M.prescriptionDetails(p).forEach(description=>content.append(el('p','',description)));
+        prescription.append(icon('stack'),content);body.append(prescription);
+      }
       const note=el('div','technical-note'),noteText=el('div');noteText.append(el('strong','','Observações'),el('p','',item.notes||'Nenhuma observação técnica adicional.'));note.append(icon('chat'),noteText);body.append(note);
       const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);
       timer.append(clock,button('Iniciar','timer-btn primary',()=>{timers.set(key,M.start(timers.get(key),Date.now()));paintClocks();},'play'),button('Pausar','timer-btn',()=>{timers.set(key,M.pause(timers.get(key),Date.now()));paintClocks();},'pause'),button('Zerar','timer-btn',()=>{timers.set(key,M.zero());paintClocks();},'reset'));body.append(timer);
@@ -83,7 +88,11 @@
     $('rpeField').hidden=!p.rpeApplicable;$('feedbackRpe').disabled=!p.rpeApplicable;
     $('setsField').hidden=p.sets===''||p.sets===undefined;$('actualSets').disabled=$('setsField').hidden;
     $('quantityField').hidden=!M.units[p.quantityUnit];$('actualQuantity').disabled=$('quantityField').hidden;
-    $('actualQuantityLabel').textContent=(p.quantityUnit==='repetitions'?'Repetições por série':`Executado por série (${M.units[p.quantityUnit]||p.quantityUnit})`);
+    $('actualSetsLabel').textContent=p.volume?.kind==='hand_moves'?'Blocos executados':'Séries executadas';
+    $('actualQuantity').max=p.source==='library'?'1000000000000':'100000';
+    $('actualQuantity').step=p.source==='library'&&['repetitions','moves'].includes(p.quantityUnit)?'1':'any';
+    $('actualQuantity').placeholder=p.feedbackQuantityScope==='total'?'Total executado • opcional':'Por série • opcional';
+    $('actualQuantityLabel').textContent=p.feedbackQuantityScope==='total'?`Total executado (${M.units[p.quantityUnit]})`:(p.quantityUnit==='repetitions'?'Repetições por série':`Executado por série (${M.units[p.quantityUnit]||p.quantityUnit})`);
     $('feedbackHistory').textContent=(workout.itemFeedback||[]).filter(f=>f.itemId===item.id).sort((a,b)=>b.revision-a.revision).map(f=>`Registro ${f.revision}: ${M.statuses[f.status]}`).join(' · ');
     $('feedbackError').textContent='';showModal('feedbackDialog');
   }

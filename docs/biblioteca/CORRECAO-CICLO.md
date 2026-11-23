@@ -24,7 +24,7 @@ O aluno vê método/protocolo, referência individual original e distribuição 
 ## Testes executados
 
 - `node --test tests/*.test.cjs`: **105 aprovados, zero falhas** (92 anteriores e 13 casos integrados novos).
-- `python -B -m unittest discover -s tests -p 'test_*.py'`: nove verificações do comparador, incluindo o pacote corrigido fixado por hash. Executar após a atualização do manifesto de sincronização.
+- `python -B -m unittest discover -s tests -p 'test_*.py'`: **9 aprovados, zero falhas**, incluindo o pacote corrigido fixado por hash em eab2f097653120c8f9ad1eec4c143e0c5b76fd0d. O commit posterior de referências não altera os arquivos operacionais.
 - `python tests/coach-layout-browser.py`: **12 grupos de verificações aprovados**, regressão do treinador e larguras 390–1920 px.
 - `python tests/prescription-cycle-browser.py`: **6 grupos aprovados** em Chromium local, com Index.html e Student.html gerado: prescrição 5×3 a 85% de 100 kg; leitura das cinco séries e referência; feedback quantitativo com resposta perdida e replay sem duplicação; novo login e correção revisionada; consulta pelo treinador; isolamento do segundo aluno; item parcial oculto até recuperação.
 

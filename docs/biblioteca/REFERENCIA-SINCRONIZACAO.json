@@ -1,5 +1,5 @@
 {
-  "referenceCommit": "bae615f5f7be2de14902606651f76f63c2ae874f",
+  "referenceCommit": "eab2f097653120c8f9ad1eec4c143e0c5b76fd0d",
   "minimumCorrectionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
   "algorithm": "SHA-256",
   "files": [
@@ -17,7 +17,7 @@
         "Backend.gs"
       ],
       "group": "existing",
-      "sha256": "91ca52cfb0ff30e34af7bc0eb28865548609e8062baf1419b8b8b534840a58ee"
+      "sha256": "e0cdc96b25960d32afa81442c4f1edab96207f6800ed6ff10d19e2b8349b34b6"
     },
     {
       "repositoryFile": "apps-script/Auth.gs",
@@ -42,7 +42,7 @@
         "Student.gs"
       ],
       "group": "existing",
-      "sha256": "2a54b56a5c2cc53e032a73adab4c8b95653f09bf02c624fa3b742be5a219c310"
+      "sha256": "d128636913ec57a695c3890a1a443eae8b9c9a913fd395a995872b6d6de13a76"
     },
     {
       "repositoryFile": "apps-script/Index.html",
@@ -50,7 +50,7 @@
         "Index.html"
       ],
       "group": "existing",
-      "sha256": "ebc4d9df6015f574cf896d6c9fa7e893ab09c8bb0db553b457c30fd224bf153a"
+      "sha256": "69375ea5c5a370a38db5b1673d1c3f16d79bead8afd94ce9484d5f15ff445266"
     },
     {
       "repositoryFile": "apps-script/Student.html",
@@ -58,7 +58,7 @@
         "Student.html"
       ],
       "group": "existing",
-      "sha256": "b072db467169fae3a1aaabc186bfb914837a2510bfac72c5de3b54db110db34b"
+      "sha256": "cb0ce4fbbd1b24cde970daa0811dcc8ff9208016c3d9d874ccb2a8aec61c4950"
     },
     {
       "repositoryFile": "apps-script/OAuthReturn.html",

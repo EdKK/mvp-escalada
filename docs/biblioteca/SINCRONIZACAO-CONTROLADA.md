@@ -1,6 +1,6 @@
 # Comparação de versões e sincronização controlada — diagnóstico e preparação
 
-> **Procedimento histórico da Etapa 1.** As instruções e hashes abaixo registram a instalação em 4c6b2b0. Para a Etapa 2, seguir [INTEGRACAO-TREINADOR.md](INTEGRACAO-TREINADOR.md): Index.html e dois módulos devem ser atualizados, e CoachLibrary.gs deve ser adicionado. O manifesto REFERENCIA-SINCRONIZACAO.json e o comparador agora usam a referência da Etapa 2, indicada no próprio manifesto; seus resultados incluem quatro módulos da biblioteca. Não aplicar à Etapa 2 a orientação histórica de manter Index.html inalterado.
+> **Procedimento histórico da Etapa 1.** As instruções e hashes abaixo registram aquela etapa. Para o pacote corrigido do ciclo treinador/aluno, seguir [CORRECAO-CICLO.md](CORRECAO-CICLO.md). REFERENCIA-SINCRONIZACAO.json agora fixa o commit e os hashes da correção; é preciso conferir os quatro arquivos operacionais indicados no roteiro atual. As restrições históricas de não atualizar Index.html/StudentLogic.gs não se aplicam à correção autorizada do ciclo. O comparador continua sem acesso ao Google.
 
 Repositório EdKK/mvp-escalada, branch feature/biblioteca-exercicios. Referência de código fixada: **4c6b2b0e4c6a2cd19affda2d5665928f44cb599a**. Essa referência inclui as correções 2980982 de autorização no replay e preservação dos timestamps.
 

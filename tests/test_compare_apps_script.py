@@ -20,8 +20,8 @@ class ComparisonTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.folder = Path(self.tmp.name)
         self.manifest = json.loads(MODULE.MANIFEST.read_text())
-        # The repository manifest deliberately pins the PRE-layout homologation.
-        # Exercise its eight existing comparison scenarios on those exact bytes.
+        # Exercise the comparison scenarios against the exact committed operational bundle.
+        # The worktree is checked separately; neither test claims a live Google comparison.
         self.repo_root = MODULE.ROOT
         reference_tmp = tempfile.TemporaryDirectory()
         self.addCleanup(reference_tmp.cleanup)
@@ -37,13 +37,13 @@ class ComparisonTests(unittest.TestCase):
         for row in self.manifest['files']:
             (self.folder / row['installedNames'][0]).write_bytes((MODULE.ROOT / row['repositoryFile']).read_bytes())
 
-    def test_layout_divergence_is_reported_without_rewriting_historical_manifest(self):
+    def test_corrected_worktree_matches_pinned_bundle_without_claiming_google_comparison(self):
         MODULE.ROOT = self.repo_root
         result = MODULE.compare()
-        self.assertFalse(result['referenceIntact'])
+        self.assertTrue(result['referenceIntact'])
         changed = [row['repositoryFile'] for row in self.manifest['files']
                    if hashlib.sha256((self.repo_root / row['repositoryFile']).read_bytes()).hexdigest() != row['sha256']]
-        self.assertEqual(changed, ['apps-script/Index.html'])
+        self.assertEqual(changed, [])
         self.assertFalse(result['liveGoogleVerified'])
 
     def test_reference_only_never_claims_google_comparison(self):

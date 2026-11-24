@@ -14,7 +14,7 @@ function coachPrescriptions_(db,user,data){
 function coachMetric_(unitId){return {'unit-repetitions':'Reps','unit-hand-moves':'Moves','unit-hang-seconds':'Segundos de suspensão','unit-seconds':'Segundos','unit-meters':'Metros'}[unitId];}
 function coachSavePrescription_(db,user,request){
   var d=request.data;
-  fields_(d,['workoutId','exerciseId','block','category','metric','quantity','minutes','notes','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume']);
+  fields_(d,['workoutId','exerciseId','block','category','metric','quantity','minutes','notes','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','task']);
   var w=workout_(db,user,text_(d.workoutId,100));libraryStudent_(db,user,w.studentId);
   var key=text_(request.requestId,80),fingerprint=libraryJson_([request.action,libraryCanonical_(d)]);
   var reservations=rows_(db,'Requests').filter(function(r){return r.userId===user.id&&r.key===key;});
@@ -24,7 +24,7 @@ function coachSavePrescription_(db,user,request){
   var items=rows_(db,'Items').filter(function(i){return i.id===itemId;});if(items.length>1)fail_('SCHEMA_ERROR');
   if(items.length&&items[0].workoutId!==w.id)fail_('SCHEMA_ERROR');
   var plan={workoutId:w.id,itemId:itemId,exerciseId:d.exerciseId,methodId:d.methodId,classification:d.classification,intensity:d.intensity,volume:d.volume,expectedRevision:0};
-  ['protocolId','capacityId','auxiliaryIntensities'].forEach(function(k){if(d[k]!==undefined)plan[k]=d[k];});
+  ['protocolId','capacityId','auxiliaryIntensities','task'].forEach(function(k){if(d[k]!==undefined)plan[k]=d[k];});
   var prescriptionRequest={action:'createLibraryPrescription',data:plan,requestId:'coach-p-'+hashAuth_(user.id+':'+key)};
   // A lost response or partial child write must replay the existing historical snapshot,
   // but authorization is rechecked by libraryApi, workout_ and libraryWrite_.
@@ -33,10 +33,12 @@ function coachSavePrescription_(db,user,request){
     var restored=libraryCreatePrescription_(db,user,prescriptionRequest);return {item:items[0],prescription:restored};
   }
   var exercise=libraryExercise_(db,d.exerciseId);
-  var item={id:itemId,workoutId:w.id,block:text_(d.block,500),category:text_(d.category,500),exercise:exercise.name,metric:text_(d.metric,500),quantity:libraryNumber_(d.quantity,0,100000,false),minutes:libraryNumber_(d.minutes,0,100000,false),notes:d.notes===undefined||d.notes===''?'':text_(d.notes,2000),createdAt:new Date().toISOString()};
+  var item={id:itemId,workoutId:w.id,block:text_(d.block,500),category:d.task&&(d.category===undefined||d.category==='')?'':text_(d.category,500),exercise:exercise.name,metric:text_(d.metric,500),quantity:libraryNumber_(d.quantity,0,100000,false),minutes:libraryNumber_(d.minutes,0,100000,false),notes:d.notes===undefined||d.notes===''?'':text_(d.notes,2000),createdAt:new Date().toISOString()};
+  if(d.task&&d.block!=='Treinamento específico')fail_('INVALID_DATA');
   if(!d.volume||d.metric!==coachMetric_(d.volume.unitId))fail_('INCOMPATIBLE_UNIT');
   // Candidate exists only in memory. All method/reference/unit checks run before writes.
-  libraryValidateLoad_(db,user,plan,item);
+  var validated=libraryValidateLoad_(db,user,plan,item);
+  if(validated.task&&(!Number.isInteger(item.quantity)||item.quantity<validated.task.minMoves||(validated.task.maxMoves!==null&&item.quantity>validated.task.maxMoves)))fail_('INVALID_DATA');
   if(!reservations.length){append_(db,'Requests',{id:id_(),userId:user.id,key:key,fingerprint:fingerprint,entity:'Items',entityId:itemId});SpreadsheetApp.flush();}
   if(!items.length){append_(db,'Items',item);SpreadsheetApp.flush();}
   var prescription=libraryCreatePrescription_(db,user,prescriptionRequest);

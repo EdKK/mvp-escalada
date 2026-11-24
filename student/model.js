@@ -18,7 +18,7 @@ var StudentModel = (() => {
   function quantity(p){if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
   function intensity(p){
     if(p.source==='library'){
-      const i=p.intensity.primary;
+      const i=p.intensity.primary;if(i.notPrescribed)return 'Não informada';
       if(i.kind==='relative')return `${i.percent}% ${i.reference.referenceType==='one_rm'?'de 1RM':'da referência'} • alvo ${i.targetValue} ${referenceUnit(i.targetUnitId)}`;
       if(i.kind==='ordinal')return `${i.value} (${i.scale})`;
       if(i.kind==='undefined')return i.description+' • metodologia pendente';
@@ -34,7 +34,12 @@ var StudentModel = (() => {
   }
   function prescriptionDetails(p){
     if(p.source!=='library')return [];
-    const snapshot=p.snapshot,details=[`Método: ${snapshot.method.name}${snapshot.protocol?' • protocolo: '+snapshot.protocol.name:''}`];
+    const snapshot=p.snapshot,details=[`Método: ${snapshot.method?snapshot.method.name:'não informado'}${snapshot.protocol?' • protocolo: '+snapshot.protocol.name:''}`];
+    if(p.task){
+      const t=p.task,orientations={horizontal:'Horizontal — travessia',vertical:'Vertical — ascendente ou desescalada',mixed:'Misto'},walls={'0_15':'0°–15°','15_30':'Acima de 15° até 30°','30_45':'Acima de 30° até 45°',over_45:'Acima de 45°'};
+      details.push('Treinamento específico • '+t.label);
+      details.push('Deslocamento: '+(orientations[t.orientation]||'não informado')+' • inclinação: '+(walls[t.wallInclination]||'não informada')+' (0° vertical; positivo é extraprumo).');details.push(t.movementDefinition);
+    }
     if(snapshot.capacity)details.push('Capacidade/manifestação: '+snapshot.capacity.name);
     if(p.reference){const a=p.reference;details.push(`Referência individual: ${a.value} ${referenceUnit(a.unitId)} • avaliação ${a.id} • ${a.assessedOn} • validade ${a.validUntil}`);details.push(`Protocolo da avaliação: ${a.protocol} • ${a.referenceDefinition}`);}
     (p.intensity.auxiliary||[]).forEach(i=>details.push(i.indicatorId==='int-rpe'?`RPE auxiliar prescrito: ${i.value}`:JSON.stringify(i)));

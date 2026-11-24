@@ -51,8 +51,8 @@ const withoutExecutedFields=source=>source.replace(/function coachExecutedFeedba
 const baselineHtml=require('node:child_process').execFileSync('git',['show','737a4afda80702fe15dcc377c36ef6ca438e30eb:apps-script/Index.html'],{encoding:'utf8'});
 test('layout preserves original field IDs, labels, handlers and request payloads',async()=>{
  const before=await boot({source:baselineHtml}),after=await boot();
- for(const [id,element] of before.elements){assert.ok(after.elements.has(id),id);assert.deepEqual(Object.keys(after.elements.get(id).events),Object.keys(element.events),'events '+id);}
- const labels=source=>[...source.matchAll(/<label\b[^>]*\bfor="([^"]+)"/g)].map(m=>m[1]).sort();assert.deepEqual(labels(html),labels(baselineHtml));
+ for(const [id,element] of before.elements){assert.ok(after.elements.has(id),id);assert.deepEqual(Object.keys(after.elements.get(id).events),id==='libraryClassification'?['change']:Object.keys(element.events),'events '+id);}
+ const labels=source=>[...source.matchAll(/<label\b[^>]*\bfor="([^"]+)"/g)].map(m=>m[1]).sort();assert.deepEqual(labels(html).filter(id=>labels(baselineHtml).includes(id)),labels(baselineHtml));
  for(const ui of [before,after]){await fill(ui);await ui.click('btnAddItem');}
  const saves=ui=>ui.requests.filter(r=>['createWorkout','saveCoachPrescription'].includes(r.request.action)).map(r=>({method:r.method,action:r.request.action,data:{...r.request.data,...(r.request.action==='saveCoachPrescription'?{workoutId:'SESSION',intensity:{...r.request.data.intensity,assessmentId:'ASSESSMENT'}}:{})}}));
  assert.deepEqual(saves(after),saves(before));
@@ -118,7 +118,7 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 
 test('student overview stays static; prescription RPC/model stay byte-identical to navigation baseline',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(withoutExecutedFields(script.split('// UI integration')[0]),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0]);
+ assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  // Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
@@ -131,7 +131,7 @@ test('student overview stays static; prescription RPC/model stay byte-identical 
 
 test('library overview adds four presentation-only cards while student markup and prescription RPC/model remain unchanged',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(withoutExecutedFields(script.split('// UI integration')[0]),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0]);
+ assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const students=source=>source.slice(source.indexOf('<section id="coachStudentsPanel"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
@@ -161,4 +161,21 @@ test('volume and minutes errors focus their own fields without requests; communi
  const ui=await boot({loseSaveResponse:true});await fill(ui);ui.set('librarySets','');const calls=ui.requests.length;await ui.click('btnAddItem');assert.equal(ui.elements.get('librarySets').focused,true);assert.equal(ui.requests.length,calls);
  ui.set('librarySets','5');ui.set('itemMin','');await ui.click('btnAddItem');assert.equal(ui.elements.get('itemMin').focused,true);assert.equal(ui.requests.length,calls);
  ui.set('itemMin','5');const count=ui.elements.get('coachNextExercise').textContent;await ui.click('btnAddItem');assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'error');assert.match(ui.elements.get('librarySaveHint').textContent,/Falha de comunicação/);assert.equal(ui.elements.get('coachNextExercise').textContent,count);assert.equal(ui.elements.get('itemQtd').value,'3');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'success');assert.match(ui.elements.get('coachNextExercise').textContent,/Próximo: Exercício 2/);
+});
+
+test('three main blocks retain legacy General/Directed controls; five specific subblocks navigate without analytical requirements',async()=>{
+ const ui=await boot();await fill(ui);const session=ui.elements.get('coachTreinoId').value;
+ for(const classification of ['general','directed']){await ui.change('libraryClassification',classification);assert.equal(ui.elements.get('legacyBlockContext').hidden,false);assert.equal(ui.elements.get('libraryMethod').required,true);assert.equal(ui.elements.get('coachTreinoId').value,session);}
+ await ui.change('libraryClassification','specific');assert.equal(ui.elements.get('specificSubblockPanel').hidden,false);assert.equal(ui.elements.get('libraryPanel').hidden,true);assert.equal(ui.elements.get('itemExercicio').children.length,3);
+ for(const sub of ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']){await ui.change('specificSubblock',sub);assert.equal(ui.elements.get('libraryPanel').hidden,false);assert.equal(ui.elements.get('legacyBlockContext').hidden,true);assert.equal(ui.elements.get('libraryMethod').required,false);assert.equal(ui.elements.get('libraryCapacity').value,'');assert.equal(ui.elements.get('coachTreinoId').value,session);assert.equal(ui.elements.get('specificGrade').children.length,sub.startsWith('boulder')?17:25);}
+});
+test('specific task saves without method, category or grade; keeps session across progressive tasks and recovers metadata',async()=>{
+ const ui=await boot();await fill(ui);const session=ui.elements.get('coachTreinoId').value;await ui.change('libraryClassification','specific');await ui.change('specificSubblock','boulder_short');await ui.change('itemExercicio','exercise-boulder');
+ for(const [id,value] of [['libraryBlocks','2'],['libraryBouts','1'],['itemQtd','6'],['itemMin','5'],['specificOrientation','horizontal'],['specificInclination','0_15'],['specificRestSeconds','60']])ui.set(id,value);
+ await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);const save=ui.requests.find(r=>r.request.action==='saveCoachPrescription').request.data;assert.equal(save.classification,'specific');assert.equal(save.category,'');assert.equal(save.methodId,undefined);assert.equal(save.intensity.value,undefined);assert.equal(save.task.restSeconds,60);assert.equal(ui.elements.get('coachTreinoId').value,session);assert.match(ui.elements.get('coachNextExercise').textContent,/Próximo: Exercício 2/);
+ await ui.change('specificSubblock','resistance_short');await ui.change('itemExercicio','exercise-route');ui.set('specificGrade','7a');ui.set('libraryBlocks','1');ui.set('libraryBouts','1');ui.set('itemQtd','11');ui.set('itemMin','5');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,3);assert.equal(ui.elements.get('coachTreinoId').value,session);
+});
+test('specific boundaries validate locally without writes and grades are never converted on subblock change',async()=>{
+ const ui=await boot();await fill(ui);await ui.change('libraryClassification','specific');await ui.change('specificSubblock','boulder_short');await ui.change('itemExercicio','exercise-boulder');ui.set('specificGrade','V4');ui.set('libraryBlocks','1');ui.set('libraryBouts','1');ui.set('itemQtd','7');ui.set('itemMin','5');const before=ui.requests.length;await ui.click('btnAddItem');assert.equal(ui.requests.length,before);assert.equal(ui.elements.get('itemQtd')['aria-invalid'],'true');assert.equal(ui.elements.get('specificFieldError').hidden,false);assert.equal(ui.elements.get('specificFieldError').parentNode,ui.elements.get('itemQtd').parentNode);
+ await ui.change('specificSubblock','resistance_short');assert.equal(ui.elements.get('specificGrade').value,'');assert.equal(ui.elements.get('specificGradeLabel').textContent,'Dificuldade — Brasileira (opcional)');
 });

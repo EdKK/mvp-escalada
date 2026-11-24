@@ -118,6 +118,7 @@ function effectiveItemPrescription_(workout,item,index,context){
   // A scalar is only a compatibility hint; heterogeneous doses stay in series/volume.
   var doses=lines.map(function(line){return volume.kind==='isometric'?line.durationSeconds:line.quantity;});
   if(doses.every(function(value){return value===doses[0];}))p.quantity=doses[0];
+  if(snapshot.task){p.task=snapshot.task;if(snapshot.task.restSeconds!==undefined)p.restSeconds=numberRange_(snapshot.task.restSeconds,0,86400,true);}
   return p;
 }
 function hydrateStudentWorkout_(db, workout, user) {

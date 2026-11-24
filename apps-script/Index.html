@@ -501,6 +501,11 @@ select.native-hidden {
     #coachLibraryPanel .library-overview-measures .library-overview-list li{padding:8px 12px}
     @media(max-width:1050px){#coachLibraryPanel .library-overview-grid{grid-template-columns:minmax(0,1fr)}}
     @media(max-width:480px){#coachLibraryPanel .library-overview-card{padding:16px}}
+    #panelCoach .coach-invalid{border-color:var(--bad)!important;outline:2px solid var(--bad);outline-offset:2px}
+    #panelCoach #librarySaveHint[data-kind]{padding:10px 12px;border-left:3px solid var(--accent);line-height:1.5}
+    #panelCoach #librarySaveHint[data-kind="validation"],#panelCoach #librarySaveHint[data-kind="error"]{color:#fca5a5;border-color:var(--bad)}
+    #panelCoach #librarySaveHint[data-kind="success"]{color:#bff7d0;border-color:var(--good)}
+    #panelCoach #librarySaveHint[data-kind="warning"]{color:#fde68a;border-color:var(--warn)}
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>
@@ -694,7 +699,7 @@ select.native-hidden {
         </div>
 <div class="row" style="margin-top:10px">
           <div>
-            <label for="itemExercicio">Exercício</label>
+            <label for="itemExercicio">Exercício (obrigatório)</label>
             <select id="itemExercicio" required><option value="">Carregando biblioteca…</option></select>
           </div>
           <div>
@@ -711,12 +716,12 @@ select.native-hidden {
         </div>
 <p id="libraryDescription" class="muted" aria-live="polite">Selecione um exercício para ver a descrição e os parâmetros.</p>
 <p id="libraryCapacities" class="muted"></p>
-<div class="row"><div><label for="libraryMethod">Método</label><select id="libraryMethod" required></select></div><div><label for="libraryProtocol">Protocolo (opcional)</label><select id="libraryProtocol"></select></div></div>
+<div class="row"><div><label for="libraryMethod">Método (obrigatório)</label><select id="libraryMethod" required></select></div><div><label for="libraryProtocol">Protocolo (opcional)</label><select id="libraryProtocol"></select></div></div>
 <div class="row"><div><label for="libraryCapacity">Capacidade/manifestação contextual</label><select id="libraryCapacity"></select></div><div><label for="libraryClassification">Classificação nesta prescrição</label><select id="libraryClassification"><option value="general">Geral</option><option value="directed">Direcionado</option><option value="specific">Específico</option></select></div></div>
 </section></div>
 <section class="coach-field-group"><h3>Intensidade e referência individual</h3>
-<div id="assessmentField"><label for="libraryAssessment">Avaliação individual do aluno da sessão</label><select id="libraryAssessment"></select><p id="assessmentInfo" class="muted"></p></div>
-<div id="gradeField" hidden><label for="gradeScale">Escala de graduação</label><input id="gradeScale" placeholder="Ex.: V-scale, francesa, brasileira" /></div>
+<div id="assessmentField"><label for="libraryAssessment">Avaliação individual do aluno (obrigatória neste exercício)</label><select id="libraryAssessment"></select><p id="assessmentInfo" class="muted"></p></div>
+<div id="gradeField" hidden><label for="gradeScale">Escala de graduação (obrigatória para graus)</label><input id="gradeScale" placeholder="Ex.: V-scale, francesa, brasileira" /></div>
 <div class="row"><div>
             <label for="itemIntensTipo">Intensidade (tipo)</label>
             <select id="itemIntensTipo">
@@ -732,14 +737,14 @@ select.native-hidden {
           </div></div>
 <p id="intensityHelp" class="muted"></p>
 </section><section class="coach-field-group"><h3>Volume e duração</h3>
-<div class="row"><div><label for="libraryVolumeUnit">Unidade de volume</label><select id="libraryVolumeUnit"></select></div><div id="setsField"><label for="librarySets">Número de séries</label><input id="librarySets" type="number" min="1" max="100" step="1" /></div></div>
+<div class="row"><div><label for="libraryVolumeUnit">Unidade de volume</label><select id="libraryVolumeUnit"></select></div><div id="setsField"><label for="librarySets">Número de séries (ou distribuição abaixo)</label><input id="librarySets" type="number" min="1" max="100" step="1" /></div></div>
 <div id="suspensionsField" hidden><label for="librarySuspensions">Suspensões por série</label><input id="librarySuspensions" type="number" min="1" step="1" /></div>
 <div class="row" id="blocksField" hidden><div><label for="libraryBlocks">Número de blocos</label><input id="libraryBlocks" type="number" min="1" step="1" /></div><div><label for="libraryBouts">Trechos/boulders por bloco</label><input id="libraryBouts" type="number" min="1" step="1" /></div></div>
 <div class="row"><div>
             <label for="itemQtd" id="quantityLabel">Quantidade padrão</label>
             <input id="itemQtd" type="number" min="0" step="1" placeholder="Ex: 6" />
           </div><div>
-            <label for="itemMin">Min planejados</label>
+            <label for="itemMin">Min planejados (obrigatórios)</label>
             <input id="itemMin" type="number" min="0" step="5" placeholder="Ex: 15" />
           </div></div>
 <details><summary>Distribuição individual por série/bloco (opcional)</summary><label for="volumeDistribution" id="distributionLabel">Uma série por linha</label><textarea id="volumeDistribution"></textarea><p class="muted">Se preenchida, esta distribuição numérica substitui a repetição dos valores padrão; será gravada como séries estruturadas.</p></details>
@@ -750,7 +755,7 @@ select.native-hidden {
         </div>
 <input id="itemPosition" type="hidden" />
 <button id="correctCoachDraft" type="button" hidden>Corrigir parâmetros</button>
-<p id="librarySaveHint" class="muted">Selecione uma sessão e uma referência válida quando exigida. Nenhuma avaliação será criada automaticamente.</p>
+<p id="librarySaveHint" class="muted" role="status" aria-live="polite">Selecione uma sessão e uma referência válida quando exigida. Nenhuma avaliação será criada automaticamente.</p>
 <section id="pendingCoachPanel" hidden><h3>Gravações interrompidas</h3><p class="muted">Retome a intenção existente para evitar duplicação após falha de conexão.</p><div id="pendingCoachSaves"></div></section>
 <p id="savedPrescription" class="muted" aria-live="polite"></p>
 <div class="btnbar"><button id="btnAddItem" class="primary">Salvar e adicionar próximo exercício</button></div>
@@ -913,7 +918,7 @@ var CoachLibraryModel = (() => {
   const notice = message => { $('notice').textContent = message; };
   let rpc, libraryRpc, libraryController, selectedWorkout, exerciseSelection, assessments=[], assessmentVersion=0;
   let pendingCoachSave=null, libraryReady=false;
-  let coachRefreshButton;
+  let coachRefreshButton,coachInvalidField=null;
   let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
   const coachRenderedItems=new Map();
   const coachDraftFields=['itemBloco','itemCategoria','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','libraryMethod','libraryProtocol','libraryCapacity','libraryClassification','libraryAssessment','gradeScale','libraryVolumeUnit','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution'];
@@ -1012,6 +1017,7 @@ var CoachLibraryModel = (() => {
     updateCoachControls();
   }
   async function chooseExercise(){
+    clearCoachValidation();coachHint('info','Informe Método e os parâmetros obrigatórios conforme o exercício selecionado.');
     exerciseSelection=null;assessmentVersion++;$('libraryDescription').textContent='Carregando exercício…';updateCoachControls();
     options('libraryMethod',[],'Selecione um método');options('libraryProtocol',[],'Sem protocolo');options('libraryAssessment',[],'Selecione uma sessão');
     if(!$('itemExercicio').value){$('libraryDescription').textContent='Selecione um exercício ativo.';return;}
@@ -1026,13 +1032,18 @@ var CoachLibraryModel = (() => {
     $('itemIntensVal').type=['relative','absolute'].includes(kind)?'number':'text';$('itemIntensVal').step='any';
     $('intensityLabel').textContent=kind==='relative'?'Intensidade (% da referência selecionada)':kind==='ordinal'?'Grau de dificuldade':kind==='undefined'?'Referência qualitativa (metodologia pendente)':'Intensidade';
     $('itemIntensVal').placeholder=kind==='relative'?'Ex.: 85':kind==='ordinal'?'Ex.: V4':kind==='undefined'?'Descreva a referência; sem percentual':'Valor';
-    $('intensityHelp').textContent=kind==='undefined'?'Campus board: não há cálculo numérico enquanto a metodologia estiver pendente.':kind==='ordinal'?'O grau é ordinal. Informe a escala; não será convertido em percentual.':'O percentual usa exclusivamente a avaliação individual selecionada, na unidade e no protocolo registrados.';
+    $('libraryAssessment').setAttribute('aria-required',String(kind==='relative'));
+    $('gradeScale').setAttribute('aria-required',String(kind==='ordinal'));
+    $('itemIntensVal').setAttribute('aria-required','true');
+    $('intensityLabel').textContent+=' (obrigatório)';
+    $('intensityHelp').textContent=kind==='undefined'?'Campus board: não há cálculo numérico enquanto a metodologia estiver pendente.':kind==='ordinal'?'O grau é ordinal. Informe a escala; não será convertido em percentual.':kind==='relative'?'Obrigatório para este exercício: avaliação individual válida do aluno e percentual da referência. O percentual usa a unidade e o protocolo registrados.':'Informe a intensidade prescrita na unidade indicada.';
     volumeFields();await refreshAssessments();updateCoachControls();
   }
   function volumeFields(){
     const unit=$('libraryVolumeUnit').value,kind=CoachLibraryModel.kinds[unit];
     $('setsField').hidden=kind==='hand_moves';$('blocksField').hidden=kind!=='hand_moves';$('suspensionsField').hidden=kind!=='isometric';
     $('quantityLabel').textContent={isometric:'Duração de cada suspensão (segundos)',hand_moves:'Movimentos de mão por trecho/boulder',repetitions:'Repetições por série',time:'Segundos por série',distance:'Metros por série'}[kind]||'Quantidade';
+    $('quantityLabel').textContent+=' (obrigatória)';
     options('itemMetrica',[{id:CoachLibraryModel.metrics[unit]||'',name:labels[unit]||'Selecione a unidade'}],null);
     $('distributionLabel').textContent=kind==='isometric'?'Uma série por linha: suspensões x segundos (ex.: 6 x 7)':kind==='hand_moves'?'Um bloco por linha; movimentos por trecho separados por vírgula (ex.: 5,5,4,6)':'Uma série por linha: '+(labels[unit]||'quantidade');
     $('itemQtd').step=['hand_moves','repetitions'].includes(kind)?'1':'any';$('itemMetrica').disabled=true;
@@ -1058,21 +1069,69 @@ var CoachLibraryModel = (() => {
     const rows=await library('listPendingCoachSaves',{});pendingCoachEntries=rows;$('pendingCoachSaves').replaceChildren();$('pendingCoachPanel').hidden=!rows.length;
     rows.forEach(row=>button($('pendingCoachSaves'),'Retomar item '+row.itemId,async()=>{pendingCoachSave={requestId:row.requestId,data:row.data};updateCoachControls();await sendCoachSave();}));
   }
+  function coachHint(kind,message){
+    $('librarySaveHint').setAttribute('data-kind',kind);$('librarySaveHint').textContent=message;
+  }
+  function clearCoachValidation(){
+    if(coachInvalidField){const field=$(coachInvalidField);field.removeAttribute('aria-invalid');field.removeAttribute('aria-describedby');field.classList.remove('coach-invalid');}
+    coachInvalidField=null;
+  }
+  function coachFieldError(id,message){const error=Error(message);error.coachField=id;throw error;}
+  function coachValue(id,read,message){try{return read();}catch(error){coachFieldError(id,message||error.message);}}
+  function coachNumber(id,integer=false,message){return coachValue(id,()=>CoachLibraryModel.number($(id).value,integer),message);}
+  function showCoachValidation(error){
+    coachHint('validation','Confira o preenchimento: '+error.message+' Nenhuma gravação foi iniciada.');
+    notice('Confira o campo destacado no formulário de prescrição.');
+    if(error.coachField){
+      coachInvalidField=error.coachField;const field=$(coachInvalidField);
+      field.setAttribute('aria-invalid','true');field.setAttribute('aria-describedby','librarySaveHint');field.classList.add('coach-invalid');
+      for(let parent=field.parentNode;parent&&parent!==$('panelCoach');parent=parent.parentNode){if(parent.tagName==='DETAILS')parent.open=true;}
+      field.focus();field.scrollIntoView({block:'center',behavior:'smooth'});
+    }
+  }
   function collectCoachSave(){
-    if(!selectedWorkout||!selected)throw Error('Crie ou selecione uma sessão');
-    if(selectedWorkout.studentId!==$('coachAluno').value)throw Error('O aluno escolhido difere da sessão. Crie ou selecione a sessão correta.');
-    if(!exerciseSelection||exerciseSelection.exercise.id!==$('itemExercicio').value)throw Error('Selecione um exercício ativo');
-    if(!$('libraryMethod').value)throw Error('Selecione um método compatível');
-    if($('itemMin').value==='')throw Error('Informe os minutos planejados');
-    const data={workoutId:selected,exerciseId:exerciseSelection.exercise.id,block:$('itemBloco').value,category:$('itemCategoria').value,metric:$('itemMetrica').value,quantity:CoachLibraryModel.number($('itemQtd').value),minutes:Number($('itemMin').value),notes:$('itemNotas').value,methodId:$('libraryMethod').value,classification:$('libraryClassification').value,intensity:CoachLibraryModel.intensity(exerciseSelection,{value:$('itemIntensVal').value,scale:$('gradeScale').value,assessmentId:$('libraryAssessment').value}),volume:CoachLibraryModel.volume({unitId:$('libraryVolumeUnit').value,quantity:$('itemQtd').value,sets:$('librarySets').value,suspensions:$('librarySuspensions').value,blocks:$('libraryBlocks').value,bouts:$('libraryBouts').value,distribution:$('volumeDistribution').value})};
+    clearCoachValidation();
+    if(!selectedWorkout||!selected)coachFieldError('coachTreinoId','Crie ou selecione uma sessão.');
+    if(selectedWorkout.studentId!==$('coachAluno').value)coachFieldError('coachAluno','O aluno escolhido difere da sessão. Selecione a sessão correta.');
+    if(!exerciseSelection||exerciseSelection.exercise.id!==$('itemExercicio').value)coachFieldError('itemExercicio','Selecione um exercício ativo.');
+    if(!exerciseSelection.methods.some(method=>method.id===$('libraryMethod').value))coachFieldError('libraryMethod','Selecione um método compatível (obrigatório).');
+    const kind=exerciseSelection.indicator.kind;
+    if(kind==='relative'&&!assessments.some(a=>a.id===$('libraryAssessment').value))coachFieldError('libraryAssessment','Este exercício exige uma avaliação individual válida do aluno para a data da sessão.');
+    if(!$('itemIntensVal').value.trim())coachFieldError('itemIntensVal',kind==='relative'?'Informe o percentual da referência individual (obrigatório neste exercício).':kind==='ordinal'?'Informe o grau de dificuldade.':kind==='undefined'?'Informe a referência qualitativa prescrita.':'Informe a intensidade prescrita.');
+    if(kind==='ordinal'&&!$('gradeScale').value.trim())coachFieldError('gradeScale','Informe a escala de graduação.');
+    const intensity=coachValue('itemIntensVal',()=>CoachLibraryModel.intensity(exerciseSelection,{value:$('itemIntensVal').value,scale:$('gradeScale').value,assessmentId:$('libraryAssessment').value}),kind==='relative'?'Informe um percentual numérico maior que zero.':undefined);
+    const unit=$('libraryVolumeUnit').value,volumeKind=CoachLibraryModel.kinds[unit],distributed=!!$('volumeDistribution').value.trim();
+    if(!volumeKind)coachFieldError('libraryVolumeUnit','Selecione uma unidade de volume compatível.');
+    if(!distributed){
+      if(volumeKind==='hand_moves'){
+        const blocks=coachNumber('libraryBlocks',true,'Informe o número de blocos como inteiro positivo.');
+        const bouts=coachNumber('libraryBouts',true,'Informe os trechos/boulders por bloco como inteiro positivo.');
+        if(blocks*bouts>100)coachFieldError('libraryBouts','Máximo de 100 trechos na distribuição uniforme.');
+      }else{
+        const sets=coachNumber('librarySets',true,'Informe o número de séries como inteiro positivo, ou preencha a distribuição individual.');
+        if(sets>100)coachFieldError('librarySets','Máximo de 100 séries.');
+        if(volumeKind==='isometric')coachNumber('librarySuspensions',true,'Informe o número de suspensões por série como inteiro positivo.');
+      }
+    }
+    const quantity=coachNumber('itemQtd',!distributed&&['repetitions','hand_moves'].includes(volumeKind),!distributed&&['repetitions','hand_moves'].includes(volumeKind)?'Informe uma quantidade inteira e positiva na unidade indicada.':'Informe uma quantidade positiva na unidade indicada.');
+    const minutes=Number($('itemMin').value);
+    if($('itemMin').value===''||!Number.isFinite(minutes)||minutes<0||minutes>100000)coachFieldError('itemMin','Informe os minutos planejados (zero ou um número positivo até 100000).');
+    const volume=coachValue(distributed?'volumeDistribution':volumeKind==='hand_moves'?'libraryBouts':'librarySets',()=>CoachLibraryModel.volume({unitId:unit,quantity:$('itemQtd').value,sets:$('librarySets').value,suspensions:$('librarySuspensions').value,blocks:$('libraryBlocks').value,bouts:$('libraryBouts').value,distribution:$('volumeDistribution').value}));
+    const data={workoutId:selected,exerciseId:exerciseSelection.exercise.id,block:$('itemBloco').value,category:$('itemCategoria').value,metric:$('itemMetrica').value,quantity,minutes,notes:$('itemNotas').value,methodId:$('libraryMethod').value,classification:$('libraryClassification').value,intensity,volume};
     if($('libraryProtocol').value)data.protocolId=$('libraryProtocol').value;if($('libraryCapacity').value)data.capacityId=$('libraryCapacity').value;
     return data;
   }
   async function sendCoachSave(){
-    const result=await libraryRpc({action:'saveCoachPrescription',data:pendingCoachSave.data,requestId:pendingCoachSave.requestId});
+    coachHint('saving','Salvando exercício. Aguarde a confirmação antes de continuar.');
+    let result;
+    try{result=await libraryRpc({action:'saveCoachPrescription',data:pendingCoachSave.data,requestId:pendingCoachSave.requestId});}
+    catch(error){
+      coachHint('error',(error.message==='TRANSPORT_ERROR'?'Falha de comunicação (TRANSPORT_ERROR): não foi possível confirmar o salvamento. ':'Falha de gravação ('+error.message+'): salvamento não confirmado. ')+'Use Retomar gravação pendente com os mesmos dados; não crie outra intenção para contornar a falha.');
+      throw error;
+    }
     pendingCoachSave=null;$('savedPrescription').textContent=`Prescrição salva: ${result.prescription.id} • volume ${result.prescription.totalVolume} ${labels[result.prescription.volumeUnitId]}.`;
-    resetCoachDraft();$('librarySaveHint').textContent='Exercício gravado. Selecione o próximo exercício ou revise a sessão para finalizar a montagem.';updateCoachControls();
-    try{await detail(result.item.workoutId);await loadPendingSaves();}catch(e){$('librarySaveHint').textContent='Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.';}
+    resetCoachDraft();coachHint('success','Exercício gravado. Selecione o próximo exercício ou revise a sessão para finalizar a montagem.');updateCoachControls();
+    try{await detail(result.item.workoutId);await loadPendingSaves();}catch(e){coachHint('warning','Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.');}
   }
   function resetCoachDraft(){
     exerciseSelection=null;assessmentVersion++;assessments=[];
@@ -1106,16 +1165,24 @@ var CoachLibraryModel = (() => {
     $('coachFinishStatus').textContent='Montagem concluída visualmente — '+selectedWorkout.items.length+' exercício(s) gravado(s). Não houve nova gravação, publicação ou bloqueio da sessão. Você pode continuar a montagem nesta página.';
     coachReview=null;$('btnConfirmSession').hidden=true;
   }));
-  function invalidateCoachReview(){
+  function invalidateCoachReview(event){
+    if(coachInvalidField&&event?.target===$(coachInvalidField)){
+      clearCoachValidation();coachHint('info','Preenchimento alterado. Confira os campos obrigatórios e tente salvar novamente.');
+    }
     coachReview=null;$('btnConfirmSession').hidden=true;
     $('coachFinishStatus').textContent='Há alterações no formulário. A finalização exige nova revisão.';
   }
   $('coachPrescription').addEventListener('input',invalidateCoachReview);
   $('coachPrescription').addEventListener('change',invalidateCoachReview);
-  $('btnAddItem').addEventListener('click',()=>perform(async()=>{
-    if(!pendingCoachSave)pendingCoachSave={requestId:key(),data:JSON.parse(JSON.stringify(collectCoachSave()))};
-    updateCoachControls();try{await sendCoachSave();}catch(e){$('librarySaveHint').textContent='Gravação não confirmada: '+e.message+'. Use Retomar gravação pendente com os mesmos dados. Não crie outra intenção para contornar a falha.';throw e;}
-  }));
+  $('btnAddItem').addEventListener('click',()=>{
+    if(busy)return;
+    let data;
+    if(!pendingCoachSave){try{data=collectCoachSave();}catch(error){showCoachValidation(error);return;}}
+    return perform(async()=>{
+      if(!pendingCoachSave)pendingCoachSave={requestId:key(),data:JSON.parse(JSON.stringify(data))};
+      updateCoachControls();await sendCoachSave();
+    });
+  });
   $('correctCoachDraft').addEventListener('click',()=>perform(async()=>{if(!pendingCoachSave)return;const status=await library('coachSaveStatus',{requestId:pendingCoachSave.requestId});if(status.state!=='not_started')throw Error('A gravação já iniciou. Retome a intenção existente para preservar os registros.');pendingCoachSave=null;$('librarySaveHint').textContent='Nenhum registro foi criado. Corrija os parâmetros e salve novamente.';updateCoachControls();}));
   $('itemExercicio').addEventListener('change',()=>perform(chooseExercise));
   $('libraryVolumeUnit').addEventListener('change',()=>{volumeFields();$('volumeDistribution').value='';});
@@ -1131,6 +1198,7 @@ var CoachLibraryModel = (() => {
   function clearSession() {
     sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
     pendingCoachEntries=[];coachDraftBaseline='';coachReview=null;
+    clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
     $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;
     placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;

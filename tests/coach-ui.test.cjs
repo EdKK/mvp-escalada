@@ -116,11 +116,11 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 });
 
 
-test('student overview is static with four cards; build markup and all JavaScript stay byte-identical to navigation baseline',()=>{
+test('student overview is static with four cards; build markup and prescription RPC/model stay byte-identical to navigation baseline',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(withoutExecutedFields(script),baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
+ assert.equal(withoutExecutedFields(script.split('// UI integration')[0]),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0]);
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
- assert.equal(build(html),build(baseline));
+ // Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
  assert.equal((overview.match(/class="card students-card"/g)||[]).length,4);assert.doesNotMatch(overview,/<(?:input|select|textarea|button|a)\b|contenteditable=/);
  for(const title of ['Cadastro e controle financeiro','Avaliação física','Diretrizes individuais de treino','Últimas quatro sessões'])assert.ok(overview.includes(title));
@@ -129,15 +129,36 @@ test('student overview is static with four cards; build markup and all JavaScrip
 });
 
 
-test('library overview adds four presentation-only cards while student/build markup and functional script remain unchanged',()=>{
+test('library overview adds four presentation-only cards while student markup and prescription RPC/model remain unchanged',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(withoutExecutedFields(script),baseline.match(/<script>([\s\S]*?)<\/script>/)[1]);
+ assert.equal(withoutExecutedFields(script.split('// UI integration')[0]),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0]);
  const students=source=>source.slice(source.indexOf('<section id="coachStudentsPanel"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
- assert.equal(students(html),students(baseline));assert.equal(build(html),build(baseline));
+ assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
  assert.equal((library.match(/class="card library-overview-card"/g)||[]).length,4);
  assert.doesNotMatch(library,/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
  for(const text of ['Exercícios','Escalada em via','Boulder','Campus board','Fingerboard','Exercícios complementares','Capacidades físicas','Força máxima','Força explosiva','Resistência muscular','Flexibilidade','Coordenação','Métodos de treinamento','Protocolos de treinamento','Vinculação entre exercícios e métodos','Indicadores e unidades','Intensidade','Volume','Grau de dificuldade','Carga absoluta','Carga relativa','Percepção subjetiva de esforço','Movimentos efetivos de mão','Repetições','Tempo acumulado de suspensão','EXERCICIOS','CAPACIDADES','EXERCICIO_CAPACIDADES','METODOS','EXERCICIO_METODOS','INDICADORES','UNIDADES'])assert.ok(library.includes(text),text);
  assert.match(library,/Campo de busca ilustrativo, sem interação/);assert.match(library,/Nenhum dado é consultado ou alterado/);
+});
+
+
+test('missing method reports inline, focuses/highlights Method and does not create a write intent or update count',async()=>{
+ const ui=await boot();await fill(ui);ui.set('libraryMethod','');const calls=ui.requests.length,tables=JSON.stringify(ui.f.tables),count=ui.elements.get('coachNextExercise').textContent;
+ await ui.click('btnAddItem');assert.match(ui.elements.get('librarySaveHint').textContent,/preenchimento.*método/i);assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'validation');assert.equal(ui.elements.get('libraryMethod').focused,true);assert.equal(ui.elements.get('libraryMethod')['aria-invalid'],'true');assert.equal(ui.elements.get('libraryMethod').disabled,false);assert.equal(ui.elements.get('coachNextExercise').textContent,count);assert.equal(ui.requests.length,calls);assert.equal(JSON.stringify(ui.f.tables),tables);assert.equal(ui.elements.get('btnAddItem').textContent,'Salvar e adicionar próximo exercício');
+});
+test('relative intensity requires the loaded assessment and percent with targeted field feedback before RPC',async()=>{
+ const ui=await boot();await fill(ui);const calls=ui.requests.length;ui.set('libraryAssessment','');await ui.click('btnAddItem');assert.match(ui.elements.get('librarySaveHint').textContent,/avaliação individual válida/);assert.equal(ui.elements.get('libraryAssessment').focused,true);
+ ui.set('libraryAssessment',ui.f.tables.AVALIACOES[1][0]);ui.set('itemIntensVal','');await ui.click('btnAddItem');assert.match(ui.elements.get('librarySaveHint').textContent,/percentual da referência/);assert.equal(ui.elements.get('itemIntensVal')['aria-invalid'],'true');assert.equal(ui.elements.get('libraryAssessment')['aria-invalid'],undefined);assert.equal(ui.requests.length,calls);
+ ui.set('itemIntensVal','85');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'success');assert.match(ui.elements.get('coachNextExercise').textContent,/Próximo: Exercício 2/);
+});
+test('ordinal and campus exercises do not require assessment or percentage',async()=>{
+ const ui=await boot();await fill(ui);ui.set('libraryAssessment','');await ui.click('btnAddItem');assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'validation');
+ await ui.change('itemExercicio','exercise-boulder');assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'info');ui.set('libraryMethod','method-circuit');ui.set('itemIntensVal','V4');ui.set('gradeScale','V-scale');ui.set('libraryBlocks','4');ui.set('libraryBouts','4');ui.set('itemQtd','5');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
+ await ui.change('itemExercicio','exercise-campus');ui.set('libraryMethod','method-repetition');ui.set('itemIntensVal','Referência qualitativa');ui.set('libraryBlocks','1');ui.set('libraryBouts','1');ui.set('itemQtd','5');ui.set('itemMin','5');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,3);assert.equal(ui.elements.get('libraryAssessment')['aria-required'],'false');
+});
+test('volume and minutes errors focus their own fields without requests; communication failure is not a fill error',async()=>{
+ const ui=await boot({loseSaveResponse:true});await fill(ui);ui.set('librarySets','');const calls=ui.requests.length;await ui.click('btnAddItem');assert.equal(ui.elements.get('librarySets').focused,true);assert.equal(ui.requests.length,calls);
+ ui.set('librarySets','5');ui.set('itemMin','');await ui.click('btnAddItem');assert.equal(ui.elements.get('itemMin').focused,true);assert.equal(ui.requests.length,calls);
+ ui.set('itemMin','5');const count=ui.elements.get('coachNextExercise').textContent;await ui.click('btnAddItem');assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'error');assert.match(ui.elements.get('librarySaveHint').textContent,/Falha de comunicação/);assert.equal(ui.elements.get('coachNextExercise').textContent,count);assert.equal(ui.elements.get('itemQtd').value,'3');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.elements.get('librarySaveHint')['data-kind'],'success');assert.match(ui.elements.get('coachNextExercise').textContent,/Próximo: Exercício 2/);
 });

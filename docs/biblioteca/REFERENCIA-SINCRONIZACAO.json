@@ -1,5 +1,5 @@
 {
-  "referenceCommit": "62e146c6db445f498bd28ca6afbba25fff5a0fa0",
+  "referenceCommit": "8bee4982af5b5153004bf2d522bfe63ced781642",
   "minimumCorrectionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
   "algorithm": "SHA-256",
   "files": [
@@ -50,7 +50,7 @@
         "Index.html"
       ],
       "group": "existing",
-      "sha256": "0821c796bb219cdb59a790a68b51bd1bae43b4b0e1bc576563a0927b6ac8a2bc"
+      "sha256": "58fe0992117ba0c6a45eebfe31fce1d49f1ccd9bef84d69e748fc36221c40ece"
     },
     {
       "repositoryFile": "apps-script/Student.html",

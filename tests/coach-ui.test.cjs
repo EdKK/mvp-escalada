@@ -116,7 +116,7 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 });
 
 
-test('student overview is static with four cards; build markup and prescription RPC/model stay byte-identical to navigation baseline',()=>{
+test('student overview stays static; prescription RPC/model stay byte-identical to navigation baseline',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0]),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0]);
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));

@@ -37,7 +37,7 @@ expectedRevision, supersedesId, requestId, fingerprints e ScriptLock permanecem.
 
 `python tests/prescription-cycle-browser.py`: **nove grupos de verificações aprovados** em Chromium local. O navegador abre o Student.html gerado e confirma bloqueio antes de RPC sem limpar valores; alteração para Parcial; conclusão com 2/2 preservados, com aviso também no treinador; Não realizado com zero e com campos em branco; integridade de todas as revisões anteriores. Mantém os testes do ciclo completo, isolamento e recuperação de escritas parciais.
 
-Os serviços Google e os dados dessas execuções são exclusivamente fictícios, em memória. A revisão histórica é uma fixture de teste, não uma alteração na planilha de homologação. Os nove testes Python do comparador devem passar após fixar o pacote desta correção no manifesto; comparação de código não comprova implantação real.
+Os serviços Google e os dados dessas execuções são exclusivamente fictícios, em memória. A revisão histórica é uma fixture de teste, não uma alteração na planilha de homologação. `python -B -m unittest discover -s tests -p 'test_*.py'`: **9 aprovados, zero falhas**. O manifesto fixa os arquivos operacionais do commit 62e146c6db445f498bd28ca6afbba25fff5a0fa0; o commit posterior de referências não muda esses arquivos. Comparação de código não comprova implantação real.
 
 ## Atualização manual futura e homologação pendente
 

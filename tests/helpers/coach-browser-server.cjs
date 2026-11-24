@@ -31,7 +31,13 @@ const server=http.createServer(async(req,res)=>{
  }
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw||'{}');res.setHeader('Content-Type','application/json');
- if(req.url==='/test-control'){loseNext=!!body.loseNext;loseNextFeedback=!!body.loseNextFeedback;delayNext=body.delayNext||0;if(body.failTable)f.fail(body.failTable);res.end('{}');return;}
+ if(req.url==='/test-control'){loseNext=!!body.loseNext;loseNextFeedback=!!body.loseNextFeedback;delayNext=body.delayNext||0;if(body.failTable)f.fail(body.failTable);
+  // Fictitious pre-fix history for state regression only; never deployed to Apps Script.
+  if(body.seedHistoricalFeedback){
+   const d=body.seedHistoricalFeedback,record={id:'historical-feedback-test',workoutId:d.workoutId,itemId:d.itemId,studentId:'s1',status:'not_done',actualSets:2,actualQuantity:2,quantityUnit:'repetitions',fingerPain:3,comment:'fadiga',rpe:'',revision:1,supersedesId:'',createdAt:'2026-11-23T12:00:00.000Z'};
+   f.tables.ItemFeedback.push(f.context.SCHEMA_.ItemFeedback.map(k=>record[k]));
+  }
+  res.end('{}');return;}
  if(req.url==='/test-tables'){res.end(JSON.stringify(f.tables));return;}
  const {method,request:r,profile}=body;let result;
  if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};

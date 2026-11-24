@@ -158,6 +158,8 @@ function saveItemFeedback_(db,user,req) {
     if(!p || !p.quantityUnit || d.quantityUnit!==p.quantityUnit) fail_('INVALID_DATA');
     record.actualQuantity=numberRange_(d.actualQuantity,0,p.source==='library'?1e12:100000,p.source==='library'&&['repetitions','moves'].indexOf(p.quantityUnit)>=0); record.quantityUnit=d.quantityUnit;
   } else if(d.quantityUnit!==undefined) fail_('INVALID_DATA');
+  // Status is independent of fulfillment; not_done alone forbids executed dose.
+  if(d.status==='not_done'&&((record.actualSets!==''&&record.actualSets!==0)||(record.actualQuantity!==''&&record.actualQuantity!==0)))fail_('INVALID_DATA');
   numberRange_(d.expectedRevision,0,100000,true);
   var beforeInsert=function(){
     var previous=optionalRows_(db,'ItemFeedback').filter(function(f){return f.itemId===record.itemId && f.studentId===user.id && f.workoutId===w.id;}).sort(function(a,b){return b.revision-a.revision;})[0];

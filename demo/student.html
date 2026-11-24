@@ -138,8 +138,8 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
 <div class="progress-line"><strong>Seu treino, um movimento de cada vez</strong><span id="progressText"></span></div><div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div><div id="exercises"></div></section></div></main>
 <footer class="app-footer">MVP ESCALADA · TREINE COM PROPÓSITO <span id="demoFooter"></span></footer></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-<div id="feedbackDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="feedbackHeading" hidden><section class="modal"><div class="modal-head"><h2 id="feedbackHeading">Seu feedback</h2><button id="closeFeedback" class="icon-only" aria-label="Fechar feedback">✕</button></div><p id="feedbackExercise" class="subheading"></p><form id="feedbackForm"><div class="form-grid"><div class="full"><label for="feedbackStatus">Como foi este exercício?</label><select id="feedbackStatus"><option value="completed">Concluído</option><option value="partial">Parcial</option><option value="not_done">Não realizado</option></select></div><div id="rpeField"><label for="feedbackRpe">RPE percebida (1–10)</label><input id="feedbackRpe" inputmode="numeric" type="number" min="1" max="10" step="1" placeholder="Opcional"></div><div><label for="feedbackPain">Dor nos dedos (0–10)</label><input id="feedbackPain" inputmode="numeric" type="number" min="0" max="10" step="1" required value="0"></div><div id="setsField"><label for="actualSets" id="actualSetsLabel">Séries executadas</label><input id="actualSets" type="number" inputmode="numeric" min="0" max="1000" step="1" placeholder="Opcional"></div><div id="quantityField"><label for="actualQuantity" id="actualQuantityLabel">Quantidade executada</label><input id="actualQuantity" type="number" inputmode="decimal" min="0" max="100000" step="any" placeholder="Por série • opcional"></div><div class="full"><label for="feedbackComment">Observações do aluno</label><textarea id="feedbackComment" maxlength="2000" placeholder="Como você se sentiu? Algo a ajustar?"></textarea></div></div><p id="feedbackError" class="field-error" role="alert"></p><div class="modal-actions"><button type="button" id="cancelFeedback">Cancelar</button><button type="submit" class="save" id="saveFeedback">Salvar feedback</button></div><div class="history" id="feedbackHistory"></div></form></section></div>
-<div id="confirmDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirmHeading" hidden><section class="modal"><h2 id="confirmHeading">Concluir exercício?</h2><p id="confirmExercise" class="subheading"></p><p class="subheading">Apenas este exercício será marcado como concluído. Você poderá corrigir o registro em “Editar feedback”. A sessão não será concluída automaticamente.</p><p id="confirmError" class="field-error" role="alert"></p><div class="modal-actions"><button id="cancelComplete">Cancelar</button><button class="complete-btn" id="confirmComplete">Sim, concluir</button></div></section></div>
+<div id="feedbackDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="feedbackHeading" hidden><section class="modal"><div class="modal-head"><h2 id="feedbackHeading">Seu feedback</h2><button id="closeFeedback" class="icon-only" aria-label="Fechar feedback">✕</button></div><p id="feedbackExercise" class="subheading"></p><p class="subheading">Não realizado: quantidades zero ou em branco. Se houve execução, use Parcial. Concluído registra o encerramento informado, sem presumir toda a dose prescrita.</p><form id="feedbackForm"><div class="form-grid"><div class="full"><label for="feedbackStatus">Como foi este exercício?</label><select id="feedbackStatus"><option value="completed">Concluído</option><option value="partial">Parcial</option><option value="not_done">Não realizado</option></select></div><div id="rpeField"><label for="feedbackRpe">RPE percebida (1–10)</label><input id="feedbackRpe" inputmode="numeric" type="number" min="1" max="10" step="1" placeholder="Opcional"></div><div><label for="feedbackPain">Dor nos dedos (0–10)</label><input id="feedbackPain" inputmode="numeric" type="number" min="0" max="10" step="1" required value="0"></div><div id="setsField"><label for="actualSets" id="actualSetsLabel">Séries executadas</label><input id="actualSets" type="number" inputmode="numeric" min="0" max="1000" step="1" placeholder="Opcional"></div><div id="quantityField"><label for="actualQuantity" id="actualQuantityLabel">Quantidade executada</label><input id="actualQuantity" type="number" inputmode="decimal" min="0" max="100000" step="any" placeholder="Por série • opcional"></div><div class="full"><label for="feedbackComment">Observações do aluno</label><textarea id="feedbackComment" maxlength="2000" placeholder="Como você se sentiu? Algo a ajustar?"></textarea></div></div><p id="feedbackError" class="field-error" role="alert"></p><div class="modal-actions"><button type="button" id="cancelFeedback">Cancelar</button><button type="submit" class="save" id="saveFeedback">Salvar feedback</button></div><div class="history" id="feedbackHistory"></div></form></section></div>
+<div id="confirmDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirmHeading" hidden><section class="modal"><h2 id="confirmHeading">Concluir exercício?</h2><p id="confirmExercise" class="subheading"></p><p class="subheading">Apenas este exercício será marcado como concluído. Você poderá corrigir o registro em “Editar feedback”. As quantidades anteriores serão preservadas, sem preenchimento automático da dose prescrita. Concluído registra o encerramento informado; não comprova execução integral. A sessão não será concluída automaticamente.</p><p id="confirmError" class="field-error" role="alert"></p><div class="modal-actions"><button id="cancelComplete">Cancelar</button><button class="complete-btn" id="confirmComplete">Sim, concluir</button></div></section></div>
 <script>/* Pure student view model; timers are derived from timestamps, never tick counters. */
 var StudentModel = (() => {
   const units={repetitions:'repetições',seconds:'segundos',hang_seconds:'s de suspensão',minutes:'minutos',meters:'metros',attempts:'tentativas',moves:'movimentos'};
@@ -576,7 +576,7 @@ window.StudentAPI=(()=>{
   function renderExercises(){
     const items=M.ordered(workout.items),history=workout.itemFeedback||[];
     $('exercises').replaceChildren();const count=items.filter(i=>M.state(history,i.id)==='completed').length;
-    $('progressText').textContent=`${count} de ${items.length} concluídos`;$('progressBar').style.width=(items.length?count/items.length*100:0)+'%';
+    $('progressText').textContent=`${count} de ${items.length} marcados como concluídos`;$('progressBar').style.width=(items.length?count/items.length*100:0)+'%';
     items.forEach((item,index)=>{
       const p=item.prescription||{},prev=M.latest(history,item.id),key=timerKey(item),state=M.state(history,item.id);
       const card=el('details','exercise');card.dataset.itemId=item.id;card.dataset.status=state;
@@ -601,6 +601,10 @@ window.StudentAPI=(()=>{
         rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
       }
       const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);
+      if(prev){
+        const dose=[prev.actualSets!==''&&prev.actualSets!==undefined?`${prev.actualSets} séries/blocos`:'',prev.actualQuantity!==''&&prev.actualQuantity!==undefined?`${prev.actualQuantity} ${M.units[prev.quantityUnit]||prev.quantityUnit}`:''].filter(Boolean).join(' • ');
+        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'?' Encerramento informado não equivale à dose integral prescrita.':''}`));
+      }
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);
     });
@@ -625,18 +629,35 @@ window.StudentAPI=(()=>{
     $('actualQuantity').placeholder=p.feedbackQuantityScope==='total'?'Total executado • opcional':'Por série • opcional';
     $('actualQuantityLabel').textContent=p.feedbackQuantityScope==='total'?`Total executado (${M.units[p.quantityUnit]})`:(p.quantityUnit==='repetitions'?'Repetições por série':`Executado por série (${M.units[p.quantityUnit]||p.quantityUnit})`);
     $('feedbackHistory').textContent=(workout.itemFeedback||[]).filter(f=>f.itemId===item.id).sort((a,b)=>b.revision-a.revision).map(f=>`Registro ${f.revision}: ${M.statuses[f.status]}`).join(' · ');
-    $('feedbackError').textContent='';showModal('feedbackDialog');
+    $('feedbackError').textContent='';syncFeedbackStatus();showModal('feedbackDialog');
   }
+  function syncFeedbackStatus(){
+    const notDone=$('feedbackStatus').value==='not_done',p=dialogItem?.prescription||{};
+    const message='Para Não realizado, séries e quantidades executadas devem ser zero ou ficar em branco. Se houve execução, selecione Parcial.';
+    let invalid=false;
+    ['actualSets','actualQuantity'].forEach(id=>{
+      const input=$(id);
+      input.max=notDone?'0':id==='actualSets'?'1000':p.source==='library'?'1000000000000':'100000';
+      const inconsistent=notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0;
+      input.setCustomValidity(inconsistent?message:'');invalid=invalid||inconsistent;
+    });
+    $('feedbackError').textContent=invalid?message:'';
+  }
+  $('feedbackStatus').addEventListener('change',syncFeedbackStatus);
+  ['actualSets','actualQuantity'].forEach(id=>{
+    $(id).addEventListener('input',syncFeedbackStatus);
+    $(id).addEventListener('change',syncFeedbackStatus);
+  });
   function openComplete(item){if(!selectionVisible())return;dialogItem=item;$('confirmExercise').textContent=item.exercise;$('confirmError').textContent='';showModal('confirmDialog');}
   async function save(values,modal,errorId){
     if(sending)return;sending=true;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=true);$('demoProfile')&&($('demoProfile').disabled=true);
     try{
       const target=workout,record=await write(M.feedbackData(workout,dialogItem,workout.itemFeedback||[],values));
       target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
-      hideModal(modal);renderExercises();notify('Registro salvo. Apenas este exercício foi atualizado.');
+      hideModal(modal);renderExercises();notify(values.status==='completed'?'Encerramento registrado; a dose executada é a informada no feedback.':'Registro salvo. Apenas este exercício foi atualizado.');
     }catch(e){$(errorId).textContent=errorText(e);}finally{sending=false;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=false);$('demoProfile')&&($('demoProfile').disabled=false);}
   }
-  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});save(values,'feedbackDialog','feedbackError');});
+  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});save(values,'feedbackDialog','feedbackError');});
   $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
   ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));$('cancelComplete').addEventListener('click',()=>{if(!sending)hideModal('confirmDialog');});
   document.addEventListener('keydown',e=>{const modal=['feedbackDialog','confirmDialog'].map($).find(n=>!n.hidden);if(!modal)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});

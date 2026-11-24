@@ -45,7 +45,7 @@
   function renderExercises(){
     const items=M.ordered(workout.items),history=workout.itemFeedback||[];
     $('exercises').replaceChildren();const count=items.filter(i=>M.state(history,i.id)==='completed').length;
-    $('progressText').textContent=`${count} de ${items.length} concluídos`;$('progressBar').style.width=(items.length?count/items.length*100:0)+'%';
+    $('progressText').textContent=`${count} de ${items.length} marcados como concluídos`;$('progressBar').style.width=(items.length?count/items.length*100:0)+'%';
     items.forEach((item,index)=>{
       const p=item.prescription||{},prev=M.latest(history,item.id),key=timerKey(item),state=M.state(history,item.id);
       const card=el('details','exercise');card.dataset.itemId=item.id;card.dataset.status=state;
@@ -70,6 +70,10 @@
         rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
       }
       const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);
+      if(prev){
+        const dose=[prev.actualSets!==''&&prev.actualSets!==undefined?`${prev.actualSets} séries/blocos`:'',prev.actualQuantity!==''&&prev.actualQuantity!==undefined?`${prev.actualQuantity} ${M.units[prev.quantityUnit]||prev.quantityUnit}`:''].filter(Boolean).join(' • ');
+        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'?' Encerramento informado não equivale à dose integral prescrita.':''}`));
+      }
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);
     });
@@ -94,18 +98,35 @@
     $('actualQuantity').placeholder=p.feedbackQuantityScope==='total'?'Total executado • opcional':'Por série • opcional';
     $('actualQuantityLabel').textContent=p.feedbackQuantityScope==='total'?`Total executado (${M.units[p.quantityUnit]})`:(p.quantityUnit==='repetitions'?'Repetições por série':`Executado por série (${M.units[p.quantityUnit]||p.quantityUnit})`);
     $('feedbackHistory').textContent=(workout.itemFeedback||[]).filter(f=>f.itemId===item.id).sort((a,b)=>b.revision-a.revision).map(f=>`Registro ${f.revision}: ${M.statuses[f.status]}`).join(' · ');
-    $('feedbackError').textContent='';showModal('feedbackDialog');
+    $('feedbackError').textContent='';syncFeedbackStatus();showModal('feedbackDialog');
   }
+  function syncFeedbackStatus(){
+    const notDone=$('feedbackStatus').value==='not_done',p=dialogItem?.prescription||{};
+    const message='Para Não realizado, séries e quantidades executadas devem ser zero ou ficar em branco. Se houve execução, selecione Parcial.';
+    let invalid=false;
+    ['actualSets','actualQuantity'].forEach(id=>{
+      const input=$(id);
+      input.max=notDone?'0':id==='actualSets'?'1000':p.source==='library'?'1000000000000':'100000';
+      const inconsistent=notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0;
+      input.setCustomValidity(inconsistent?message:'');invalid=invalid||inconsistent;
+    });
+    $('feedbackError').textContent=invalid?message:'';
+  }
+  $('feedbackStatus').addEventListener('change',syncFeedbackStatus);
+  ['actualSets','actualQuantity'].forEach(id=>{
+    $(id).addEventListener('input',syncFeedbackStatus);
+    $(id).addEventListener('change',syncFeedbackStatus);
+  });
   function openComplete(item){if(!selectionVisible())return;dialogItem=item;$('confirmExercise').textContent=item.exercise;$('confirmError').textContent='';showModal('confirmDialog');}
   async function save(values,modal,errorId){
     if(sending)return;sending=true;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=true);$('demoProfile')&&($('demoProfile').disabled=true);
     try{
       const target=workout,record=await write(M.feedbackData(workout,dialogItem,workout.itemFeedback||[],values));
       target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
-      hideModal(modal);renderExercises();notify('Registro salvo. Apenas este exercício foi atualizado.');
+      hideModal(modal);renderExercises();notify(values.status==='completed'?'Encerramento registrado; a dose executada é a informada no feedback.':'Registro salvo. Apenas este exercício foi atualizado.');
     }catch(e){$(errorId).textContent=errorText(e);}finally{sending=false;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=false);$('demoProfile')&&($('demoProfile').disabled=false);}
   }
-  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});save(values,'feedbackDialog','feedbackError');});
+  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});save(values,'feedbackDialog','feedbackError');});
   $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
   ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));$('cancelComplete').addEventListener('click',()=>{if(!sending)hideModal('confirmDialog');});
   document.addEventListener('keydown',e=>{const modal=['feedbackDialog','confirmDialog'].map($).find(n=>!n.hidden);if(!modal)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});

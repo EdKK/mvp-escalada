@@ -1,5 +1,7 @@
 # Correção do ciclo de prescrição, execução e feedback
 
+> O ajuste posterior de status/dose e o tratamento de revisões históricas estão em [CONSISTENCIA-FEEDBACK.md](../CONSISTENCIA-FEEDBACK.md).
+
 Base auditada: `feature/layout-biblioteca`, commit `54b66d0cb5dbe7ac3c12f58e30b78b7c2c45c9ae`.
 Branch de correção: `fix/ciclo-prescricao-aluno`. Nenhuma implantação, migração, limpeza de dados ou alteração OAuth.
 

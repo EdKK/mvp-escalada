@@ -66,7 +66,7 @@ try:
         print('PASS: quantitative feedback survives lost response without duplicates and appears to coach')
         login_student(student);choose_session();expect(student.locator('.status-label')).to_have_text('Parcial')
         student.locator('.feedback-btn').click();student.locator('#actualQuantity').fill('10');student.locator('#saveFeedback').click()
-        expect(student.locator('#feedbackDialog')).to_be_hidden();expect(student.locator('.saved-note')).to_contain_text('Registro 2 salvo')
+        expect(student.locator('#feedbackDialog')).to_be_hidden();expect(student.locator('.saved-note').filter(has_text='Registro')).to_contain_text('Registro 2 salvo')
         coach.get_by_role('button',name='Atualizar treinos',exact=True).click();expect(coach.locator('#listaRetornos')).to_contain_text('Quantidade executada: 10 repetições')
         print('PASS: new login recovers feedback; correction appends revision and coach sees executed dose')
         other=context.new_page();login_student(other,'student-b')
@@ -84,6 +84,61 @@ try:
         print('PASS: partially saved exercise stays hidden until same-intent recovery completes all series')
         student.screenshot(path='/tmp/mvp-ciclo-aluno.png',full_page=True)
         coach.get_by_role('button',name='Atualizar treinos',exact=True).click();coach.screenshot(path='/tmp/mvp-ciclo-treinador.png',full_page=True)
+        # Reproduce version-14 inconsistent feedback as immutable pre-existing history.
+        second_item=tables['Items'][2][0]
+        student.request.post(base+'/test-control',data={'seedHistoricalFeedback':{'workoutId':workout_id,'itemId':second_item}})
+        original=student.request.post(base+'/test-tables',data={}).json()['ItemFeedback'][-1]
+        student.locator('#refreshWorkouts').click()
+        card=student.locator('.exercise[data-item-id="'+second_item+'"]')
+        expect(card.locator('.status-label')).to_have_text('Não realizado')
+        if not card.evaluate('e=>e.open'):card.locator('summary').click()
+        card.locator('.feedback-btn').click()
+        expect(student.locator('#feedbackStatus')).to_have_value('not_done')
+        expect(student.locator('#actualSets')).to_have_value('2');expect(student.locator('#actualQuantity')).to_have_value('2')
+        expect(student.locator('#feedbackError')).to_contain_text('devem ser zero')
+        requests=[]
+        def track_feedback(request):
+            if request.url.endswith('/rpc') and request.method=='POST' and request.post_data_json['request']['action']=='submitItemFeedback':requests.append(request.post_data_json)
+        student.on('request',track_feedback)
+        before=student.request.post(base+'/test-tables',data={}).json()
+        student.locator('#saveFeedback').click()
+        assert len(requests)==0, 'inconsistent status must be blocked before RPC'
+        assert student.request.post(base+'/test-tables',data={}).json()==before
+        print('PASS: historical not_done 2/2 stays intact and UI blocks resubmission without clearing inputs')
+        student.locator('#feedbackStatus').select_option('partial')
+        expect(student.locator('#feedbackError')).to_have_text('')
+        student.locator('#saveFeedback').click();expect(student.locator('#feedbackDialog')).to_be_hidden()
+        expect(card.locator('.status-label')).to_have_text('Parcial')
+        card.locator('.complete-btn').click();expect(student.locator('#confirmDialog')).to_contain_text('não comprova execução integral')
+        student.locator('#confirmComplete').click();expect(student.locator('#confirmDialog')).to_be_hidden()
+        expect(card.locator('.status-label')).to_have_text('Concluído')
+        expect(card).to_contain_text('2 séries/blocos • 2 repetições')
+        expect(card).to_contain_text('não equivale à dose integral prescrita')
+        coach.get_by_role('button',name='Atualizar treinos',exact=True).click()
+        expect(coach.locator('#listaRetornos')).to_contain_text('Conclusão informada; dose integral não presumida.')
+        expect(coach.locator('#listaRetornos')).to_contain_text('Quantidade executada: 2 repetições')
+        data=student.request.post(base+'/test-tables',data={}).json()
+        schema=data['ItemFeedback'][0]
+        history=[dict(zip(schema,row)) for row in data['ItemFeedback'][1:] if row[schema.index('itemId')]==second_item]
+        assert len(history)==3 and history[-1]['status']=='completed'
+        assert history[-1]['actualSets']==history[-1]['actualQuantity']==2
+        assert next(row for row in data['ItemFeedback'][1:] if row[0]=='historical-feedback-test')==original
+        print('PASS: partial execution remains available; completion appends revision without assuming 5 sets/15 repetitions')
+        card.locator('.feedback-btn').click();student.locator('#feedbackStatus').select_option('not_done')
+        expect(student.locator('#feedbackError')).to_contain_text('devem ser zero')
+        student.locator('#actualSets').fill('0');student.locator('#actualQuantity').fill('0')
+        expect(student.locator('#feedbackError')).to_have_text('')
+        student.locator('#saveFeedback').click();expect(student.locator('#feedbackDialog')).to_be_hidden()
+        expect(card.locator('.status-label')).to_have_text('Não realizado')
+        card.locator('.feedback-btn').click();student.locator('#actualSets').fill('');student.locator('#actualQuantity').fill('')
+        student.locator('#saveFeedback').click();expect(student.locator('#feedbackDialog')).to_be_hidden()
+        data=student.request.post(base+'/test-tables',data={}).json()
+        history=[dict(zip(schema,row)) for row in data['ItemFeedback'][1:] if row[schema.index('itemId')]==second_item]
+        assert len(history)==5 and history[-2]['actualSets']==history[-2]['actualQuantity']==0
+        assert history[-1]['actualSets']==history[-1]['actualQuantity']==''
+        assert history[-1]['fingerPain']==3 and history[-1]['comment']=='fadiga'
+        assert next(row for row in data['ItemFeedback'][1:] if row[0]=='historical-feedback-test')==original
+        print('PASS: not_done accepts zero/absent quantities, preserving pain/comment and all earlier revisions')
         assert not errors,errors
         browser.close();print('PASS: no browser JavaScript errors; no Google services or real data used')
 finally:

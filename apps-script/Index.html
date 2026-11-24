@@ -873,7 +873,7 @@ function createRpc(run, getSessionToken, method = 'api') {
 }
 function coachExecutedFeedback(f){
   const units={repetitions:'repetições',moves:'movimentos',hang_seconds:'s de suspensão',seconds:'segundos',minutes:'minutos',meters:'metros',attempts:'tentativas'};
-  return [f.actualSets!==''&&f.actualSets!==undefined?'Séries/blocos executados: '+f.actualSets:'',f.actualQuantity!==''&&f.actualQuantity!==undefined?'Quantidade executada: '+f.actualQuantity+' '+(units[f.quantityUnit]||f.quantityUnit||''):''].filter(Boolean);
+  return [f.status==='completed'?'Conclusão informada; dose integral não presumida.':'',f.actualSets!==''&&f.actualSets!==undefined?'Séries/blocos executados: '+f.actualSets:'',f.actualQuantity!==''&&f.actualQuantity!==undefined?'Quantidade executada: '+f.actualQuantity+' '+(units[f.quantityUnit]||f.quantityUnit||''):''].filter(Boolean);
 }
 var CoachLibraryModel = (() => {
   const kinds={'unit-repetitions':'repetitions','unit-hand-moves':'hand_moves','unit-hang-seconds':'isometric','unit-seconds':'time','unit-meters':'distance'};

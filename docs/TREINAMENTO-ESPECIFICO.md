@@ -59,7 +59,7 @@ Para futura homologação, comparar primeiro os arquivos instalados com a refer�
 ## Evidências e limites de validação
 
 - Node: 128 testes aprovados, incluindo os 115 anteriores e 13 novos testes de modelo/interface. Cobrem todos os limites solicitados, escalas, orientação/inclinação, persistência/recuperação, múltiplos exercícios, dados antigos, acesso, duplicidade e recuperação após falhas.
-- Python: executar a suíte de comparação após atualizar a referência de sincronização; resultado registrado na entrega.
+- Python: 9 testes de comparação/sincronização aprovados após atualizar os hashes e o commit-fonte do manifesto.
 - Chromium local: 13 grupos de regressão do treinador, 9 do ciclo prescrição/feedback e 4 do novo fluxo específico aprovados. O novo fluxo verifica três exercícios na mesma sessão, leitura pelo aluno, feedback parcial e retorno ao treinador, além de larguras 1600/1024/390 sem rolagem horizontal.
 - Capturas geradas pelo teste: `/tmp/mvp-especifico-treinador.png` e `/tmp/mvp-especifico-aluno.png`.
 

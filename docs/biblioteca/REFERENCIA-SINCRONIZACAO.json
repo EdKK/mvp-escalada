@@ -1,5 +1,5 @@
 {
-  "referenceCommit": "8bee4982af5b5153004bf2d522bfe63ced781642",
+  "referenceCommit": "fd41e1ef8bcefa64fd39b72c33c25d1d20f34fa7",
   "minimumCorrectionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
   "algorithm": "SHA-256",
   "files": [
@@ -42,7 +42,7 @@
         "Student.gs"
       ],
       "group": "existing",
-      "sha256": "bcc2fc7ed04df3b5994ec5039865c137449804d25b51625c2d17389f19045745"
+      "sha256": "5a983eee64ff4435e1071d53e1054b457edc2603f6ebc7fb22b7f7b49692b234"
     },
     {
       "repositoryFile": "apps-script/Index.html",
@@ -50,7 +50,7 @@
         "Index.html"
       ],
       "group": "existing",
-      "sha256": "58fe0992117ba0c6a45eebfe31fce1d49f1ccd9bef84d69e748fc36221c40ece"
+      "sha256": "f02dfa91e23735f6cc7e2cbc1e03d959be071257fe1d266b675ea9c1875b1069"
     },
     {
       "repositoryFile": "apps-script/Student.html",
@@ -58,7 +58,7 @@
         "Student.html"
       ],
       "group": "existing",
-      "sha256": "60c699755d19424a7f80345156b4a7d8a4ec9b93eb3ceab054d375b785f0e8bb"
+      "sha256": "6b519df8f7be11e43cc00597ce4e605e4d80f7e83be6ac23e6c1eb0699b2c28a"
     },
     {
       "repositoryFile": "apps-script/OAuthReturn.html",
@@ -82,7 +82,7 @@
         "TrainingLoad.gs"
       ],
       "group": "library",
-      "sha256": "1a4cb7b8af9b9ad5fb6d78ceb74f6676f0f18491bd1e03925f126ef517d6413d"
+      "sha256": "c68efe8656a64f9938b9f477986e1a43d953c0d3995c5757de60eecd50da31b3"
     },
     {
       "repositoryFile": "apps-script/TrainingCatalog.gs",
@@ -98,7 +98,7 @@
         "CoachLibrary.gs"
       ],
       "group": "library",
-      "sha256": "8c3a4d89ff291c3d3309a2f122ae0ef7120a1f1db97142b59d3469d0b50ee37e"
+      "sha256": "d3d360160f74246f6c98533ab6dac6f65cfc6be54c17e6a73a6ca7389cdf3d77"
     }
   ]
 }

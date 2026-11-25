@@ -102,11 +102,82 @@ function validateSpecificTask_(exercise,data,volume){
   }
   return task;
 }
+/* Versioned directed prescription, independent of the historical specific task. */
+function fingerboardDefinitions_(){
+  return {
+    modalities:{isometric:'Suspensão isométrica',pull:'Tração dos membros superiores'},
+    grips:{
+      edge:{label:'Reglete',options:{'0.5':'0,5 cm','1.0':'1,0 cm','1.5':'1,5 cm','2.5':'2,5 cm','3.5':'3,5 cm'}},
+      sloper:{label:'Abaulado',options:{level1:'Nível 1',level2:'Nível 2'}},
+      mono:{label:'Monodedo',options:{index:'Indicador',middle:'Médio',ring:'Anelar',little:'Mínimo'}},
+      two:{label:'Bidedo',options:{indexMiddle:'Indicador + médio',middleRing:'Médio + anelar',ringLittle:'Anelar + mínimo'}},
+      pinch:{label:'Pinça',options:{closed:'Fechada',intermediate:'Intermediária',open:'Aberta'}},
+      jug:{label:'Patacão'}
+    },
+    prehensions:{open:'Aberta',half:'Semi-arqueada',full:'Arqueada'},
+    sides:{bilateral:'Bilateral simultânea',left:'Lado esquerdo',right:'Lado direito'},
+    loads:{bodyweight:'Massa corporal',added:'Sobrecarga adicional',assisted:'Assistência'},
+    kilograms:[1,2,4,6,8,10],
+    assistance:{foot:'Um pé apoiado',band:'Elástico',partner:'Auxílio de assistente'},
+    repetitionRest:[0,3,5,10,15,20,30,45,60,90,120],
+    seriesRest:[60,120,180,300,600,900]
+  };
+}
+function directedChoice_(value,choices){
+  if(typeof value!=='string'||!Object.prototype.hasOwnProperty.call(choices,value))fail_('INVALID_DATA');
+  return value;
+}
+function directedOption_(value,choices){
+  if(choices.indexOf(value)<0)fail_('INVALID_DATA');
+  return value;
+}
+function validateDirectedLoad_(data,workout,item){
+  fields_(data,['workoutId','itemId','classification','expectedRevision','directed']);
+  var d=data.directed,defs=fingerboardDefinitions_();
+  fields_(d,['version','subblock','modality','grip','gripOption','prehension','side','load','sets','repetitionsPerSet','durationSeconds','restBetweenRepetitionsSeconds','restBetweenSetsSeconds','guidance']);
+  if(data.classification!=='directed'||item.block!=='Treinamento direcionado'||d.version!==1||d.subblock!=='fingerboard')fail_('INVALID_DATA');
+  directedChoice_(d.modality,defs.modalities);
+  var grip=defs.grips[directedChoice_(d.grip,defs.grips)];
+  if(grip.options)directedChoice_(d.gripOption,grip.options);
+  else if(d.gripOption!==undefined)fail_('INVALID_DATA');
+  if(d.grip==='edge')directedChoice_(d.prehension,defs.prehensions);
+  else if(d.prehension!==undefined)fail_('INVALID_DATA');
+  directedChoice_(d.side,defs.sides);
+  fields_(d.load,['kind','kilograms','assistance']);
+  directedChoice_(d.load.kind,defs.loads);
+  if(d.load.kind==='added')directedOption_(d.load.kilograms,defs.kilograms);
+  else if(d.load.kilograms!==undefined)fail_('INVALID_DATA');
+  if(d.load.kind==='assisted')directedChoice_(d.load.assistance,defs.assistance);
+  else if(d.load.assistance!==undefined)fail_('INVALID_DATA');
+  libraryNumber_(d.sets,1,100,true);
+  libraryNumber_(d.repetitionsPerSet,1,10000,true);
+  var isometric=d.modality==='isometric';
+  if(isometric)libraryNumber_(d.durationSeconds,0.001,86400,false);
+  else if(d.durationSeconds!==undefined)fail_('INVALID_DATA');
+  if(d.repetitionsPerSet>1)directedOption_(d.restBetweenRepetitionsSeconds,defs.repetitionRest);
+  else if(d.restBetweenRepetitionsSeconds!==undefined)fail_('INVALID_DATA');
+  directedOption_(d.restBetweenSetsSeconds,defs.seriesRest);
+  var directed=Object.assign({},d);
+  directed.labels={
+    modality:defs.modalities[d.modality],grip:grip.label,side:defs.sides[d.side],load:defs.loads[d.load.kind]
+  };
+  if(grip.options)directed.labels.gripOption=grip.options[d.gripOption];
+  if(d.prehension!==undefined)directed.labels.prehension=defs.prehensions[d.prehension];
+  if(d.load.assistance!==undefined)directed.labels.assistance=defs.assistance[d.load.assistance];
+  if(d.guidance!==undefined)directed.guidance=text_(d.guidance,2000);
+  var kind=isometric?'isometric':'repetitions',unitId=isometric?'unit-hang-seconds':'unit-repetitions';
+  var sets=Array.from({length:d.sets},function(){
+    return isometric?{suspensions:d.repetitionsPerSet,seconds:d.durationSeconds}:{repetitions:d.repetitionsPerSet};
+  });
+  var volume=libraryVolume_({volumeUnitIds:[unitId]},{kind:kind,unitId:unitId,sets:sets},'prescribed');
+  return {workout:workout,item:item,exercise:{id:'directed:fingerboard',name:'Fingerboard'},method:null,protocol:null,capacity:null,classification:'directed',intensity:{notPrescribed:true},auxiliaryIntensities:[],volume:volume,directed:directed};
+}
 function libraryValidateLoad_(db,user,data,candidateItem){
-  fields_(data,['workoutId','itemId','exerciseId','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','expectedRevision','task']);
+  fields_(data,['workoutId','itemId','exerciseId','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','expectedRevision','task','directed']);
   var w=workout_(db,user,text_(data.workoutId,100));
   var item=candidateItem?[candidateItem]:rows_(db,'Items').filter(function(i){return i.id===data.itemId && i.workoutId===w.id;});
   if(item.length!==1||item[0].id!==data.itemId||item[0].workoutId!==w.id)fail_('NOT_FOUND');
+  if(data.directed!==undefined)return validateDirectedLoad_(data,w,item[0]);
   var standalone=data.task&&data.task.version===3;
   if(standalone&&(data.exerciseId!==undefined||data.auxiliaryIntensities!==undefined))fail_('INVALID_DATA');
   var exercise=standalone?specificExercise_(data.task.subblock):libraryExercise_(db,data.exerciseId);
@@ -155,11 +226,21 @@ function libraryCreatePrescription_(db,user,req){
     var d=req.data,validated=libraryValidateLoad_(db,user,d);libraryNumber_(d.expectedRevision,0,100000,true);
     var existing=libraryRows_(db,'PRESCRICOES').filter(function(r){return r.itemId===d.itemId;}).sort(function(a,b){return b.revision-a.revision;})[0];
     if(d.expectedRevision!==(existing?existing.revision:0))fail_('CONFLICT');
+    if(existing&&Boolean(JSON.parse(existing.snapshotJson).directed)!==Boolean(validated.directed))fail_('INVALID_DATA');
+    if(validated.directed&&!existing){
+      var creation=rows_(db,'Requests').some(function(r){
+        if(r.entity!=='Items'||r.entityId!==d.itemId||r.userId!==user.id)return false;
+        var fp=JSON.parse(r.fingerprint);
+        return fp[0]==='saveCoachPrescription'&&fp[1].directed&&fp[1].workoutId===d.workoutId&&libraryJson_(libraryCanonical_(fp[1].directed))===libraryJson_(libraryCanonical_(d.directed))&&req.requestId==='coach-p-'+hashAuth_(user.id+':'+r.key);
+      });
+      if(!creation)fail_('INVALID_DATA');
+    }
     // Reserve revisions even when an earlier write failed after reserving an ID.
     libraryUnique_(db,'PRESCRICOES',function(r){return r.itemId===d.itemId && r.revision===d.expectedRevision+1;},id,req.action,function(p){return p.itemId===d.itemId && p.expectedRevision===d.expectedRevision;});
     validated.volume.lines.forEach(function(line){line.id=id_();});
     var snapshot={exercise:validated.exercise,method:validated.method,protocol:validated.protocol,capacity:validated.capacity,intensity:validated.intensity,auxiliaryIntensities:validated.auxiliaryIntensities,classification:validated.classification,session:{id:validated.workout.id,studentId:validated.workout.studentId,date:validated.workout.date},volumeMode:'prescribed'};
     if(validated.task)snapshot.task=validated.task;
+    if(validated.directed)snapshot.directed=validated.directed;
     return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||'',snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
   });
 }

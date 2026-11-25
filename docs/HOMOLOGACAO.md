@@ -1,8 +1,12 @@
 # Homologação real — instalação manual reproduzível
 
-## Estado publicado
+## Referência de homologação informada
 
-A versão 18 está publicada em **MVP Escalada – Homologação**, conforme a avaliação informada, a partir do commit `17278cb55c2aac1dabdff0580326d25fbf32498d`, auditado pelo Work.
+O treinador informou a v19 como referência em **MVP Escalada – Homologação**. A Etapa 02 parte do commit `5e13ba78b6256a51531be8d7f3e0b1081b16e323` da branch `codex/simplificar-prescricao`, verificado no GitHub. Nesta etapa, a validação do Fingerboard usa serviços locais simulados. A correspondência entre o commit e o código instalado no Google ainda requer verificação direta.
+
+### Histórico da v18
+
+O registro anterior vinculava a v18 ao commit `17278cb55c2aac1dabdff0580326d25fbf32498d`.
 
 A avaliação manual da v18 confirmou a criação de sessão pelo treinador, a visualização pelo aluno da sessão de 28/11/2026, a apresentação dos cinco subblocos e a apresentação de orientação, inclinação, grau, séries, repetições e intervalos de recuperação. O treinador aprovou visualmente os campos da prescrição, com os ajustes descritos no [novo candidato](TREINAMENTO-ESPECIFICO.md). Houve um aviso de carregamento da biblioteca com `BUSY`. A homologação funcional completa permanece pendente.
 
@@ -27,7 +31,7 @@ Resumo reproduzível:
 
 ## Protocolo de aprovação (registrar resultado, data, papel e evidência sem emails)
 
-Os casos completos abaixo aguardam evidência individual no Google. O estado publicado acima registra os fluxos manuais aprovados. Use este protocolo para comprovar as condições adicionais de cada caso e registrar as verificações da próxima versão.
+Os casos completos abaixo aguardam evidência individual no Google. O histórico acima registra os fluxos manuais aprovados. Use este protocolo para comprovar as condições adicionais de cada caso e registrar as verificações da próxima versão.
 
 | Caso | Ação | Resultado obrigatório |
 | --- | --- | --- |

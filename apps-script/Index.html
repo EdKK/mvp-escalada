@@ -506,6 +506,9 @@ select.native-hidden {
     #panelCoach #librarySaveHint[data-kind="validation"],#panelCoach #librarySaveHint[data-kind="error"]{color:#fca5a5;border-color:var(--bad)}
     #panelCoach #librarySaveHint[data-kind="success"]{color:#bff7d0;border-color:var(--good)}
     #panelCoach #librarySaveHint[data-kind="warning"]{color:#fde68a;border-color:var(--warn)}
+    #fingerboardFields input,#fingerboardFields select,#directedSubblock{font-size:16px;min-height:44px}
+    #fingerboardFields .row{margin-top:10px}
+    #fbVolume{display:block;margin-top:10px;color:#bff7d0}
     #panelCoach #specificFieldError{display:block;color:#fca5a5;margin-top:8px;line-height:1.5}
   </style></head><body><p id="notice" role="status" aria-live="polite">Entre com sua conta Google de teste.</p>
 <section id="loginPanel" class="card">
@@ -673,6 +676,15 @@ select.native-hidden {
         <h2 id="coachPrescriptionTitle" tabindex="-1">Montar treino — prescrição</h2>
         <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
 <section class="coach-field-group"><h3>Bloco principal</h3><label for="libraryClassification">Bloco de treinamento</label><select id="libraryClassification"><option value="general">Treinamento geral</option><option value="directed">Treinamento direcionado</option><option value="specific">Treinamento específico</option></select></section>
+<section id="directedSubblockPanel" class="coach-field-group" hidden><label for="directedSubblock">Subbloco</label><select id="directedSubblock"><option value="">Exercício da biblioteca</option><option value="fingerboard">Fingerboard</option></select></section>
+<section id="fingerboardFields" class="coach-field-group" hidden>
+<p id="fingerboardEditing" role="status" hidden></p><button type="button" id="cancelFingerboardEdit" hidden>Cancelar edição</button>
+<div class="row"><div><label for="fbModality">Tarefa</label><select id="fbModality"></select></div><div><label for="fbGrip">Agarra</label><select id="fbGrip"></select></div><div id="fbGripOptionField"><label for="fbGripOption">Especificação da agarra</label><select id="fbGripOption"></select></div><div id="fbPrehensionField"><label for="fbPrehension">Preensão</label><select id="fbPrehension"></select></div></div>
+<div class="row"><div><label for="fbSide">Lateralidade</label><select id="fbSide"></select></div><div><label for="fbLoad">Condição de carga</label><select id="fbLoad"></select></div><div id="fbKilogramsField"><label for="fbKilograms">Sobrecarga adicional (kg)</label><select id="fbKilograms"></select></div><div id="fbAssistanceField"><label for="fbAssistance">Tipo de assistência</label><select id="fbAssistance"></select></div></div>
+<div class="row"><div><label for="fbSets">Séries</label><input id="fbSets" type="number" min="1" max="100" step="1"></div><div><label for="fbRepetitions">Repetições por série</label><input id="fbRepetitions" type="number" min="1" max="10000" step="1"></div><div id="fbDurationField"><label for="fbDuration">Duração por repetição (s)</label><input id="fbDuration" type="number" min="0.001" max="86400" step="any"></div></div>
+<div class="row"><div id="fbRepetitionRestField"><label for="fbRepetitionRest">Recuperação entre repetições (s)</label><select id="fbRepetitionRest"></select></div><div><label for="fbSeriesRest">Recuperação entre séries (min)</label><select id="fbSeriesRest"></select></div></div>
+<output id="fbVolume" aria-live="polite"></output>
+</section>
 <section id="specificSubblockPanel" class="coach-field-group" hidden><label for="specificSubblock">Extensão da sequência — subbloco</label><select id="specificSubblock"><option value="">Selecione o subbloco</option><option value="boulder_short">Boulder curto — 2–6 movimentos</option><option value="boulder_long">Boulder longo — 7–10 movimentos</option><option value="resistance_short">Resistência curta — 11–25 movimentos</option><option value="resistance_long">Resistência longa — 26–40 movimentos</option><option value="continuity">Continuidade — 41 ou mais movimentos</option></select><p class="muted">Faixas de extensão da sequência, sem classificação fisiológica automática.</p><span id="specificFieldError" class="muted" role="status" hidden></span></section>
 <section id="specificTaskFeatures" class="coach-field-group" hidden>
 <h3>Características da tarefa</h3>
@@ -768,7 +780,7 @@ select.native-hidden {
         </section>
 <section class="coach-field-group"><h3>Observações e gravação</h3>
 <div style="margin-top:10px">
-          <label for="itemNotas">Notas do treinador</label>
+          <label id="coachNotesLabel" for="itemNotas">Notas do treinador</label>
           <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
         </div>
 <input id="itemPosition" type="hidden" />
@@ -895,7 +907,7 @@ function createRpc(run, getSessionToken, method = 'api') {
 }
 function coachExecutedFeedback(f){
   const units={repetitions:'repetições',moves:'movimentos',hang_seconds:'s de suspensão',seconds:'segundos',minutes:'minutos',meters:'metros',attempts:'tentativas'};
-  return [f.status==='completed'?'Conclusão informada; dose integral não presumida.':'',f.actualSets!==''&&f.actualSets!==undefined?'Séries/blocos executados: '+f.actualSets:'',f.actualQuantity!==''&&f.actualQuantity!==undefined?'Quantidade executada: '+f.actualQuantity+' '+(units[f.quantityUnit]||f.quantityUnit||''):''].filter(Boolean);
+  return [f.status==='completed'&&!f.prescriptionId?'Conclusão informada; dose integral não presumida.':'',f.actualSets!==''&&f.actualSets!==undefined?(f.prescriptionId?'Séries executadas: ':'Séries/blocos executados: ')+f.actualSets:'',f.actualQuantity!==''&&f.actualQuantity!==undefined?'Quantidade executada: '+f.actualQuantity+' '+(units[f.quantityUnit]||f.quantityUnit||''):''].filter(Boolean);
 }
 var CoachLibraryModel = (() => {
   const kinds={'unit-repetitions':'repetitions','unit-hand-moves':'hand_moves','unit-hang-seconds':'isometric','unit-seconds':'time','unit-meters':'distance'};
@@ -945,12 +957,16 @@ var SpecificTaskModel=(()=>{
   let coachRefreshButton,coachInvalidField=null,coachExercises=[];
   let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
   const coachRenderedItems=new Map();
+  let fingerboardDefs,editingFingerboard=null;
+  const fingerboardInputs={modality:'fbModality',grip:'fbGrip',gripOption:'fbGripOption',prehension:'fbPrehension',side:'fbSide',sets:'fbSets',repetitionsPerSet:'fbRepetitions',durationSeconds:'fbDuration',restBetweenRepetitionsSeconds:'fbRepetitionRest',restBetweenSetsSeconds:'fbSeriesRest'};
+  const fingerboardDraftFields=[...Object.values(fingerboardInputs),'fbLoad','fbKilograms','fbAssistance'];
   const coachDraftFields=['itemBloco','itemCategoria','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','libraryMethod','libraryProtocol','libraryCapacity','libraryClassification','libraryAssessment','gradeScale','libraryVolumeUnit','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','specificSubblock','specificOrientation','specificInclination','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets'];
   const coachDraftSignature=()=>JSON.stringify(coachDraftFields.map(id=>{
+    if(isFingerboard())return id==='libraryClassification'||id==='itemNotas'?$(id).value:'';
     if(id==='libraryClassification'||id==='itemNotas')return $(id).value;
     const specific=$('libraryClassification').value==='specific';
     return id.startsWith('specific')===specific?$(id).value:'';
-  }));
+  }).concat(isFingerboard()?['fingerboard',editingFingerboard?.itemId,...fingerboardDraftFields.map(id=>$(id).value)]:[]));
   const coachDraftDirty=()=>coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
   let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
@@ -982,6 +998,7 @@ var SpecificTaskModel=(()=>{
     const feedback=await rpc({action:'listFeedback',data:{workoutId:id}});
     if(ticket!==generation) return;
     $('itemPosition').value=Math.max(0,...w.items.map((i,n)=>i.prescription?.position||n+1))+1;
+    if(selected!==id&&editingFingerboard)resetCoachDraft();
     if(selected!==id){coachReview=null;$('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;}
     selectedWorkout=w;
     if(session?.role==='coach')$('coachAluno').value=w.studentId;
@@ -994,13 +1011,13 @@ var SpecificTaskModel=(()=>{
         const heading=document.createElement('h3');heading.textContent='Exercício '+(index+1)+' — '+i.exercise;parent.appendChild(heading);
         $('previewTreinoAluno').appendChild(parent);coachRenderedItems.set(i.id,parent);
       }
-      text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
+      text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.prescription?.directed?'':i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
     });
     if(session?.role==='coach')$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),f.comment].filter(Boolean).join(' • '));});
+    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')),f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
-    if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(libraryReady&&!isSpecificTask())await refreshAssessments();}
+    if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(libraryReady&&!isSpecificTask()&&!isFingerboard())await refreshAssessments();}
   }
   async function refresh(id) {
     const workouts=await rpc({action:'listWorkouts',data:{}});
@@ -1034,11 +1051,11 @@ var SpecificTaskModel=(()=>{
     if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft','btnReviewSession','btnConfirmSession'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
     else {$('alunoTreinoId').disabled=busy;}
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
-    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!selected||(!isSpecificTask()&&(!libraryReady||!exerciseSelection))));
+    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!selected||(!isSpecificTask()&&(isFingerboard()?!fingerboardDefs:(!libraryReady||!exerciseSelection)))));
     coachTabs.forEach(tab=>$(tab.button).disabled=busy);
     $('btnReviewSession').disabled=busy||!selected;
     $('btnConfirmSession').disabled=busy||!!pendingCoachSave||!coachReview||!coachReview.ready||coachDraftDirty();
-    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':'Salvar e adicionar próximo exercício';
+    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':editingFingerboard?'Salvar revisão':'Salvar e adicionar próximo exercício';
   }
   async function loadLibrary(){
     libraryReady=false;exerciseSelection=null;libraryController=CoachLibraryModel.selectionController(library);
@@ -1058,6 +1075,55 @@ var SpecificTaskModel=(()=>{
     updateCoachControls();
   }
   const isSpecificTask=()=>$('libraryClassification').value==='specific';
+  const isFingerboard=()=>$('libraryClassification').value==='directed'&&$('directedSubblock').value==='fingerboard';
+  const choiceRows=choices=>Object.entries(choices).map(([id,name])=>({id,name}));
+  async function loadFingerboard(){
+    if(fingerboardDefs)return;
+    fingerboardDefs=await library('fingerboardDefinitions',{});
+    const d=fingerboardDefs;
+    for(const [id,choices] of Object.entries({fbModality:d.modalities,fbGrip:Object.fromEntries(Object.entries(d.grips).map(([key,grip])=>[key,grip.label])),fbPrehension:d.prehensions,fbSide:d.sides,fbLoad:d.loads,fbAssistance:d.assistance})){
+      options(id,choiceRows(choices),'Selecione');
+    }
+    for(const [id,values,scale] of [['fbKilograms',d.kilograms,1],['fbRepetitionRest',d.repetitionRest,1],['fbSeriesRest',d.seriesRest,60]]){
+      options(id,values.map(value=>({id:String(value),name:String(value/scale)})),'Selecione');
+    }
+    $('fbLoad').value='bodyweight';
+  }
+  function syncFingerboard(){
+    const gripId=$('fbGrip').value,grip=fingerboardDefs?.grips[gripId],option=$('fbGripOption');
+    if(option.dataset.grip!==gripId){
+      options('fbGripOption',choiceRows(grip?.options||{}),'Selecione');
+      option.dataset.grip=gripId;
+    }
+    const iso=$('fbModality').value==='isometric';
+    const active={fbGripOption:!!grip?.options,fbPrehension:$('fbGrip').value==='edge',fbDuration:iso,fbKilograms:$('fbLoad').value==='added',fbAssistance:$('fbLoad').value==='assisted',fbRepetitionRest:Number($('fbRepetitions').value)>1};
+    for(const [id,shown] of Object.entries(active)){
+      $(id+'Field').hidden=!shown;
+      if(!shown)$(id).value='';
+    }
+    const perSet=Number($('fbRepetitions').value)*(iso?Number($('fbDuration').value):1);
+    const volume=Number($('fbSets').value)*(Math.round(perSet*1e9)/1e9);
+    $('fbVolume').textContent=$('fbModality').value&&volume>0?'Volume prescrito: '+Math.round(volume*1e9)/1e9+' '+(iso?'s de suspensão':'repetições'):'';
+  }
+  $('directedSubblock').addEventListener('change',()=>perform(async()=>{
+    if(editingFingerboard)resetCoachDraft();
+    syncSpecificUi();
+    if(isFingerboard())await loadFingerboard();
+    syncFingerboard();
+  }));
+  $('fingerboardFields').addEventListener('input',syncFingerboard);
+  $('cancelFingerboardEdit').addEventListener('click',()=>{resetCoachDraft();updateCoachControls();});
+  async function editFingerboard(item){
+    await loadFingerboard();
+    editingFingerboard={itemId:item.id,expectedRevision:item.prescription.revision};
+    const d=item.prescription.directed;
+    $('libraryClassification').value='directed';$('directedSubblock').value='fingerboard';
+    for(const [key,id] of Object.entries(fingerboardInputs))if(key!=='gripOption')$(id).value=d[key]??'';
+    $('fbLoad').value=d.load.kind;$('fbKilograms').value=d.load.kilograms??'';$('fbAssistance').value=d.load.assistance??'';
+    $('itemNotas').value=d.guidance||'';
+    syncSpecificUi();syncFingerboard();$('fbGripOption').value=d.gripOption??'';
+    $('coachPrescriptionTitle').focus();$('coachPrescription').scrollIntoView({block:'start'});
+  }
   function renderCoachExercises(){
     const previous=$('itemExercicio').value,rows=coachExercises;
     options('itemExercicio',rows,'Selecione um exercício ativo');if(rows.some(e=>e.id===previous))$('itemExercicio').value=previous;
@@ -1071,19 +1137,26 @@ var SpecificTaskModel=(()=>{
   }
   function syncSpecificUi(){
     const sp=isSpecificTask(),d=SpecificTaskModel.definition($('specificSubblock').value);
-    $('specificSubblockPanel').hidden=!sp;$('libraryPanel').hidden=sp;
-    ['legacyBlockContext','legacyCapacityContext','legacyIntensityControls','libraryCapacities','intensityHelp','legacyIntensityGroup','legacyVolumeGroup','libraryMethodGroup'].forEach(id=>$(id).hidden=sp);
+    const fb=isFingerboard(),structured=sp||fb;
+    $('directedSubblockPanel').hidden=$('libraryClassification').value!=='directed';
+    $('fingerboardFields').hidden=!fb;
+    $('coachNotesLabel').textContent=fb?'Orientações adicionais (opcional)':'Notas do treinador';
+    $('fingerboardEditing').hidden=!editingFingerboard;
+    $('cancelFingerboardEdit').hidden=!editingFingerboard;
+    if(editingFingerboard)$('fingerboardEditing').textContent='Editando Fingerboard • revisão '+editingFingerboard.expectedRevision;
+    $('specificSubblockPanel').hidden=!sp;$('libraryPanel').hidden=structured;
+    ['legacyBlockContext','legacyCapacityContext','legacyIntensityControls','libraryCapacities','intensityHelp','legacyIntensityGroup','legacyVolumeGroup','libraryMethodGroup'].forEach(id=>$(id).hidden=structured);
     $('specificTaskFeatures').hidden=!sp||!d;
-    $('gradeField').hidden=sp||exerciseSelection?.indicator.kind!=='ordinal';
-    $('assessmentField').hidden=sp||exerciseSelection?.indicator.kind!=='relative';
-    $('libraryAssessment').setAttribute('aria-required',String(!sp&&exerciseSelection?.indicator.kind==='relative'));
-    $('itemIntensVal').setAttribute('aria-required',String(!sp&&!!exerciseSelection));
-    $('libraryMethod').required=!sp;
+    $('gradeField').hidden=structured||exerciseSelection?.indicator.kind!=='ordinal';
+    $('assessmentField').hidden=structured||exerciseSelection?.indicator.kind!=='relative';
+    $('libraryAssessment').setAttribute('aria-required',String(!structured&&exerciseSelection?.indicator.kind==='relative'));
+    $('itemIntensVal').setAttribute('aria-required',String(!structured&&!!exerciseSelection));
+    $('libraryMethod').required=!structured;
     if(sp&&d)$('specificRangeHint').textContent=d.label+': '+d.min+(d.max===null?' ou mais':'–'+d.max)+' movimentos efetivos de mão por sequência. Inclui juntar mãos na mesma agarra e rebotear.';
     const kind=CoachLibraryModel.kinds[$('libraryVolumeUnit').value];
     $('quantityLabel').textContent=({isometric:'Duração de cada suspensão (segundos)',hand_moves:'Movimentos de mão por trecho/boulder',repetitions:'Repetições por série',time:'Segundos por série',distance:'Metros por série'}[kind]||'Quantidade por série/trecho')+(kind?' (obrigatória)':'');
   }
-  $('libraryClassification').addEventListener('change',()=>perform(async()=>{clearCoachValidation();renderCoachExercises();specificGrades();syncSpecificUi();updateCoachControls();}));
+  $('libraryClassification').addEventListener('change',()=>perform(async()=>{clearCoachValidation();if(editingFingerboard)resetCoachDraft();renderCoachExercises();specificGrades();syncSpecificUi();if(isFingerboard())await loadFingerboard();syncFingerboard();updateCoachControls();}));
   $('specificSubblock').addEventListener('change',()=>{clearCoachValidation();specificGrades();syncSpecificUi();});
   async function chooseExercise(){
     clearCoachValidation();coachHint('info',isSpecificTask()?'Informe o número de séries e de repetições por série.':'Informe Método e os parâmetros obrigatórios conforme o exercício selecionado.');
@@ -1137,6 +1210,13 @@ var SpecificTaskModel=(()=>{
       const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:
         intensity.kind==='ordinal'?(intensity.notPrescribed?'Dificuldade não prescrita':`${intensity.value} (${intensity.scale})`):intensity.description||String(intensity.value);
       const parent=coachRenderedItems.get(item.id)||$('previewTreinoAluno'),task=snapshot.task;
+      if(p.directed){
+        const d=p.directed,l=d.labels;
+        text(parent,[l.modality,l.grip,l.gripOption,l.prehension,l.side,l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • '));
+        text(parent,[d.sets+' séries × '+d.repetitionsPerSet+' repetições',d.durationSeconds===undefined?'':d.durationSeconds+' s por repetição','Volume: '+volume.total+' '+labels[volume.unitId],d.restBetweenRepetitionsSeconds===undefined?'':'Entre repetições: '+d.restBetweenRepetitionsSeconds+' s','Entre séries: '+d.restBetweenSetsSeconds/60+' min','Revisão '+p.revision,d.guidance].filter(Boolean).join(' • '));
+        button(parent,'Editar Fingerboard',()=>editFingerboard(item));
+        return;
+      }
       if(task?.version>=2){
         text(parent,`${snapshot.exercise.name} • ${task.sets} séries × ${task.repetitionsPerSet} repetições • ${value} • revisão ${p.revision}`);
       }else{
@@ -1186,6 +1266,26 @@ var SpecificTaskModel=(()=>{
     clearCoachValidation();
     if(!selectedWorkout||!selected)coachFieldError('coachTreinoId','Crie ou selecione uma sessão.');
     if(selectedWorkout.studentId!==$('coachAluno').value)coachFieldError('coachAluno','O aluno escolhido difere da sessão. Selecione a sessão correta.');
+    if(isFingerboard()){
+      function required(id){
+        if($(id).value==='')coachFieldError(id,'Preencha este campo do Fingerboard.');
+        return $(id).value;
+      }
+      function bounded(id,integer,min,max){
+        const value=coachNumber(id,integer,'Informe um valor válido.');
+        if(value<min||value>max)coachFieldError(id,'Informe um valor entre '+min+' e '+max+'.');
+        return value;
+      }
+      const directed={version:1,subblock:'fingerboard',modality:required('fbModality'),grip:required('fbGrip'),side:required('fbSide'),load:{kind:required('fbLoad')},sets:bounded('fbSets',true,1,100),repetitionsPerSet:bounded('fbRepetitions',true,1,10000),restBetweenSetsSeconds:Number(required('fbSeriesRest'))};
+      if(fingerboardDefs.grips[directed.grip].options)directed.gripOption=required('fbGripOption');
+      if(directed.grip==='edge')directed.prehension=required('fbPrehension');
+      if(directed.load.kind==='added')directed.load.kilograms=Number(required('fbKilograms'));
+      if(directed.load.kind==='assisted')directed.load.assistance=required('fbAssistance');
+      if(directed.modality==='isometric')directed.durationSeconds=bounded('fbDuration',false,0.001,86400);
+      if(directed.repetitionsPerSet>1)directed.restBetweenRepetitionsSeconds=Number(required('fbRepetitionRest'));
+      if($('itemNotas').value.trim())directed.guidance=$('itemNotas').value.trim();
+      return {workoutId:selected,classification:'directed',directed,...(editingFingerboard||{block:'Treinamento direcionado'})};
+    }
     const specific=isSpecificTask();
     if(specific&&!SpecificTaskModel.definition($('specificSubblock').value))coachFieldError('specificSubblock','Selecione a extensão da sequência.');
     if(specific){
@@ -1256,6 +1356,11 @@ var SpecificTaskModel=(()=>{
     try{await detail(result.item.workoutId);await loadPendingSaves();}catch(e){coachHint('warning','Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.');}
   }
   function resetCoachDraft(){
+    if(isFingerboard()||editingFingerboard){
+      editingFingerboard=null;
+      fingerboardDraftFields.forEach(id=>$(id).value='');
+      $('fbLoad').value='bodyweight';syncFingerboard();
+    }
     exerciseSelection=null;assessmentVersion++;assessments=[];
     ['specificOrientation','specificInclination','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','gradeScale'].forEach(id=>$(id).value='');
     ['libraryMethod','libraryProtocol','libraryCapacity','libraryAssessment','libraryVolumeUnit','itemIntensTipo','itemMetrica'].forEach(id=>options(id,[],'Selecione um exercício'));
@@ -1320,7 +1425,7 @@ var SpecificTaskModel=(()=>{
   function clearSession() {
     sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
     pendingCoachEntries=[];coachDraftBaseline='';coachReview=null;
-    clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
+    editingFingerboard=null;clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
     $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;
     placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;

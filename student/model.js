@@ -15,7 +15,7 @@ var StudentModel = (() => {
   function remaining(t,now){return t?.endsAt!==null&&t?.endsAt!==undefined?Math.max(0,t.endsAt-now):(t?.remaining||0);}
   function restStart(t,seconds,now){return {remaining:t?.remaining??seconds*1000,endsAt:now+(t?.remaining??seconds*1000)};}
   function restPause(t,now){return {remaining:remaining(t,now),endsAt:null};}
-  function quantity(p){if(p.task?.version>=2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
+  function quantity(p){if(p.directed){const d=p.directed;return d.repetitionsPerSet+' por série'+(d.durationSeconds===undefined?'':' × '+d.durationSeconds+' s');}if(p.task?.version>=2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
   function intensity(p){
     if(p.source==='library'){
       const i=p.intensity.primary;if(i.notPrescribed)return 'Não informada';
@@ -34,6 +34,15 @@ var StudentModel = (() => {
   }
   function prescriptionDetails(p){
     if(p.source!=='library')return [];
+    if(p.directed){
+      const d=p.directed,l=d.labels;
+      const grip=[l.grip,l.gripOption,l.prehension].filter(Boolean).join(' • ');
+      const load=[l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • ');
+      const details=['Treinamento direcionado • Fingerboard • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
+      if(d.restBetweenRepetitionsSeconds!==undefined)details.push('Recuperação entre repetições: '+d.restBetweenRepetitionsSeconds+' s');
+      details.push('Recuperação entre séries: '+d.restBetweenSetsSeconds/60+' min');
+      return details;
+    }
     const snapshot=p.snapshot,details=p.task?.version>=2?[]:[`Método: ${snapshot.method?snapshot.method.name:'não informado'}${snapshot.protocol?' • protocolo: '+snapshot.protocol.name:''}`];
     if(p.task){
       const t=p.task,orientations={horizontal:'Horizontal — travessia',vertical:'Vertical — ascendente ou desescalada',mixed:'Misto'},walls={'0_15':'0°–15°','15_30':'Acima de 15° até 30°','30_45':'Acima de 30° até 45°',over_45:'Acima de 45°'};
@@ -50,6 +59,6 @@ var StudentModel = (() => {
     }
     return details.concat(p.series.map(line=>seriesDescription(p,line)));
   }
-  function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}
+  function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(p.directed){data.prescriptionId=p.prescriptionId;if(values.actualSeries!==undefined)data.actualSeries=values.actualSeries;return data;}if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}
   return {units,statuses,dates,forDate,ordered,latest,state,formatTime,elapsed,start,pause,zero,remaining,restStart,restPause,quantity,intensity,setCount,seriesDescription,prescriptionDetails,feedbackData};
 })();

@@ -37,13 +37,14 @@ class ComparisonTests(unittest.TestCase):
         for row in self.manifest['files']:
             (self.folder / row['installedNames'][0]).write_bytes((MODULE.ROOT / row['repositoryFile']).read_bytes())
 
-    def test_corrected_worktree_matches_pinned_bundle_without_claiming_google_comparison(self):
+    def test_worktree_reports_drift_from_historical_bundle(self):
         MODULE.ROOT = self.repo_root
         result = MODULE.compare()
-        self.assertTrue(result['referenceIntact'])
-        changed = [row['repositoryFile'] for row in self.manifest['files']
-                   if hashlib.sha256((self.repo_root / row['repositoryFile']).read_bytes()).hexdigest() != row['sha256']]
-        self.assertEqual(changed, [])
+        changed = {row['repositoryFile'] for row in self.manifest['files']
+                   if hashlib.sha256((self.repo_root / row['repositoryFile']).read_bytes()).hexdigest() != row['sha256']}
+        reported = {row['repositoryFile'] for row in result['files'] if not row['referenceIntact']}
+        self.assertEqual(reported, changed)
+        self.assertEqual(result['referenceIntact'], not changed)
         self.assertFalse(result['liveGoogleVerified'])
 
     def test_reference_only_never_claims_google_comparison(self):

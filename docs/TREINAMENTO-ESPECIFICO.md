@@ -1,8 +1,8 @@
 # Treinamento específico — compatibilidade para o Work
 
-## Candidato após a avaliação da v18
+## Referência de desenvolvimento informada para a v19
 
-A v18 publicada corresponde a `17278cb55c2aac1dabdff0580326d25fbf32498d`. Este candidato deriva desse commit e está documentado para auditoria em conjunto com o [registro de homologação](HOMOLOGACAO.md) e o [manifesto dos arquivos](biblioteca/REFERENCIA-SINCRONIZACAO.json).
+A v18 registrada corresponde a `17278cb55c2aac1dabdff0580326d25fbf32498d`. O treinador indicou a v19 como versão de homologação e o commit `5e13ba78b6256a51531be8d7f3e0b1081b16e323` como base da Etapa 02. O [registro de homologação](HOMOLOGACAO.md) distingue a referência informada da verificação direta no Google. O [manifesto histórico](biblioteca/REFERENCIA-SINCRONIZACAO.json) fixa os hashes do pacote auditado.
 
 ### Tipo de microciclo da sessão
 
@@ -38,7 +38,7 @@ Passaram 135 testes Node, 9 testes Python de referência e hashes e 26 grupos de
 
 ### Próxima homologação
 
-Comparar a instalação v18 com a referência publicada e atualizar juntos `Backend.gs`, `Student.gs` (ou o alias instalado `StudentLogic.gs`), `TrainingLoad.gs`, `CoachLibrary.gs`, `Index.html` e `Student.html` após auditoria. Conferir os nove tipos, objetivos históricos, os cinco subblocos, criação e recuperação de tarefas, leitura pelo aluno, feedback e regressões de Geral e Direcionado. Verificar integridade, isolamento, concorrência e gravações interrompidas no Google. Antes de reverter após gravações novas, verificar compatibilidade do leitor anterior com os metadados de sessão em objeto e retomadas de prescrições v3. A v18 esperava instruções em vetor e não grava o formato v3.
+Verificar diretamente a instalação informada como v19 e comparar seus arquivos com a referência registrada. Em uma sincronização autorizada, revisar juntos `Backend.gs`, `Student.gs` (ou o alias instalado `StudentLogic.gs`), `TrainingLoad.gs`, `CoachLibrary.gs`, `Index.html` e `Student.html` após auditoria. Conferir os nove tipos, objetivos históricos, os cinco subblocos, criação e recuperação de tarefas, leitura pelo aluno, feedback e regressões de Geral e Direcionado. Verificar integridade, isolamento, concorrência e gravações interrompidas no Google. Antes de reverter após gravações novas, verificar compatibilidade do leitor anterior com os metadados de sessão em objeto e retomadas de prescrições v3. A v18 esperava instruções em vetor e não grava o formato v3.
 
 ## Histórico da prescrição simplificada publicada na v18
 

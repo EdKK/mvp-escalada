@@ -47,7 +47,7 @@
     $('exercises').replaceChildren();const count=items.filter(i=>M.state(history,i.id)==='completed').length;
     $('progressText').textContent=`${count} de ${items.length} marcados como concluídos`;$('progressBar').style.width=(items.length?count/items.length*100:0)+'%';
     items.forEach((item,index)=>{
-      const p=item.prescription||{},prev=M.latest(history,item.id),key=timerKey(item),state=M.state(history,item.id);
+      const p=item.prescription||{},prev=M.latest(history,item.id),key=timerKey(item)+(item.prescription?.directed?':'+item.prescription.revision:''),state=M.state(history,item.id);
       const card=el('details','exercise');card.dataset.itemId=item.id;card.dataset.status=state;
       const defaultOpen=items.length>1?1:0;
       card.open=expanded.has(key)?expanded.get(key):index===defaultOpen;
@@ -55,25 +55,35 @@
       const summary=el('summary'),number=el('span','number',state==='completed'?'✓':String(index+1)),title=el('span','exercise-title',item.exercise);
       if(prev)title.append(el('span','status-label',M.statuses[prev.status]));
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
-      const body=el('div','exercise-body'),metrics=el('div','metrics');
-      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(p.task?.version>=2?'Entre repetições':'Descanso',p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'),metric('Intensidade',M.intensity(p),'intensity'));body.append(metrics);
+      const body=el('div','exercise-body'),metrics=el('div','metrics'),directed=p.directed;
+      const restLabel=directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
+      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
+      if(!directed)metrics.append(metric('Intensidade',M.intensity(p),'intensity'));
+      body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
         M.prescriptionDetails(p).forEach(description=>content.append(el('p','',description)));
         prescription.append(icon('stack'),content);body.append(prescription);
       }
-      const note=el('div','technical-note'),noteText=el('div');noteText.append(el('strong','','Observações'),el('p','',item.notes||'Nenhuma observação técnica adicional.'));note.append(icon('chat'),noteText);body.append(note);
+      const note=el('div','technical-note'),noteText=el('div');const guidance=directed?directed.guidance:item.notes;
+      if(!directed||guidance){
+        noteText.append(el('strong','',directed?'Orientações do treinador':'Observações'),el('p','',guidance||'Nenhuma observação técnica adicional.'));
+        note.append(icon('chat'),noteText);body.append(note);
+      }
       const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);
       timer.append(clock,button('Iniciar','timer-btn primary',()=>{timers.set(key,M.start(timers.get(key),Date.now()));paintClocks();},'play'),button('Pausar','timer-btn',()=>{timers.set(key,M.pause(timers.get(key),Date.now()));paintClocks();},'pause'),button('Zerar','timer-btn',()=>{timers.set(key,M.zero());paintClocks();},'reset'));body.append(timer);
       if(p.restSeconds!==undefined&&p.restSeconds!==''&&p.restSeconds>0){
-        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',p.task?.version>=2?'Recuperação entre repetições':'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
+        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',directed||p.task?.version>=2?'Recuperação '+restLabel.toLowerCase():'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
         rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
       }
       const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);
       if(prev){
-        const dose=[prev.actualSets!==''&&prev.actualSets!==undefined?`${prev.actualSets} séries/blocos`:'',prev.actualQuantity!==''&&prev.actualQuantity!==undefined?`${prev.actualQuantity} ${M.units[prev.quantityUnit]||prev.quantityUnit}`:''].filter(Boolean).join(' • ');
-        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'?' Encerramento informado não equivale à dose integral prescrita.':''}`));
+        const dose=[prev.actualSets!==''&&prev.actualSets!==undefined?`${prev.actualSets} ${prev.prescriptionId?(prev.actualSets===1?'série':'séries'):'séries/blocos'}`:'',prev.actualQuantity!==''&&prev.actualQuantity!==undefined?`${prev.actualQuantity} ${prev.prescriptionId&&prev.actualQuantity===1&&prev.quantityUnit==='repetitions'?'repetição':M.units[prev.quantityUnit]||prev.quantityUnit}`:''].filter(Boolean).join(' • ');
+        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
+      if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
+        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' s de suspensão'}`));
+      });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);
     });
@@ -90,8 +100,29 @@
     $('feedbackStatus').value=prev?.status||'completed';$('feedbackPain').value=prev?.fingerPain??0;
     $('feedbackRpe').value=prev?.rpe??'';$('feedbackComment').value=prev?.comment||'';$('actualSets').value=prev?.actualSets??'';$('actualQuantity').value=prev?.actualQuantity??'';
     $('rpeField').hidden=!p.rpeApplicable;$('feedbackRpe').disabled=!p.rpeApplicable;
-    $('setsField').hidden=p.sets===''||p.sets===undefined;$('actualSets').disabled=$('setsField').hidden;
-    $('quantityField').hidden=!M.units[p.quantityUnit];$('actualQuantity').disabled=$('quantityField').hidden;
+    const directed=!!p.directed;
+    $('legacyFeedbackHelp').hidden=directed;$('directedFeedbackHelp').hidden=!directed;
+    $('feedbackStatus').options[0].textContent=directed?'Execução completa':'Concluído';
+    $('feedbackStatus').options[1].textContent=directed?'Execução parcial':'Parcial';
+    $('feedbackStatus').options[2].textContent=directed?'Não realizada':'Não realizado';
+    const fields=$('actualSeriesFields');fields.replaceChildren();
+    if(directed){
+      for(let i=0;i<p.sets;i++){
+        const group=el('fieldset','actual-series'),prior=prev?.prescriptionId===p.prescriptionId?prev.actualSeries?.[i]:undefined;
+        group.append(el('legend','','Série '+(i+1)));
+        const definitions=[['repetitions','Repetições completas',10000,1]];
+        if(p.directed.modality==='isometric')definitions.push(['seconds','Tempo efetivo acumulado (s)',1e9,'any']);
+        for(const [key,label,max,step] of definitions){
+          const input=el('input');Object.assign(input,{id:'actual-'+i+'-'+key,type:'number',min:0,max,step,value:prior?.[key]??'',required:true});
+          input.dataset.seriesField=key;
+          const caption=el('label','',label);caption.htmlFor=input.id;
+          group.append(caption,input);
+        }
+        fields.append(group);
+      }
+    }
+    $('setsField').hidden=directed||p.sets===''||p.sets===undefined;$('actualSets').disabled=$('setsField').hidden;
+    $('quantityField').hidden=directed||!M.units[p.quantityUnit];$('actualQuantity').disabled=$('quantityField').hidden;
     $('actualSetsLabel').textContent=p.volume?.kind==='hand_moves'?'Blocos executados':'Séries executadas';
     $('actualQuantity').max=p.source==='library'?'1000000000000':'100000';
     $('actualQuantity').step=p.source==='library'&&['repetitions','moves'].includes(p.quantityUnit)?'1':'any';
@@ -101,7 +132,9 @@
     $('feedbackError').textContent='';syncFeedbackStatus();showModal('feedbackDialog');
   }
   function syncFeedbackStatus(){
-    const notDone=$('feedbackStatus').value==='not_done',p=dialogItem?.prescription||{};
+    const status=$('feedbackStatus').value,notDone=status==='not_done',p=dialogItem?.prescription||{};
+    $('actualSeriesFields').hidden=!p.directed||status!=='partial';
+    $('actualSeriesFields').querySelectorAll('input').forEach(input=>input.disabled=$('actualSeriesFields').hidden);
     const message='Para Não realizado, séries e quantidades executadas devem ser zero ou ficar em branco. Se houve execução, selecione Parcial.';
     let invalid=false;
     ['actualSets','actualQuantity'].forEach(id=>{
@@ -117,16 +150,16 @@
     $(id).addEventListener('input',syncFeedbackStatus);
     $(id).addEventListener('change',syncFeedbackStatus);
   });
-  function openComplete(item){if(!selectionVisible())return;dialogItem=item;$('confirmExercise').textContent=item.exercise;$('confirmError').textContent='';showModal('confirmDialog');}
+  function openComplete(item){if(!selectionVisible())return;dialogItem=item;$('confirmExercise').textContent=item.exercise;$('legacyCompleteHelp').hidden=!!item.prescription?.directed;$('directedCompleteHelp').hidden=!item.prescription?.directed;$('confirmError').textContent='';showModal('confirmDialog');}
   async function save(values,modal,errorId){
     if(sending)return;sending=true;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=true);$('demoProfile')&&($('demoProfile').disabled=true);
     try{
-      const target=workout,record=await write(M.feedbackData(workout,dialogItem,workout.itemFeedback||[],values));
+      const target=workout,directed=!!dialogItem.prescription?.directed,record=await write(M.feedbackData(workout,dialogItem,workout.itemFeedback||[],values));
       target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
-      hideModal(modal);renderExercises();notify(values.status==='completed'?'Encerramento registrado; a dose executada é a informada no feedback.':'Registro salvo. Apenas este exercício foi atualizado.');
+      hideModal(modal);renderExercises();notify(values.status==='completed'&&!directed?'Encerramento registrado; a dose executada é a informada no feedback.':'Registro salvo. Apenas este exercício foi atualizado.');
     }catch(e){$(errorId).textContent=errorText(e);}finally{sending=false;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=false);$('demoProfile')&&($('demoProfile').disabled=false);}
   }
-  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});save(values,'feedbackDialog','feedbackError');});
+  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});if(!$('actualSeriesFields').hidden)values.actualSeries=[...$('actualSeriesFields').children].map(group=>Object.fromEntries([...group.querySelectorAll('input')].map(input=>[input.dataset.seriesField,Number(input.value)])));save(values,'feedbackDialog','feedbackError');});
   $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
   ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));$('cancelComplete').addEventListener('click',()=>{if(!sending)hideModal('confirmDialog');});
   document.addEventListener('keydown',e=>{const modal=['feedbackDialog','confirmDialog'].map($).find(n=>!n.hidden);if(!modal)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});

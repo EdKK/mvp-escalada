@@ -91,3 +91,7 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
   .exercise-timer { grid-template-columns:minmax(180px,1.45fr) repeat(3,minmax(0,1fr)); }
   .clock-face { grid-column:auto; }
 }
+
+.actual-series { min-width:0; margin:0 0 12px; border:1px solid #d9e0ed; border-radius:9px; }
+.actual-series legend { font-weight:650; }
+.actual-series input + label { margin-top:8px; }

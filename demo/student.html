@@ -130,6 +130,12 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
 .actual-series { min-width:0; margin:0 0 12px; border:1px solid #d9e0ed; border-radius:9px; }
 .actual-series legend { font-weight:650; }
 .actual-series input + label { margin-top:8px; }
+
+.campus-board { margin:12px 0; padding:10px; border:1px solid #d9e0ed; border-radius:10px; background:#f7f9fd; }
+.campus-board figcaption { font-weight:650; }
+.campus-board svg { display:block; width:min(100%,440px); height:auto; margin:0 auto; stroke:none; stroke-width:1; }
+.campus-legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:4px 0; font-weight:650; }
+.campus-notation { margin:6px 0 0; line-height:1.6; overflow-wrap:anywhere; }
 </style></head><body>
 <aside class="demo-strip"><strong>DEMONSTRAÇÃO</strong><span>Dados fictícios • sem conexão com Google</span><label class="sr-only" for="demoProfile">Perfil de demonstração</label><select id="demoProfile"><option value="hom-student-a">Aluna A Demo</option><option value="hom-student-b">Aluno B Demo</option><option value="hom-student-empty">Sem treinos</option></select><button id="resetDemo">Reiniciar</button><a href="coach.html">Treinador ↗</a></aside>
 <div class="app-shell">
@@ -172,7 +178,7 @@ var StudentModel = (() => {
     }
     if(!p.intensityUnit)return 'Não informada';if(p.intensityText)return p.intensityText;const v=p.intensityMin===p.intensityMax?String(p.intensityMin):`${p.intensityMin}–${p.intensityMax}`;return p.intensityUnit==='RPE'?'RPE '+v:v+' '+(p.intensityUnit==='%1RM'?'% de 1RM':p.intensityUnit==='%bodyweight'?'% do peso corporal':p.intensityUnit);}
   function referenceUnit(id){return {'unit-kg':'kg','unit-kgf':'kgf','unit-newton':'N','unit-bpm':'bpm','unit-degrees':'graus','unit-cm':'cm'}[id]||id;}
-  function setCount(p){return p.sets!==''&&p.sets!==undefined?`${p.sets} ${p.volume?.kind==='hand_moves'?'blocos':'séries'}`:'Não informadas';}
+  function setCount(p){return p.sets!==''&&p.sets!==undefined?`${p.sets} ${p.volume?.kind==='hand_moves'&&!p.directed?'blocos':'séries'}`:'Não informadas';}
   function seriesDescription(p,line){
     if(p.volume.kind==='hand_moves')return `Bloco ${line.blockOrder} • trecho ${line.setOrder}: ${line.quantity} movimentos de mão`;
     if(p.volume.kind==='isometric')return `Série ${line.setOrder}: ${line.occurrences} suspensões × ${line.durationSeconds} s = ${line.total} s de suspensão`;
@@ -184,7 +190,8 @@ var StudentModel = (() => {
       const d=p.directed,l=d.labels;
       const grip=[l.grip,l.gripOption,l.prehension].filter(Boolean).join(' • ');
       const load=[l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • ');
-      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
+      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,[grip,l.side,l.feet].filter(Boolean).join(' • '),load,'Volume prescrito: '+p.volume.total+' '+(d.path?'movimentos efetivos de mão':units[p.quantityUnit])];
+      if(d.path)details.splice(1,0,d.path.name+(d.bouts===undefined?'':' • '+d.bouts+' botes por repetição'));
       if(d.restBetweenRepetitionsSeconds!==undefined)details.push('Recuperação entre repetições: '+d.restBetweenRepetitionsSeconds+' s');
       details.push('Recuperação entre séries: '+d.restBetweenSetsSeconds/60+' min');
       return details;
@@ -577,6 +584,7 @@ function directedFeedbackDetails_(record,reservation,prescriptions){
     record.actualSeries=Array.from({length:directed.sets},function(){
       var line={repetitions:directed.repetitionsPerSet};
       if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
+      if(directed.path)line.additionalMoves=0;
       return line;
     });
   }
@@ -590,11 +598,12 @@ function applyDirectedFeedback_(record,data,p){
   record.actualQuantity=0;
   if(data.status==='partial'){
     if(!Array.isArray(data.actualSeries)||data.actualSeries.length!==p.sets)fail_('INVALID_DATA');
-    var isometric=p.directed.modality==='isometric';
+    var isometric=p.directed.modality==='isometric',path=p.directed.path;
     data.actualSeries.forEach(function(line){
-      fields_(line,isometric?['repetitions','seconds']:['repetitions']);
-      var reps=numberRange_(line.repetitions,0,10000,true);
+      fields_(line,isometric?['repetitions','seconds']:path?['repetitions','additionalMoves']:['repetitions']);
+      var reps=numberRange_(line.repetitions,0,path?p.directed.repetitionsPerSet:10000,true);
       var quantity=isometric?numberRange_(line.seconds,0,1e9,false):reps;
+      if(path)quantity=reps*path.movesPerRep+numberRange_(line.additionalMoves,0,(p.directed.repetitionsPerSet-reps)*(path.movesPerRep-1),true);
       if(isometric&&reps>0&&quantity===0)fail_('INVALID_DATA');
       if(reps>0||quantity>0)record.actualSets++;
       record.actualQuantity+=quantity;
@@ -717,7 +726,70 @@ window.StudentAPI=(()=>{
   populate();
   return {isDemo:true,initialDate:'2026-09-04',call:async(action,data,key)=>{await new Promise(resolve=>setTimeout(resolve,80));return checked(action,data,key);},switchUser:id=>backend.switchUser(id),reset:populate};
 })();
-</script><script>/* Shared UI for the simulated demo and the authenticated Apps Script adapter. */
+</script><script>/* Render one prescribed repetition from its stored snapshot. */
+function renderCampusBoard(path){
+  const figure=document.createElement('figure');
+  figure.className='campus-board';
+  const caption=document.createElement('figcaption');
+  caption.textContent='Campus Board • trajetória de uma repetição';
+  figure.append(caption);
+  const svgNode=(name,attributes={},label)=>{
+    const element=document.createElementNS('http://www.w3.org/2000/svg',name);
+    Object.entries(attributes).forEach(([key,value])=>element.setAttribute(key,value));
+    if(label!==undefined)element.textContent=label;
+    return element;
+  };
+  const svg=svgNode('svg',{viewBox:'0 0 360 420',role:'img','aria-label':'Dez agarras numeradas e trajetórias das duas mãos. A sequência completa aparece abaixo.'});
+  const height=hold=>392-(hold-1)*40;
+  const colors={E:'#1459a6',D:'#a94706'};
+  svg.append(svgNode('rect',{x:163,y:12,width:34,height:396,rx:9,fill:'#e5eaf3'}));
+  for(let hold=1;hold<=path.holdCount;hold++){
+    svg.append(svgNode('rect',{x:166,y:height(hold)-8,width:28,height:16,rx:4,fill:hold===path.start?'#294468':'#fff',stroke:'#8b9bb0'}));
+    svg.append(svgNode('text',{x:180,y:height(hold)+4,'text-anchor':'middle',fill:hold===path.start?'#fff':'#253650','font-size':11},hold));
+  }
+
+  const last={E:path.start,D:path.start};
+  const count={E:0,D:0},index={E:0,D:0};
+  path.steps.forEach(step=>step.forEach(token=>count[token[0]]++));
+  const badges=[];
+  path.steps.forEach((step,order)=>step.forEach(token=>{
+    const hand=token[0],hold=Number(token.slice(1)),from=last[hand];
+    const side=hand==='E'?-1:1,color=colors[hand];
+    const edge=180+side*16,lane=180+side*(35+128*(++index[hand]-1)/Math.max(1,count[hand]-1));
+    const source=height(from),target=height(hold);
+    const end=180+side*18;
+    const rebound=from===hold;
+    // Separate lanes preserve returns and concurrent movements over the same rungs.
+    const line=rebound
+      ?`M ${edge} ${source+5} C ${lane} ${source+22}, ${lane} ${source-22}, ${end} ${source-5}`
+      :`M ${edge} ${source} Q ${lane} ${source} ${lane} ${(source+target)/2} Q ${lane} ${target} ${end} ${target}`;
+    svg.append(svgNode('path',{d:line,fill:'none',stroke:color,'stroke-width':1.65,'stroke-dasharray':'2 4','stroke-linecap':'round','data-hand':hand,'data-from':from,'data-to':hold,'data-order':order+1}));
+    const tipY=target-(rebound?5:0);
+    svg.append(svgNode('path',{d:`M ${end+side*6} ${tipY-3} L ${end} ${tipY} L ${end+side*6} ${tipY+3}`,stroke:color,fill:'none','stroke-width':1.6}));
+    const badgeX=rebound?(edge+lane*3)/4:lane;
+    const badgeY=rebound?target-15:(source+target)/2+Math.sign(target-source)*9;
+    badges.push(svgNode('circle',{cx:badgeX,cy:badgeY,r:7.5,fill:'#fff',stroke:color}));
+    badges.push(svgNode('text',{x:badgeX,y:badgeY+3,'text-anchor':'middle',fill:color,'font-size':9,'font-weight':700},order+1));
+    last[hand]=hold;
+  }));
+  svg.append(...badges);
+  figure.append(svg);
+  const legend=document.createElement('p');
+  legend.className='campus-legend';
+  for(const [hand,label] of [['E','E · mão esquerda'],['D','D · mão direita']]){
+    const item=document.createElement('span');
+    item.style.color=colors[hand];
+    item.textContent=label;
+    legend.append(item);
+  }
+  const notation=document.createElement('p');
+  notation.className='campus-notation';
+  notation.textContent='Início E'+path.start+'+D'+path.start+' · '+path.steps.map((step,index)=>(index+1)+'. '+step.join('+')).join(' · ');
+  figure.append(legend,notation);
+  return figure;
+}
+
+/* Shared UI for the simulated demo and the authenticated Apps Script adapter. */
 (async()=>{
   const M=StudentModel, $=id=>document.getElementById(id), api=window.StudentAPI;
   let workouts=[], workout=null, selectedDate='', session=null, loadVersion=0, dialogItem=null, sending=false, focusBefore=null;
@@ -776,13 +848,14 @@ window.StudentAPI=(()=>{
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics'),directed=p.directed;
       const restLabel=directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
-      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
+      metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
       if(!directed)metrics.append(metric('Intensidade',M.intensity(p),'intensity'));
       body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
         M.prescriptionDetails(p).forEach(description=>content.append(el('p','',description)));
         prescription.append(icon('stack'),content);body.append(prescription);
+        if(directed?.path)body.append(renderCampusBoard(directed.path));
       }
       const note=el('div','technical-note'),noteText=el('div');const guidance=directed?directed.guidance:item.notes;
       if(!directed||guidance){
@@ -801,7 +874,7 @@ window.StudentAPI=(()=>{
         body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
       if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
-        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}`));
+        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}${line.additionalMoves===undefined?'':' • '+line.additionalMoves+' movimentos em repetições incompletas'}`));
       });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);
@@ -829,7 +902,8 @@ window.StudentAPI=(()=>{
       for(let i=0;i<p.sets;i++){
         const group=el('fieldset','actual-series'),prior=prev?.prescriptionId===p.prescriptionId?prev.actualSeries?.[i]:undefined;
         group.append(el('legend','','Série '+(i+1)));
-        const definitions=[['repetitions','Repetições completas',10000,1]];
+        const definitions=[['repetitions','Repetições completas',p.directed.path?p.directed.repetitionsPerSet:10000,1]];
+        if(p.directed.path)definitions.push(['additionalMoves','Movimentos nas repetições incompletas',p.directed.repetitionsPerSet*(p.directed.path.movesPerRep-1),1]);
         if(p.directed.modality==='isometric')definitions.push(['seconds','Tempo efetivo acumulado (s)',1e9,'any']);
         for(const [key,label,max,step] of definitions){
           const input=el('input');Object.assign(input,{id:'actual-'+i+'-'+key,type:'number',min:0,max,step,value:prior?.[key]??'',required:true});
@@ -862,9 +936,17 @@ window.StudentAPI=(()=>{
       const inconsistent=notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0;
       input.setCustomValidity(inconsistent?message:'');invalid=invalid||inconsistent;
     });
+    if(p.directed?.path){
+      $('actualSeriesFields').querySelectorAll('fieldset').forEach(group=>{
+        const reps=group.querySelector('[data-series-field=repetitions]');
+        const moves=group.querySelector('[data-series-field=additionalMoves]');
+        moves.max=Math.max(0,p.directed.repetitionsPerSet-Number(reps.value))*(p.directed.path.movesPerRep-1);
+      });
+    }
     $('feedbackError').textContent=invalid?message:'';
   }
   $('feedbackStatus').addEventListener('change',syncFeedbackStatus);
+  $('actualSeriesFields').addEventListener('input',syncFeedbackStatus);
   ['actualSets','actualQuantity'].forEach(id=>{
     $(id).addEventListener('input',syncFeedbackStatus);
     $(id).addEventListener('change',syncFeedbackStatus);

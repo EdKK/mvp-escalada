@@ -4,7 +4,7 @@ import re, base64
 root=Path(__file__).resolve().parent.parent
 html=(root/'student/template.html').read_text()
 css=(root/'student/style.css').read_text()
-model=(root/'student/model.js').read_text();app=(root/'student/app.js').read_text()
+model=(root/'student/model.js').read_text();app=(root/'student/campus-board.js').read_text()+'\n'+(root/'student/app.js').read_text()
 base=html.replace('/*MODEL*/',model).replace('/*APP*/',app)
 demo_backend=re.search(r'<script>([\s\S]*?)</script>',(root/'demo/index.html').read_text())[1]
 controls='''<aside class="demo-strip"><strong>DEMONSTRAÇÃO</strong><span>Dados fictícios • sem conexão com Google</span><label class="sr-only" for="demoProfile">Perfil de demonstração</label><select id="demoProfile"><option value="hom-student-a">Aluna A Demo</option><option value="hom-student-b">Aluno B Demo</option><option value="hom-student-empty">Sem treinos</option></select><button id="resetDemo">Reiniciar</button><a href="coach.html">Treinador ↗</a></aside>'''

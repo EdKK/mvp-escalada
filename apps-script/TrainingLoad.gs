@@ -38,7 +38,7 @@ function libraryVolume_(exercise,input,mode){
   function add(block,order,quantity,occurrences,duration){var total=quantity*occurrences*(duration===''?1:duration);if(!Number.isFinite(total)||total>1e12)fail_('INVALID_DATA');lines.push({blockOrder:block,setOrder:order,quantity:quantity,occurrences:occurrences,durationSeconds:duration,volumeUnitId:input.unitId,total:Math.round(total*1e9)/1e9});if(lines.length>100)fail_('INVALID_DATA');}
   if(input.kind==='hand_moves'){
     if(input.sets!==undefined||!Array.isArray(input.blocks)||!input.blocks.length||input.blocks.length>100)fail_('INVALID_DATA');
-    input.blocks.forEach(function(block,b){fields_(block,['moves']);if(!Array.isArray(block.moves)||!block.moves.length||block.moves.length>100)fail_('INVALID_DATA');block.moves.forEach(function(m,s){add(b+1,s+1,libraryNumber_(m,min,100000,true),1,'');});});
+    input.blocks.forEach(function(block,b){fields_(block,['moves']);if(!Array.isArray(block.moves)||!block.moves.length||block.moves.length>100)fail_('INVALID_DATA');block.moves.forEach(function(m,s){add(b+1,s+1,libraryNumber_(m,min,exercise.campus?360000:100000,true),1,'');});});
   }else{
     if(input.blocks!==undefined||!Array.isArray(input.sets)||!input.sets.length||input.sets.length>100)fail_('INVALID_DATA');
     input.sets.forEach(function(set,s){
@@ -124,7 +124,7 @@ function fingerboardDefinitions_(){
   };
 }
 function directedSubblockNames_(){
-  return {fingerboard:'Fingerboard',traction_blocks:'Blocos de tração'};
+  return {fingerboard:'Fingerboard',traction_blocks:'Blocos de tração',campus_board:'Campus Board'};
 }
 function tractionBlockDefinitions_(){
   var definitions=fingerboardDefinitions_();
@@ -134,6 +134,66 @@ function tractionBlockDefinitions_(){
   definitions.modalities={isometric:'Tração isométrica'};
   definitions.loads={external:'Carga externa'};
   return definitions;
+}
+/* Catalog v1. Each token is an effective hand movement, including same-hold rebounds. */
+function campusCatalog_(){
+  return {version:1,holdCount:10,start:1,sequences:{
+    CB01:{name:'Alternada 1 em 1',steps:'E2 D3 E4 D5 E6 D7 E8 D9 E10'},
+    CB02:{name:'Alternada com salto inicial',steps:'D3 E4 D5 E6 D7 E8 D9 E10'},
+    CB03:{name:'Reboteio alternado com junção',steps:'D1 D2 D3 E3 E4 E5 D5 D6 D7 E7 E8 E9 D9'},
+    CB04:{name:'Salta dois e junta',steps:'D3 E3 E5 D5 D7 E7 E9 D9'},
+    CB05:{name:'Alternada saltando agarras',steps:'D3 E5 D7 E9'},
+    CB06:{name:'Progressão com alcance ampliado',steps:'D4 E7 D10 E10'},
+    CB07:{name:'Reboteio com retorno',steps:'D2 D3 D4 D3 D2 D1'},
+    CB08:{name:'Alternada com subida e descida',steps:'D2 E3 D4 E5 D5 E4 D3 E2 D1 E1'}
+  }};
+}
+function campusDoublePath_(holdCount,interval,direction,count){
+  var start=direction==='down'?holdCount:1;
+  var leg=Math.floor((holdCount-1)/interval);
+  var up=direction==='up_down'?Math.min(leg,count-1):direction==='up'?count:0;
+  if(up>leg||count-up>leg||(direction==='up_down'&&(up<1||count-up>up)))return null;
+  var rung=start,steps=[];
+  for(var i=0;i<count;i++){
+    rung+=i<up?interval:-interval;
+    steps.push(['E'+rung,'D'+rung]);
+  }
+  return {start:start,steps:steps};
+}
+function campusDefinitions_(){
+  var base=fingerboardDefinitions_(),catalog=campusCatalog_();
+  base.grips={edge:base.grips.edge,sloper:base.grips.sloper};
+  base.grips.edge.options['4.5']='4,5 cm';
+  delete base.prehensions.full;
+  delete base.assistance.foot;
+  base.modalities={sequence:'Sequência de movimentos',double:'Botes duplos'};
+  base.feet={none:'Sem apoio',ground:'Ambos os pés no solo',wall:'Ambos os pés na parede',alternate:'Apoio alternado de um pé na parede'};
+  base.intervals={1:'Agarras consecutivas',2:'Saltando uma agarra',3:'Saltando duas agarras'};
+  base.directions={up:'Subida',down:'Descida',up_down:'Subida e descida'};
+  base.catalog=catalog;
+  return base;
+}
+function campusPrescription_(d,defs){
+  var catalog=defs.catalog,path,name;
+  directedChoice_(d.feet,defs.feet);
+  if(d.modality==='sequence'){
+    if(d.interval!==undefined||d.direction!==undefined||d.bouts!==undefined)fail_('INVALID_DATA');
+    var sequence=catalog.sequences[directedChoice_(d.sequenceId,catalog.sequences)];
+    name=sequence.name;
+    path={start:catalog.start,steps:sequence.steps.split(' ').map(function(step){return [step];})};
+  }else{
+    if(d.sequenceId!==undefined)fail_('INVALID_DATA');
+    directedOption_(d.interval,[1,2,3]);
+    directedChoice_(d.direction,defs.directions);
+    libraryNumber_(d.bouts,1,Number.MAX_SAFE_INTEGER,true);
+    path=campusDoublePath_(catalog.holdCount,d.interval,d.direction,d.bouts);
+    if(!path)fail_('IMPOSSIBLE_CAMPUS_PATH');
+  }
+  path.catalogVersion=catalog.version;
+  path.holdCount=catalog.holdCount;
+  path.name=name||defs.intervals[d.interval]+' • '+defs.directions[d.direction];
+  path.movesPerRep=path.steps.reduce(function(total,step){return total+step.length;},0);
+  return path;
 }
 function directedChoice_(value,choices){
   if(typeof value!=='string'||!Object.prototype.hasOwnProperty.call(choices,value))fail_('INVALID_DATA');
@@ -146,18 +206,21 @@ function directedOption_(value,choices){
 function validateDirectedLoad_(data,workout,item){
   fields_(data,['workoutId','itemId','classification','expectedRevision','directed']);
   var d=data.directed;
-  fields_(d,['version','subblock','modality','grip','gripOption','prehension','side','load','sets','repetitionsPerSet','durationSeconds','restBetweenRepetitionsSeconds','restBetweenSetsSeconds','guidance']);
+  fields_(d,['version','subblock','modality','grip','gripOption','prehension','side','load','sets','repetitionsPerSet','durationSeconds','restBetweenRepetitionsSeconds','restBetweenSetsSeconds','guidance','feet','sequenceId','interval','direction','bouts']);
   if(data.classification!=='directed'||item.block!=='Treinamento direcionado'||d.version!==1)fail_('INVALID_DATA');
   var names=directedSubblockNames_();
   directedChoice_(d.subblock,names);
-  var traction=d.subblock==='traction_blocks',defs=traction?tractionBlockDefinitions_():fingerboardDefinitions_();
+  var traction=d.subblock==='traction_blocks',campus=d.subblock==='campus_board';
+  var defs=campus?campusDefinitions_():traction?tractionBlockDefinitions_():fingerboardDefinitions_();
+  if(!campus&&['feet','sequenceId','interval','direction','bouts'].some(function(k){return d[k]!==undefined;}))fail_('INVALID_DATA');
   directedChoice_(d.modality,defs.modalities);
   var grip=defs.grips[directedChoice_(d.grip,defs.grips)];
   if(grip.options)directedChoice_(d.gripOption,grip.options);
   else if(d.gripOption!==undefined)fail_('INVALID_DATA');
   if(d.grip==='edge')directedChoice_(d.prehension,defs.prehensions);
   else if(d.prehension!==undefined)fail_('INVALID_DATA');
-  directedChoice_(d.side,defs.sides);
+  if(campus){if(d.side!==undefined)fail_('INVALID_DATA');}
+  else directedChoice_(d.side,defs.sides);
   fields_(d.load,['kind','kilograms','assistance']);
   directedChoice_(d.load.kind,defs.loads);
   if(traction)libraryNumber_(d.load.kilograms,Number.MIN_VALUE,Number.MAX_VALUE,false);
@@ -177,15 +240,23 @@ function validateDirectedLoad_(data,workout,item){
   directed.labels={
     modality:defs.modalities[d.modality],grip:grip.label,side:defs.sides[d.side],load:defs.loads[d.load.kind]
   };
+  if(campus){
+    delete directed.labels.side;
+    directed.labels.feet=defs.feet[d.feet];
+    directed.path=campusPrescription_(d,defs);
+  }
   if(grip.options)directed.labels.gripOption=grip.options[d.gripOption];
   if(d.prehension!==undefined)directed.labels.prehension=defs.prehensions[d.prehension];
   if(d.load.assistance!==undefined)directed.labels.assistance=defs.assistance[d.load.assistance];
   if(d.guidance!==undefined)directed.guidance=text_(d.guidance,2000);
-  var kind=isometric?'isometric':'repetitions',unitId=traction?'unit-seconds':isometric?'unit-hang-seconds':'unit-repetitions';
+  var kind=campus?'hand_moves':isometric?'isometric':'repetitions',unitId=campus?'unit-hand-moves':traction?'unit-seconds':isometric?'unit-hang-seconds':'unit-repetitions';
   var sets=Array.from({length:d.sets},function(){
     return isometric?{suspensions:d.repetitionsPerSet,seconds:d.durationSeconds}:{repetitions:d.repetitionsPerSet};
   });
-  var volume=libraryVolume_({volumeUnitIds:[unitId],isometricUnitId:traction?'unit-seconds':undefined},{kind:kind,unitId:unitId,sets:sets},'prescribed');
+  var input={kind:kind,unitId:unitId};
+  if(campus)input.blocks=sets.map(function(){return {moves:[d.repetitionsPerSet*directed.path.movesPerRep]};});
+  else input.sets=sets;
+  var volume=libraryVolume_({volumeUnitIds:[unitId],isometricUnitId:traction?'unit-seconds':undefined,campus:campus},input,'prescribed');
   return {workout:workout,item:item,exercise:{id:'directed:'+d.subblock,name:names[d.subblock]},method:null,protocol:null,capacity:null,classification:'directed',intensity:{notPrescribed:true},auxiliaryIntensities:[],volume:volume,directed:directed};
 }
 function libraryValidateLoad_(db,user,data,candidateItem){

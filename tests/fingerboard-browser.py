@@ -1,5 +1,6 @@
 """End-to-end Fingerboard and traction blocks on generated Student.html and simulated local Apps Script."""
 from pathlib import Path
+import os
 import shutil
 import subprocess
 from playwright.sync_api import sync_playwright, expect
@@ -223,6 +224,96 @@ try:
         expect(coach.locator('#listaRetornos')).to_contain_text('Quantidade executada: 0 segundos')
         assert not errors, errors
         print('PASS: all traction feedback statuses preserve seconds and report revisions to the trainer')
+        coach.locator('#directedSubblock').select_option('campus_board')
+        coach.locator('#fbModality').select_option('sequence')
+        expect(coach.locator('#campusSequence option')).to_have_count(9)
+        expect(coach.locator('#fbSide')).to_be_hidden()
+        expect(coach.locator('#fbDuration')).to_be_hidden()
+        expect(coach.locator('#fbPrehension option')).to_have_count(3)
+        coach.locator('#fbGrip').select_option('edge')
+        coach.locator('#fbGripOption').select_option('4.5')
+        coach.locator('#fbPrehension').select_option('open')
+        coach.locator('#campusFeet').select_option('wall')
+        coach.locator('#campusSequence').select_option('CB03')
+        coach.locator('#fbModality').select_option('double')
+        expect(coach.locator('#campusSequence')).to_have_value('')
+        coach.locator('#campusInterval').select_option('3')
+        coach.locator('#campusDirection').select_option('up_down')
+        coach.locator('#campusBouts').fill('7')
+        expect(coach.locator('#fbVolume')).to_contain_text('não cabe')
+        coach.locator('#fbModality').select_option('sequence')
+        expect(coach.locator('#campusBouts')).to_have_value('')
+        coach.locator('#campusSequence').select_option('CB03')
+        coach.locator('#fbSets').fill('1')
+        coach.locator('#fbRepetitions').fill('2')
+        coach.locator('#fbRepetitionRest').select_option('0')
+        coach.locator('#fbSeriesRest').select_option('120')
+        expect(coach.locator('#fbVolume')).to_contain_text('26 movimentos efetivos de mão')
+        expect(coach.locator('#fingerboardFields svg')).to_have_count(0)
+        coach.locator('#btnAddItem').click()
+        expect(coach.locator('#previewTreinoAluno .coach-exercise')).to_have_count(3)
+        print('PASS: Campus coach switches task fields, validates equipment limits and saves a three-subblock workout')
+
+        student.locator('#refreshWorkouts').click()
+        expect(student.locator('.exercise')).to_have_count(3)
+        campus = student.locator('.exercise').filter(has_text='Campus Board')
+        if not campus.evaluate('element => element.open'):
+            campus.locator('summary').click()
+        figure = campus.locator('.campus-board')
+        expect(figure.locator('path[data-hand]')).to_have_count(13)
+        expect(figure.locator('path[data-hand=D][data-from="1"][data-to="1"][data-order="1"]')).to_have_count(1)
+        expect(figure.locator('path[data-hand=E][data-to="3"][data-order="4"]')).to_have_count(1)
+        expect(figure.locator('.campus-notation')).to_have_text('Início E1+D1 · 1. D1 · 2. D2 · 3. D3 · 4. E3 · 5. E4 · 6. E5 · 7. D5 · 8. D6 · 9. D7 · 10. E7 · 11. E8 · 12. E9 · 13. D9')
+        expect(campus).to_contain_text('26 movimentos')
+        expect(campus.locator('.rest-value')).to_have_text('02:00')
+        for width in [320,390]:
+            student.set_viewport_size({'width':width,'height':820})
+            assert student.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            assert figure.locator('svg').bounding_box()['width'] > 240
+        evidence = os.getenv('CAMPUS_EVIDENCE_DIR')
+        if evidence:
+            figure.screenshot(path=str(Path(evidence)/'cb03-mobile.png'))
+        print('PASS: Campus SVG, rebound, joining and notation match canonical volume at 320 and 390 pixels')
+
+        campus.locator('.complete-btn').click()
+        student.locator('#confirmComplete').click()
+        expect(campus.locator('.saved-note').first).to_contain_text('26 movimentos')
+        campus.locator('.feedback-btn').click()
+        student.locator('#feedbackStatus').select_option('partial')
+        student.locator('#actual-0-repetitions').fill('1')
+        expect(student.locator('#actual-0-additionalMoves')).to_have_attribute('max','12')
+        student.locator('#actual-0-additionalMoves').fill('0')
+        student.locator('#saveFeedback').click()
+        expect(campus.locator('.saved-note').first).to_contain_text('13 movimentos')
+        campus.locator('.feedback-btn').click()
+        student.locator('#feedbackStatus').select_option('not_done')
+        student.locator('#saveFeedback').click()
+        expect(campus.locator('.saved-note').first).to_contain_text('0 movimentos')
+        coach.get_by_role('button',name='Atualizar treinos',exact=True).click()
+        expect(coach.locator('#listaRetornos')).to_contain_text('0 movimentos em repetições incompletas')
+        print('PASS: Campus complete, partial and explicit zero reach the trainer with per-series detail')
+
+        coach.get_by_role('button',name='Editar Campus Board').click()
+        expect(coach.locator('#campusSequence')).to_have_value('CB03')
+        coach.locator('#fbModality').select_option('double')
+        coach.locator('#campusInterval').select_option('3')
+        coach.locator('#campusDirection').select_option('up_down')
+        coach.locator('#campusBouts').fill('5')
+        coach.locator('#btnAddItem').click()
+        expect(coach.locator('#previewTreinoAluno')).to_contain_text('5 botes por repetição')
+        student.locator('#refreshWorkouts').click()
+        expect(campus).to_contain_text('20 movimentos')
+        if not campus.evaluate('element => element.open'):
+            campus.locator('summary').click()
+        expect(figure.locator('path[data-hand]')).to_have_count(10)
+        for hand in ['E','D']:
+            expect(figure.locator('path[data-hand="'+hand+'"][data-order="3"][data-to="10"]')).to_have_count(1)
+            expect(figure.locator('path[data-hand="'+hand+'"][data-order="4"][data-from="10"][data-to="7"]')).to_have_count(1)
+        expect(figure.locator('.campus-notation')).to_have_text('Início E1+D1 · 1. E4+D4 · 2. E7+D7 · 3. E10+D10 · 4. E7+D7 · 5. E4+D4')
+        if evidence:
+            figure.screenshot(path=str(Path(evidence)/'botes-duplos-mobile.png'))
+        assert not errors, errors
+        print('PASS: Campus revision reopens the same item and renders synchronized double moves and the turn')
         browser.close()
 finally:
     server.terminate()

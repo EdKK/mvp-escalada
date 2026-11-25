@@ -113,7 +113,7 @@ function libraryApi(request){
     }else{
       libraryCoach_(db,user);
       if(request.action==='catalog'){fields_(d,[]);result={};['CAPACIDADES','METODOS','UNIDADES','INDICADORES'].forEach(function(name){result[name]=libraryRows_(db,name);});}
-      else if(request.action==='fingerboardDefinitions'){fields_(d,[]);result=fingerboardDefinitions_();result.tractionBlocks=tractionBlockDefinitions_();}
+      else if(request.action==='fingerboardDefinitions'){fields_(d,[]);result=fingerboardDefinitions_();result.tractionBlocks=tractionBlockDefinitions_();result.campusBoard=campusDefinitions_();}
       else if(request.action==='listExercises'){fields_(d,[]);result=libraryRows_(db,'EXERCICIOS');}
       else if(request.action==='getExercise'){fields_(d,['exerciseId']);result=libraryOne_(db,'EXERCICIOS',d.exerciseId,false);result.methods=libraryRows_(db,'EXERCICIO_METODOS').filter(function(r){return r.exerciseId===result.id;});result.capacities=libraryRows_(db,'EXERCICIO_CAPACIDADES').filter(function(r){return r.exerciseId===result.id;});}
       else if(request.action==='listAssessments')result=coachAssessments_(db,user,d);
@@ -129,6 +129,6 @@ function libraryApi(request){
       else if(request.action==='createLibraryPrescription')result=libraryCreatePrescription_(db,user,request);
     }
     return {ok:true,data:result};
-  }catch(e){var codes=['INVALID_ACTION','INVALID_DATA','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','CONFLICT','BUSY','CONFIGURATION_ERROR','SCHEMA_ERROR','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT'];return {ok:false,error:{code:codes.indexOf(e.code)>=0?e.code:'INTERNAL_ERROR'}};}
+  }catch(e){var codes=['INVALID_ACTION','INVALID_DATA','IMPOSSIBLE_CAMPUS_PATH','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','CONFLICT','BUSY','CONFIGURATION_ERROR','SCHEMA_ERROR','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT'];return {ok:false,error:{code:codes.indexOf(e.code)>=0?e.code:'INTERNAL_ERROR'}};}
   finally{if(lock && lock.hasLock())lock.releaseLock();}
 }

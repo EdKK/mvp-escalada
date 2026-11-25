@@ -289,3 +289,125 @@ test('traction block feedback records the prescribed dose, incomplete efforts an
   assert.equal(coach.itemFeedback[1].comment,'Esforço incompleto');
   assert.deepEqual(JSON.parse(JSON.stringify(coach.itemFeedback[1].actualSeries)),actualSeries);
 });
+
+function campusData(f,overrides={}){
+  return f.data({subblock:'campus_board',modality:'sequence',grip:'edge',gripOption:'4.5',prehension:'open',side:undefined,durationSeconds:undefined,feet:'none',sequenceId:'CB03',...overrides});
+}
+
+test('Campus Board snapshots the exact canonical sequences, counting rebounds and joins by hand',()=>{
+  const f=setup(),expected=[
+    ['E2 D3 E4 D5 E6 D7 E8 D9 E10',5,4],
+    ['D3 E4 D5 E6 D7 E8 D9 E10',4,4],
+    ['D1 D2 D3 E3 E4 E5 D5 D6 D7 E7 E8 E9 D9',6,7],
+    ['D3 E3 E5 D5 D7 E7 E9 D9',4,4],
+    ['D3 E5 D7 E9',2,2],
+    ['D4 E7 D10 E10',2,2],
+    ['D2 D3 D4 D3 D2 D1',0,6],
+    ['D2 E3 D4 E5 D5 E4 D3 E2 D1 E1',5,5]
+  ];
+  for(const [i,[steps,left,right]] of expected.entries()){
+    const sequenceId='CB0'+(i+1);
+    const saved=ok(f.save(campusData(f,{sequenceId})));
+    const path=JSON.parse(saved.prescription.snapshotJson).directed.path;
+    assert.equal(path.catalogVersion,1);
+    assert.equal(path.holdCount,10);
+    assert.equal(path.start,1);
+    assert.equal(path.steps.flat().join(' '),steps);
+    assert.equal(path.steps.flat().filter(step=>step.startsWith('E')).length,left);
+    assert.equal(path.steps.flat().filter(step=>step.startsWith('D')).length,right);
+    assert.equal(path.movesPerRep,left+right);
+    assert.equal(saved.prescription.totalVolume,6*(left+right));
+    assert.equal(saved.prescription.volumeUnitId,'unit-hand-moves');
+    assert.equal(JSON.parse(saved.prescription.volumeJson).lines.length,2);
+  }
+});
+
+test('Campus Board doubles stay on the equipment and count both hands at each step',()=>{
+  const f=setup();
+  for(const interval of [1,2,3]){
+    const leg=Math.floor(9/interval);
+    for(const direction of ['up','down','up_down']){
+      const bouts=direction==='up_down'?2*leg:leg;
+      const body=campusData(f,{modality:'double',sequenceId:undefined,interval,direction,bouts});
+      const saved=ok(f.save(body));
+      const path=JSON.parse(saved.prescription.snapshotJson).directed.path;
+      let from=direction==='down'?10:1;
+      assert.equal(path.start,from);
+      for(const [i,step] of path.steps.entries()){
+        from+=direction==='up'||(direction==='up_down'&&i<leg)?interval:-interval;
+        assert.deepEqual(step,['E'+from,'D'+from]);
+        assert.ok(from>=1&&from<=10);
+      }
+      assert.equal(saved.prescription.totalVolume,6*bouts*2);
+      rejects(f.save(campusData(f,{...body.directed,bouts:bouts+1})),'IMPOSSIBLE_CAMPUS_PATH');
+    }
+  }
+  rejects(f.save(campusData(f,{modality:'double',sequenceId:undefined,interval:3,direction:'up_down',bouts:1})),'IMPOSSIBLE_CAMPUS_PATH');
+  const maximum=ok(f.save(campusData(f,{modality:'double',sequenceId:undefined,interval:1,direction:'up_down',bouts:18,sets:1,repetitionsPerSet:10000})));
+  assert.equal(maximum.prescription.totalVolume,360000);
+});
+
+test('Campus Board validates grips, foot support, load and forged fields before writing',()=>{
+  const f=setup(),before=JSON.stringify(f.tables);
+  for(const patch of [
+    {grip:'mono'},{grip:'sloper',gripOption:'level1'},{prehension:'full'},{feet:undefined},{feet:'left'},
+    {side:'bilateral'},{durationSeconds:5},{load:{kind:'assisted',assistance:'foot'}},{load:{kind:'bodyweight',kilograms:2}},
+    {sequenceId:'CB09'},{sequenceId:'constructor'},{modality:'pull'},{bouts:2},{path:{movesPerRep:100}},
+    {modality:'double',sequenceId:undefined,interval:4,direction:'up',bouts:2},
+    {modality:'double',sequenceId:undefined,interval:1,direction:'reverse',bouts:2}
+  ])rejects(f.save(campusData(f,patch)));
+  assert.equal(JSON.stringify(f.tables),before);
+  for(const [i,feet] of ['none','ground','wall','alternate'].entries()){
+    const load=[{kind:'bodyweight'},{kind:'added',kilograms:6},{kind:'assisted',assistance:'band'},{kind:'assisted',assistance:'partner'}][i];
+    const body=campusData(f,{feet,load,restBetweenRepetitionsSeconds:0,restBetweenSetsSeconds:900});
+    const saved=ok(f.save(body));
+    const p=f.read().items.find(item=>item.id===saved.item.id).prescription;
+    assert.equal(p.directed.feet,feet);
+    assert.equal(p.restSeconds,900);
+    assert.equal(p.directed.restBetweenRepetitionsSeconds,0);
+    assert.deepEqual(JSON.parse(saved.prescription.snapshotJson).directed.load,load);
+  }
+  for(const gripOption of ['0.5','1.0','1.5','2.5','3.5','4.5'])ok(f.save(campusData(f,{gripOption,prehension:'half'})));
+  for(const gripOption of ['level1','level2'])ok(f.save(campusData(f,{grip:'sloper',gripOption,prehension:undefined})));
+});
+
+test('Campus Board recovers writes, retains historical paths and pins feedback to the saved revision',()=>{
+  const f=setup();
+  ok(f.save());
+  ok(f.save(tractionData(f)));
+  const body=campusData(f);
+  f.fail('PRESCRICAO_SERIES');
+  rejects(f.save(body,'campus-create'),'INTERNAL_ERROR');
+  assert.equal(f.read().items.length,2);
+  const pending=ok(f.lib('listPendingCoachSaves',{}))[0];
+  const saved=ok(f.save(pending.data,pending.requestId));
+  assert.equal(ok(f.save(body,'campus-create')).item.id,saved.item.id);
+  const complete=ok(f.feedback(saved));
+  assert.deepEqual([complete.actualQuantity,complete.quantityUnit],[78,'moves']);
+  assert.equal(complete.actualSeries[0].additionalMoves,0);
+  for(const line of [{repetitions:4,additionalMoves:0},{repetitions:3,additionalMoves:1},{repetitions:2,additionalMoves:13},{repetitions:0},{repetitions:0,additionalMoves:0.5}]){
+    rejects(f.feedback(saved,{status:'partial',expectedRevision:1,actualSeries:[line,{repetitions:0,additionalMoves:0}]}));
+  }
+  const actualSeries=[{repetitions:2,additionalMoves:4},{repetitions:0,additionalMoves:0}];
+  const partial=ok(f.feedback(saved,{status:'partial',expectedRevision:1,actualSeries,comment:'Retorno de Campus'}));
+  assert.equal(partial.actualQuantity,30);
+  const zero=ok(f.feedback(saved,{status:'not_done',expectedRevision:2}));
+  assert.equal(zero.actualQuantity,0);
+  const originalCatalog=f.context.campusCatalog_;
+  f.context.campusCatalog_=()=>{
+    const catalog=originalCatalog();
+    catalog.version=2;
+    catalog.sequences.CB03.steps='E2';
+    return catalog;
+  };
+  assert.equal(f.read().items[2].prescription.directed.path.steps[0][0],'D1');
+  const revised=ok(f.revise(saved,campusData(f,{sequenceId:'CB03'}).directed));
+  assert.equal(revised.item.id,saved.item.id);
+  const coach=f.read('coach');
+  assert.equal(coach.items[2].prescription.directed.path.catalogVersion,2);
+  assert.equal(coach.items[2].prescription.volume.total,6);
+  assert.equal(coach.itemFeedback[0].actualQuantity,78);
+  assert.equal(coach.itemFeedback[1].prescriptionId,saved.prescription.id);
+  assert.deepEqual(JSON.parse(JSON.stringify(coach.itemFeedback[1].actualSeries)),actualSeries);
+  assert.equal(f.tables.Items.length,4);
+});

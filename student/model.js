@@ -26,7 +26,7 @@ var StudentModel = (() => {
     }
     if(!p.intensityUnit)return 'Não informada';if(p.intensityText)return p.intensityText;const v=p.intensityMin===p.intensityMax?String(p.intensityMin):`${p.intensityMin}–${p.intensityMax}`;return p.intensityUnit==='RPE'?'RPE '+v:v+' '+(p.intensityUnit==='%1RM'?'% de 1RM':p.intensityUnit==='%bodyweight'?'% do peso corporal':p.intensityUnit);}
   function referenceUnit(id){return {'unit-kg':'kg','unit-kgf':'kgf','unit-newton':'N','unit-bpm':'bpm','unit-degrees':'graus','unit-cm':'cm'}[id]||id;}
-  function setCount(p){return p.sets!==''&&p.sets!==undefined?`${p.sets} ${p.volume?.kind==='hand_moves'?'blocos':'séries'}`:'Não informadas';}
+  function setCount(p){return p.sets!==''&&p.sets!==undefined?`${p.sets} ${p.volume?.kind==='hand_moves'&&!p.directed?'blocos':'séries'}`:'Não informadas';}
   function seriesDescription(p,line){
     if(p.volume.kind==='hand_moves')return `Bloco ${line.blockOrder} • trecho ${line.setOrder}: ${line.quantity} movimentos de mão`;
     if(p.volume.kind==='isometric')return `Série ${line.setOrder}: ${line.occurrences} suspensões × ${line.durationSeconds} s = ${line.total} s de suspensão`;
@@ -38,7 +38,8 @@ var StudentModel = (() => {
       const d=p.directed,l=d.labels;
       const grip=[l.grip,l.gripOption,l.prehension].filter(Boolean).join(' • ');
       const load=[l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • ');
-      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
+      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,[grip,l.side,l.feet].filter(Boolean).join(' • '),load,'Volume prescrito: '+p.volume.total+' '+(d.path?'movimentos efetivos de mão':units[p.quantityUnit])];
+      if(d.path)details.splice(1,0,d.path.name+(d.bouts===undefined?'':' • '+d.bouts+' botes por repetição'));
       if(d.restBetweenRepetitionsSeconds!==undefined)details.push('Recuperação entre repetições: '+d.restBetweenRepetitionsSeconds+' s');
       details.push('Recuperação entre séries: '+d.restBetweenSetsSeconds/60+' min');
       return details;

@@ -676,13 +676,20 @@ select.native-hidden {
         <h2 id="coachPrescriptionTitle" tabindex="-1">Montar treino — prescrição</h2>
         <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
 <section class="coach-field-group"><h3>Bloco principal</h3><label for="libraryClassification">Bloco de treinamento</label><select id="libraryClassification"><option value="general">Treinamento geral</option><option value="directed">Treinamento direcionado</option><option value="specific">Treinamento específico</option></select></section>
-<section id="directedSubblockPanel" class="coach-field-group" hidden><label for="directedSubblock">Subbloco</label><select id="directedSubblock"><option value="">Exercício da biblioteca</option><option value="fingerboard">Fingerboard</option><option value="traction_blocks">Blocos de tração</option></select></section>
+<section id="directedSubblockPanel" class="coach-field-group" hidden><label for="directedSubblock">Subbloco</label><select id="directedSubblock"><option value="">Exercício da biblioteca</option><option value="fingerboard">Fingerboard</option><option value="traction_blocks">Blocos de tração</option><option value="campus_board">Campus Board</option></select></section>
 <section id="fingerboardFields" class="coach-field-group" hidden>
 <p id="fingerboardEditing" role="status" hidden></p><button type="button" id="cancelFingerboardEdit" hidden>Cancelar edição</button>
 <div class="row"><div id="fbModalityField"><label for="fbModality">Tarefa</label><select id="fbModality"></select></div><p id="tractionTask" hidden>Tração isométrica</p><div><label for="fbGrip">Agarra</label><select id="fbGrip"></select></div><div id="fbGripOptionField"><label for="fbGripOption">Especificação da agarra</label><select id="fbGripOption"></select></div><div id="fbPrehensionField"><label for="fbPrehension">Preensão</label><select id="fbPrehension"></select></div></div>
-<div class="row"><div><label for="fbSide">Lateralidade</label><select id="fbSide"></select></div><div id="fbLoadField"><label for="fbLoad">Condição de carga</label><select id="fbLoad"></select></div><div id="tractionLoadField" hidden><label for="tractionLoad">Carga externa (kg)</label><input id="tractionLoad" type="number" min="0" step="any"></div><div id="fbKilogramsField"><label for="fbKilograms">Sobrecarga adicional (kg)</label><select id="fbKilograms"></select></div><div id="fbAssistanceField"><label for="fbAssistance">Tipo de assistência</label><select id="fbAssistance"></select></div></div>
+<div class="row"><div id="fbSideField"><label for="fbSide">Lateralidade</label><select id="fbSide"></select></div><div id="fbLoadField"><label for="fbLoad">Condição de carga</label><select id="fbLoad"></select></div><div id="tractionLoadField" hidden><label for="tractionLoad">Carga externa (kg)</label><input id="tractionLoad" type="number" min="0" step="any"></div><div id="fbKilogramsField"><label for="fbKilograms">Sobrecarga adicional (kg)</label><select id="fbKilograms"></select></div><div id="fbAssistanceField"><label for="fbAssistance">Tipo de assistência</label><select id="fbAssistance"></select></div></div>
 <div class="row"><div><label for="fbSets">Séries</label><input id="fbSets" type="number" min="1" max="100" step="1"></div><div><label for="fbRepetitions">Repetições por série</label><input id="fbRepetitions" type="number" min="1" max="10000" step="1"></div><div id="fbDurationField"><label for="fbDuration">Duração por repetição (s)</label><input id="fbDuration" type="number" min="0.001" max="86400" step="any"></div></div>
 <div class="row"><div id="fbRepetitionRestField"><label for="fbRepetitionRest">Recuperação entre repetições (s)</label><select id="fbRepetitionRest"></select></div><div><label for="fbSeriesRest">Recuperação entre séries (min)</label><select id="fbSeriesRest"></select></div></div>
+<div class="row" id="campusFields" hidden>
+<div><label for="campusFeet">Apoio dos pés</label><select id="campusFeet"></select></div>
+<div id="campusSequenceField"><label for="campusSequence">Sequência padronizada</label><select id="campusSequence"></select></div>
+<div id="campusIntervalField"><label for="campusInterval">Distância</label><select id="campusInterval"></select></div>
+<div id="campusDirectionField"><label for="campusDirection">Sentido</label><select id="campusDirection"></select></div>
+<div id="campusBoutsField"><label for="campusBouts">Botes por repetição</label><input id="campusBouts" type="number" min="1" max="18" step="1"></div>
+</div>
 <output id="fbVolume" aria-live="polite"></output>
 </section>
 <section id="specificSubblockPanel" class="coach-field-group" hidden><label for="specificSubblock">Extensão da sequência — subbloco</label><select id="specificSubblock"><option value="">Selecione o subbloco</option><option value="boulder_short">Boulder curto — 2–6 movimentos</option><option value="boulder_long">Boulder longo — 7–10 movimentos</option><option value="resistance_short">Resistência curta — 11–25 movimentos</option><option value="resistance_long">Resistência longa — 26–40 movimentos</option><option value="continuity">Continuidade — 41 ou mais movimentos</option></select><p class="muted">Faixas de extensão da sequência, sem classificação fisiológica automática.</p><span id="specificFieldError" class="muted" role="status" hidden></span></section>
@@ -958,7 +965,7 @@ var SpecificTaskModel=(()=>{
   let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
   const coachRenderedItems=new Map();
   let fingerboardDefs,editingDirected=null;
-  const fingerboardInputs={modality:'fbModality',grip:'fbGrip',gripOption:'fbGripOption',prehension:'fbPrehension',side:'fbSide',sets:'fbSets',repetitionsPerSet:'fbRepetitions',durationSeconds:'fbDuration',restBetweenRepetitionsSeconds:'fbRepetitionRest',restBetweenSetsSeconds:'fbSeriesRest'};
+  const fingerboardInputs={modality:'fbModality',grip:'fbGrip',gripOption:'fbGripOption',prehension:'fbPrehension',side:'fbSide',sets:'fbSets',repetitionsPerSet:'fbRepetitions',durationSeconds:'fbDuration',restBetweenRepetitionsSeconds:'fbRepetitionRest',restBetweenSetsSeconds:'fbSeriesRest',feet:'campusFeet',sequenceId:'campusSequence',interval:'campusInterval',direction:'campusDirection',bouts:'campusBouts'};
   const fingerboardDraftFields=[...Object.values(fingerboardInputs),'fbLoad','fbKilograms','fbAssistance','tractionLoad'];
   const coachDraftFields=['itemBloco','itemCategoria','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','libraryMethod','libraryProtocol','libraryCapacity','libraryClassification','libraryAssessment','gradeScale','libraryVolumeUnit','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','specificSubblock','specificOrientation','specificInclination','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets'];
   const coachDraftSignature=()=>JSON.stringify(coachDraftFields.map(id=>{
@@ -1015,7 +1022,7 @@ var SpecificTaskModel=(()=>{
     });
     if(session?.role==='coach')$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')),f.comment].filter(Boolean).join(' • '));});
+    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')+(line.additionalMoves===undefined?'':' / '+line.additionalMoves+' movimentos em repetições incompletas')),f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
     if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(libraryReady&&!isSpecificTask()&&!hasDirectedSubblock())await refreshAssessments();}
   }
@@ -1077,49 +1084,64 @@ var SpecificTaskModel=(()=>{
   const isSpecificTask=()=>$('libraryClassification').value==='specific';
   const hasDirectedSubblock=()=>$('libraryClassification').value==='directed'&&$('directedSubblock').value!=='';
   const isTractionBlock=()=>$('directedSubblock').value==='traction_blocks';
-  const directedOptions=()=>isTractionBlock()?fingerboardDefs?.tractionBlocks:fingerboardDefs;
+  const isCampusBoard=()=>$('directedSubblock').value==='campus_board';
+  const directedOptions=()=>isCampusBoard()?fingerboardDefs?.campusBoard:isTractionBlock()?fingerboardDefs?.tractionBlocks:fingerboardDefs;
   const choiceRows=choices=>Object.entries(choices).map(([id,name])=>({id,name}));
   async function loadDirectedOptions(){
     if(fingerboardDefs)return;
     fingerboardDefs=await library('fingerboardDefinitions',{});
     const d=fingerboardDefs;
-    for(const [id,choices] of Object.entries({fbPrehension:d.prehensions,fbLoad:d.loads,fbAssistance:d.assistance})){
+    for(const [id,choices] of Object.entries({fbLoad:d.loads,campusFeet:d.campusBoard.feet,campusInterval:d.campusBoard.intervals,campusDirection:d.campusBoard.directions})){
       options(id,choiceRows(choices),'Selecione');
     }
     for(const [id,values,scale] of [['fbKilograms',d.kilograms,1],['fbRepetitionRest',d.repetitionRest,1],['fbSeriesRest',d.seriesRest,60]]){
       options(id,values.map(value=>({id:String(value),name:String(value/scale)})),'Selecione');
     }
+    options('campusSequence',Object.entries(d.campusBoard.catalog.sequences).map(([id,sequence])=>({id,name:id+' — '+sequence.name})),'Selecione');
     $('fbLoad').value='bodyweight';
   }
   function syncDirectedChoices(){
     const d=directedOptions();
     if(!d)return;
-    for(const [id,choices] of Object.entries({fbModality:d.modalities,fbGrip:Object.fromEntries(Object.entries(d.grips).map(([key,grip])=>[key,grip.label])),fbSide:d.sides})){
+    for(const [id,choices] of Object.entries({fbModality:d.modalities,fbGrip:Object.fromEntries(Object.entries(d.grips).map(([key,grip])=>[key,grip.label])),fbSide:d.sides,fbPrehension:d.prehensions,fbAssistance:d.assistance})){
       const previous=$(id).value;
       options(id,choiceRows(choices),'Selecione');
       if(Object.hasOwn(choices,previous))$(id).value=previous;
     }
     if(isTractionBlock())$('fbModality').value='isometric';
   }
+  function campusMoves(){
+    const options=directedOptions();
+    if(!options?.catalog)return 0;
+    if($('fbModality').value==='sequence')return options.catalog.sequences[$('campusSequence').value]?.steps.split(' ').length||0;
+    const interval=Number($('campusInterval').value),direction=$('campusDirection').value,count=Number($('campusBouts').value);
+    if(!interval||!direction||!count)return 0;
+    const leg=Math.floor((options.catalog.holdCount-1)/interval),roundTrip=direction==='up_down';
+    return Number.isInteger(count)&&count>=(roundTrip?2:1)&&count<=leg*(roundTrip?2:1)?2*count:-1;
+  }
   function syncDirectedFields(){
     const gripId=$('fbGrip').value,grip=directedOptions()?.grips[gripId],option=$('fbGripOption');
-    if(option.dataset.grip!==gripId){
+    const gripKey=$('directedSubblock').value+':'+gripId;
+    if(option.dataset.grip!==gripKey){
       options('fbGripOption',choiceRows(grip?.options||{}),'Selecione');
-      option.dataset.grip=gripId;
+      option.dataset.grip=gripKey;
     }
     const iso=$('fbModality').value==='isometric';
-    const traction=isTractionBlock();
+    const traction=isTractionBlock(),campus=isCampusBoard(),sequence=campus&&$('fbModality').value==='sequence',double=campus&&$('fbModality').value==='double';
+    $('campusFields').hidden=!campus;
+    if(!campus)$('campusFeet').value='';
     $('fbModalityField').hidden=traction;
     $('tractionTask').hidden=!traction;
     $('fbLoadField').hidden=traction;
-    const active={tractionLoad:traction,fbGripOption:!!grip?.options,fbPrehension:$('fbGrip').value==='edge',fbDuration:iso,fbKilograms:!traction&&$('fbLoad').value==='added',fbAssistance:!traction&&$('fbLoad').value==='assisted',fbRepetitionRest:Number($('fbRepetitions').value)>1};
+    const active={fbSide:!campus,campusSequence:sequence,campusInterval:double,campusDirection:double,campusBouts:double,tractionLoad:traction,fbGripOption:!!grip?.options,fbPrehension:$('fbGrip').value==='edge',fbDuration:iso,fbKilograms:!traction&&$('fbLoad').value==='added',fbAssistance:!traction&&$('fbLoad').value==='assisted',fbRepetitionRest:Number($('fbRepetitions').value)>1};
     for(const [id,shown] of Object.entries(active)){
       $(id+'Field').hidden=!shown;
       if(!shown)$(id).value='';
     }
-    const perSet=Number($('fbRepetitions').value)*(iso?Number($('fbDuration').value):1);
+    const moves=campus?campusMoves():1;
+    const perSet=Number($('fbRepetitions').value)*(iso?Number($('fbDuration').value):moves);
     const volume=Number($('fbSets').value)*(Math.round(perSet*1e9)/1e9);
-    $('fbVolume').textContent=$('fbModality').value&&volume>0?'Volume prescrito: '+Math.round(volume*1e9)/1e9+' '+(traction?'segundos':iso?'s de suspensão':'repetições'):'';
+    $('fbVolume').textContent=moves<0?'A trajetória não cabe nas dez agarras com a distância, o sentido e a quantidade escolhidos.':$('fbModality').value&&volume>0?'Volume prescrito: '+Math.round(volume*1e9)/1e9+' '+(campus?'movimentos efetivos de mão':traction?'segundos':iso?'s de suspensão':'repetições'):'';
   }
   $('directedSubblock').addEventListener('change',()=>perform(async()=>{
     if(editingDirected)resetCoachDraft();
@@ -1165,7 +1187,7 @@ var SpecificTaskModel=(()=>{
     $('coachNotesLabel').textContent=fb?'Orientações adicionais (opcional)':'Notas do treinador';
     $('fingerboardEditing').hidden=!editingDirected;
     $('cancelFingerboardEdit').hidden=!editingDirected;
-    if(editingDirected)$('fingerboardEditing').textContent='Editando '+(isTractionBlock()?'Blocos de tração':'Fingerboard')+' • revisão '+editingDirected.expectedRevision;
+    if(editingDirected)$('fingerboardEditing').textContent='Editando '+$('directedSubblock').selectedOptions[0].textContent+' • revisão '+editingDirected.expectedRevision;
     $('specificSubblockPanel').hidden=!sp;$('libraryPanel').hidden=structured;
     ['legacyBlockContext','legacyCapacityContext','legacyIntensityControls','libraryCapacities','intensityHelp','legacyIntensityGroup','legacyVolumeGroup','libraryMethodGroup'].forEach(id=>$(id).hidden=structured);
     $('specificTaskFeatures').hidden=!sp||!d;
@@ -1234,7 +1256,7 @@ var SpecificTaskModel=(()=>{
       const parent=coachRenderedItems.get(item.id)||$('previewTreinoAluno'),task=snapshot.task;
       if(p.directed){
         const d=p.directed,l=d.labels;
-        text(parent,[l.modality,l.grip,l.gripOption,l.prehension,l.side,l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • '));
+        text(parent,[l.modality,d.path?.name,d.bouts===undefined?'':d.bouts+' botes por repetição',l.grip,l.gripOption,l.prehension,l.side,l.feet,l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • '));
         text(parent,[d.sets+' séries × '+d.repetitionsPerSet+' repetições',d.durationSeconds===undefined?'':d.durationSeconds+' s por repetição','Volume: '+volume.total+' '+labels[volume.unitId],d.restBetweenRepetitionsSeconds===undefined?'':'Entre repetições: '+d.restBetweenRepetitionsSeconds+' s','Entre séries: '+d.restBetweenSetsSeconds/60+' min','Revisão '+p.revision,d.guidance].filter(Boolean).join(' • '));
         button(parent,'Editar '+snapshot.exercise.name,()=>editDirected(item));
         return;
@@ -1298,7 +1320,17 @@ var SpecificTaskModel=(()=>{
         if(value<min||value>max)coachFieldError(id,'Informe um valor entre '+min+' e '+max+'.');
         return value;
       }
-      const directed={version:1,subblock:$('directedSubblock').value,modality:required('fbModality'),grip:required('fbGrip'),side:required('fbSide'),load:isTractionBlock()?{kind:'external',kilograms:coachNumber('tractionLoad',false,'Informe a carga externa em kg, maior que zero.')}:{kind:required('fbLoad')},sets:bounded('fbSets',true,1,100),repetitionsPerSet:bounded('fbRepetitions',true,1,10000),restBetweenSetsSeconds:Number(required('fbSeriesRest'))};
+      const directed={version:1,subblock:$('directedSubblock').value,modality:required('fbModality'),grip:required('fbGrip'),load:isTractionBlock()?{kind:'external',kilograms:coachNumber('tractionLoad',false,'Informe a carga externa em kg, maior que zero.')}:{kind:required('fbLoad')},sets:bounded('fbSets',true,1,100),repetitionsPerSet:bounded('fbRepetitions',true,1,10000),restBetweenSetsSeconds:Number(required('fbSeriesRest'))};
+      if(isCampusBoard()){
+        directed.feet=required('campusFeet');
+        if(directed.modality==='sequence')directed.sequenceId=required('campusSequence');
+        else{
+          directed.interval=Number(required('campusInterval'));
+          directed.direction=required('campusDirection');
+          directed.bouts=bounded('campusBouts',true,1,18);
+          if(campusMoves()<0)coachFieldError('campusBouts','A trajetória não cabe nas dez agarras com a distância, o sentido e a quantidade escolhidos.');
+        }
+      }else directed.side=required('fbSide');
       if(directedOptions().grips[directed.grip].options)directed.gripOption=required('fbGripOption');
       if(directed.grip==='edge')directed.prehension=required('fbPrehension');
       if(directed.load.kind==='added')directed.load.kilograms=Number(required('fbKilograms'));
@@ -1370,7 +1402,7 @@ var SpecificTaskModel=(()=>{
     let result;
     try{result=await libraryRpc({action:'saveCoachPrescription',data:pendingCoachSave.data,requestId:pendingCoachSave.requestId});}
     catch(error){
-      coachHint('error',(error.message==='TRANSPORT_ERROR'?'Falha de comunicação (TRANSPORT_ERROR): não foi possível confirmar o salvamento. ':'Falha de gravação ('+error.message+'): salvamento não confirmado. ')+'Use Retomar gravação pendente com os mesmos dados; não crie outra intenção para contornar a falha.');
+      coachHint('error',(error.message==='IMPOSSIBLE_CAMPUS_PATH'?'A trajetória prescrita não cabe nas dez agarras. ':error.message==='TRANSPORT_ERROR'?'Falha de comunicação (TRANSPORT_ERROR): não foi possível confirmar o salvamento. ':'Falha de gravação ('+error.message+'): salvamento não confirmado. ')+'Use Retomar gravação pendente com os mesmos dados; não crie outra intenção para contornar a falha.');
       throw error;
     }
     pendingCoachSave=null;$('savedPrescription').textContent=`Prescrição salva: ${result.prescription.id} • volume ${result.prescription.totalVolume} ${labels[result.prescription.volumeUnitId]}.`;

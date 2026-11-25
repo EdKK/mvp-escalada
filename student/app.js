@@ -57,13 +57,14 @@
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics'),directed=p.directed;
       const restLabel=directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
-      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
+      metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
       if(!directed)metrics.append(metric('Intensidade',M.intensity(p),'intensity'));
       body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
         M.prescriptionDetails(p).forEach(description=>content.append(el('p','',description)));
         prescription.append(icon('stack'),content);body.append(prescription);
+        if(directed?.path)body.append(renderCampusBoard(directed.path));
       }
       const note=el('div','technical-note'),noteText=el('div');const guidance=directed?directed.guidance:item.notes;
       if(!directed||guidance){
@@ -82,7 +83,7 @@
         body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
       if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
-        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}`));
+        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}${line.additionalMoves===undefined?'':' • '+line.additionalMoves+' movimentos em repetições incompletas'}`));
       });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);
@@ -110,7 +111,8 @@
       for(let i=0;i<p.sets;i++){
         const group=el('fieldset','actual-series'),prior=prev?.prescriptionId===p.prescriptionId?prev.actualSeries?.[i]:undefined;
         group.append(el('legend','','Série '+(i+1)));
-        const definitions=[['repetitions','Repetições completas',10000,1]];
+        const definitions=[['repetitions','Repetições completas',p.directed.path?p.directed.repetitionsPerSet:10000,1]];
+        if(p.directed.path)definitions.push(['additionalMoves','Movimentos nas repetições incompletas',p.directed.repetitionsPerSet*(p.directed.path.movesPerRep-1),1]);
         if(p.directed.modality==='isometric')definitions.push(['seconds','Tempo efetivo acumulado (s)',1e9,'any']);
         for(const [key,label,max,step] of definitions){
           const input=el('input');Object.assign(input,{id:'actual-'+i+'-'+key,type:'number',min:0,max,step,value:prior?.[key]??'',required:true});
@@ -143,9 +145,17 @@
       const inconsistent=notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0;
       input.setCustomValidity(inconsistent?message:'');invalid=invalid||inconsistent;
     });
+    if(p.directed?.path){
+      $('actualSeriesFields').querySelectorAll('fieldset').forEach(group=>{
+        const reps=group.querySelector('[data-series-field=repetitions]');
+        const moves=group.querySelector('[data-series-field=additionalMoves]');
+        moves.max=Math.max(0,p.directed.repetitionsPerSet-Number(reps.value))*(p.directed.path.movesPerRep-1);
+      });
+    }
     $('feedbackError').textContent=invalid?message:'';
   }
   $('feedbackStatus').addEventListener('change',syncFeedbackStatus);
+  $('actualSeriesFields').addEventListener('input',syncFeedbackStatus);
   ['actualSets','actualQuantity'].forEach(id=>{
     $(id).addEventListener('input',syncFeedbackStatus);
     $(id).addEventListener('change',syncFeedbackStatus);

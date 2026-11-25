@@ -95,3 +95,9 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
 .actual-series { min-width:0; margin:0 0 12px; border:1px solid #d9e0ed; border-radius:9px; }
 .actual-series legend { font-weight:650; }
 .actual-series input + label { margin-top:8px; }
+
+.campus-board { margin:12px 0; padding:10px; border:1px solid #d9e0ed; border-radius:10px; background:#f7f9fd; }
+.campus-board figcaption { font-weight:650; }
+.campus-board svg { display:block; width:min(100%,440px); height:auto; margin:0 auto; stroke:none; stroke-width:1; }
+.campus-legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:4px 0; font-weight:650; }
+.campus-notation { margin:6px 0 0; line-height:1.6; overflow-wrap:anywhere; }

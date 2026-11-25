@@ -171,6 +171,7 @@ function directedFeedbackDetails_(record,reservation,prescriptions){
     record.actualSeries=Array.from({length:directed.sets},function(){
       var line={repetitions:directed.repetitionsPerSet};
       if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
+      if(directed.path)line.additionalMoves=0;
       return line;
     });
   }
@@ -184,11 +185,12 @@ function applyDirectedFeedback_(record,data,p){
   record.actualQuantity=0;
   if(data.status==='partial'){
     if(!Array.isArray(data.actualSeries)||data.actualSeries.length!==p.sets)fail_('INVALID_DATA');
-    var isometric=p.directed.modality==='isometric';
+    var isometric=p.directed.modality==='isometric',path=p.directed.path;
     data.actualSeries.forEach(function(line){
-      fields_(line,isometric?['repetitions','seconds']:['repetitions']);
-      var reps=numberRange_(line.repetitions,0,10000,true);
+      fields_(line,isometric?['repetitions','seconds']:path?['repetitions','additionalMoves']:['repetitions']);
+      var reps=numberRange_(line.repetitions,0,path?p.directed.repetitionsPerSet:10000,true);
       var quantity=isometric?numberRange_(line.seconds,0,1e9,false):reps;
+      if(path)quantity=reps*path.movesPerRep+numberRange_(line.additionalMoves,0,(p.directed.repetitionsPerSet-reps)*(path.movesPerRep-1),true);
       if(isometric&&reps>0&&quantity===0)fail_('INVALID_DATA');
       if(reps>0||quantity>0)record.actualSets++;
       record.actualQuantity+=quantity;

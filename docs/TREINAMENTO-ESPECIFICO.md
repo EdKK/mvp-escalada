@@ -1,8 +1,50 @@
 # Treinamento específico — compatibilidade para o Work
 
+## Candidato após a avaliação da v18
+
+A v18 publicada corresponde a `17278cb55c2aac1dabdff0580326d25fbf32498d`. Este candidato deriva desse commit e está documentado para auditoria em conjunto com o [registro de homologação](HOMOLOGACAO.md) e o [manifesto dos arquivos](biblioteca/REFERENCIA-SINCRONIZACAO.json).
+
+### Tipo de microciclo da sessão
+
+| Ordem | Tipo | Finalidade |
+|---|---|---|
+| 1 | Introdutório | Adaptação progressiva às cargas |
+| 2 | Ordinário | Desenvolvimento regular do desempenho |
+| 3 | Choque | Sobrecarga planejada e acentuada |
+| 4 | Estabilizador | Consolidação das adaptações |
+| 5 | Manutenção | Preservação das capacidades adquiridas |
+| 6 | Recuperativo | Redução da fadiga acumulada |
+| 7 | Controle | Avaliação do estado de preparação |
+| 8 | Pré-competitivo | Preparação imediata para o desempenho |
+| 9 | Competitivo | Expressão máxima do desempenho |
+
+A classificação é um atributo da sessão. O formulário exige uma opção e o servidor valida a lista fechada. Na sessão nova, `Workouts.goal` fica vazio. A coluna existente `WorkoutGuidance.steps` contém um objeto JSON com `version: 1`, `microcycleType` e `instructions`, vinculado ao mesmo ID da sessão. A reserva idempotente antecede a gravação do metadado, que antecede a publicação da linha da sessão. A mesma intenção pode retomar a gravação. Na leitura, os vetores históricos de instruções e os objetivos anteriores continuam com o significado original, inclusive se o objetivo tiver o mesmo texto de um tipo. A interface do aluno alterna o rótulo conforme os dados recebidos.
+
+### Identificação e recuperação dos exercícios
+
+No Treinamento específico, saem os controles de Exercício e contexto. O treinador prescreve pelo subbloco e pelas características e dose da tarefa. O servidor aceita `task.version: 3` sem `exerciseId` e sem métrica de entrada. Resolve o nome do exercício e um identificador estável `specific:<subblock>` a partir da classificação validada, sem registro correspondente em `EXERCICIOS`. Os IDs de cada item, prescrição, série e feedback continuam próprios e os vínculos usam os mesmos campos. O snapshot preserva o nome da tarefa e o exercício continua usando repetições como unidade interna. Os contratos das versões 1 e 2 continuam aceitos e os snapshots históricos continuam legíveis.
+
+### Biblioteca e BUSY
+
+A API da biblioteca devolve `BUSY` quando `getScriptLock().tryLock(5000)` falha, antes de abrir as tabelas do catálogo. A API principal também usa esse bloqueio global. Na v18, `catalog` e `listExercises` eram solicitados em paralelo durante a inicialização, portanto podiam disputar o bloqueio entre si e com consultas ou gravações de outras sessões. O erro observado na v18 não identifica qual chamada reteve o bloqueio.
+
+O candidato serializa as duas leituras do catálogo e reaproveita os snapshots já hidratados na consulta do treinador, reduzindo chamadas concorrentes. O aviso fica visível mesmo após salvar uma tarefa. A prescrição específica funciona sem carregar catálogo, exercícios ou indicadores. A gravação ainda requer o bloqueio, a configuração de homologação e as tabelas de prescrição existentes. Se uma gravação receber `BUSY`, deve ser retomada com a mesma intenção. Geral e Direcionado continuam usando o catálogo.
+
+Em homologação, correlacionar horário e duração das execuções de `api` e `libraryApi` com a ação que retornou `BUSY`. Repetir o carregamento isolado e com consultas e gravações simultâneas, identificar a operação que reteve o bloqueio e verificar a configuração e o estado das tabelas se houver códigos de erro de configuração ou esquema. Usar evidências sem tokens, e-mails ou dados pessoais.
+
+### Evidências locais do candidato
+
+Passaram 135 testes Node, 9 testes Python de referência e hashes e 26 grupos de verificações Chromium (4 do fluxo específico, 9 do ciclo de prescrição e feedback e 13 do treinador). Os testes locais simulam falha de aquisição do bloqueio, resposta `BUSY` no carregamento, ausência de tabelas do catálogo e retomada de gravações. Esses cenários comprovam o comportamento local. A causa do incidente real e a homologação funcional do candidato continuam pendentes. O Code Review automático não iniciou por erro de escrita no diretório de estado da CLI. O diff foi revisado localmente.
+
+### Próxima homologação
+
+Comparar a instalação v18 com a referência publicada e atualizar juntos `Backend.gs`, `Student.gs` (ou o alias instalado `StudentLogic.gs`), `TrainingLoad.gs`, `CoachLibrary.gs`, `Index.html` e `Student.html` após auditoria. Conferir os nove tipos, objetivos históricos, os cinco subblocos, criação e recuperação de tarefas, leitura pelo aluno, feedback e regressões de Geral e Direcionado. Verificar integridade, isolamento, concorrência e gravações interrompidas no Google. Antes de reverter após gravações novas, verificar compatibilidade do leitor anterior com os metadados de sessão em objeto e retomadas de prescrições v3. A v18 esperava instruções em vetor e não grava o formato v3.
+
+## Histórico da prescrição simplificada publicada na v18
+
 ## Prescrição simplificada
 
-A base de desenvolvimento é o commit `f9fc2089f0caba1c9cb10dd9db0a4df5081db4de` de `feature/treinamento-especifico`, referência da v17 publicada. O [registro de homologação](HOMOLOGACAO.md) reúne os testes manuais informados para a v17 e as verificações pendentes no Google. A seção histórica abaixo descreve o contrato anterior.
+Nesta etapa histórica, a base de desenvolvimento foi o commit `f9fc2089f0caba1c9cb10dd9db0a4df5081db4de` de `feature/treinamento-especifico`, referência da v17 publicada. O [registro de homologação](HOMOLOGACAO.md) reúne os testes manuais informados para a v17 e as verificações pendentes no Google. A seção histórica abaixo descreve o contrato anterior.
 
 O treinador escolhe um dos cinco subblocos e uma tarefa elegível da biblioteca. O formulário exibe grau de dificuldade na escala do subbloco, orientação, inclinação, número de séries, repetições por série, dois intervalos de recuperação e notas. Séries e repetições por série exigem inteiros de 1 a 100. O grau segue opcional, com validação da escala quando preenchido. A recuperação entre repetições conserva o intervalo opcional de 0 a 86.400 segundos inteiros. Para a recuperação entre séries, as opções são 1, 2, 3, 5, 10 e 15 minutos. Zero informado entre repetições e intervalo em branco têm significados distintos.
 

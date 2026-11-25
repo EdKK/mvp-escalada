@@ -1,5 +1,5 @@
 {
-  "referenceCommit": "9143fc7a833bb4ed05a421810ef348ae55104680",
+  "referenceCommit": "923f2a0960b7b29e4ef62fc09e69d511bd0c7078",
   "minimumCorrectionCommit": "298098253d4c60a5b6cffcc4802dae731f0481ca",
   "algorithm": "SHA-256",
   "files": [
@@ -17,7 +17,7 @@
         "Backend.gs"
       ],
       "group": "existing",
-      "sha256": "e0cdc96b25960d32afa81442c4f1edab96207f6800ed6ff10d19e2b8349b34b6"
+      "sha256": "fb96906452cca6214b12bd815c85e2d6197c36763466c5fd4c25331c74cb8b60"
     },
     {
       "repositoryFile": "apps-script/Auth.gs",
@@ -42,7 +42,7 @@
         "Student.gs"
       ],
       "group": "existing",
-      "sha256": "936bda6237cbe316396f55297b36b10d2d37088359b4178312b7d7ee671e2de3"
+      "sha256": "79416e89b9f3c00fd7aeb1c7b776c4690a5305db5f375acec62870d610a5da5b"
     },
     {
       "repositoryFile": "apps-script/Index.html",
@@ -50,7 +50,7 @@
         "Index.html"
       ],
       "group": "existing",
-      "sha256": "5b2d8c13e22b9e446d7cd016fc65b9a0474f25dbd477ef4373e5e6f8b457a163"
+      "sha256": "521d05d2edd534e264bb55a9a37413dc7c444bb4bea3516d915adb634cdc39f6"
     },
     {
       "repositoryFile": "apps-script/Student.html",
@@ -58,7 +58,7 @@
         "Student.html"
       ],
       "group": "existing",
-      "sha256": "4f6d312994801513c7346f0d3bd8a075f9530fe3e0463e68fa729762eee7cf49"
+      "sha256": "8b75f7f020464cae193ab6f880244c543d9b9857fb171411fca5b898b411dd33"
     },
     {
       "repositoryFile": "apps-script/OAuthReturn.html",
@@ -82,7 +82,7 @@
         "TrainingLoad.gs"
       ],
       "group": "library",
-      "sha256": "6172d57e94e17097b824bda3008adf81cd326c899fac6fb5abe96ebc4b49e065"
+      "sha256": "e87107412cd631b8bfdc7b6f461a8d054b15fc41abb92791f67d42b6c5c97b97"
     },
     {
       "repositoryFile": "apps-script/TrainingCatalog.gs",
@@ -98,7 +98,7 @@
         "CoachLibrary.gs"
       ],
       "group": "library",
-      "sha256": "c0783b410b1e5f265658042ea02b5386ec697f4e2780451e70727fa073b7f96d"
+      "sha256": "7b72f2c72054c108f2f68b1ffa52f7f64b5056ba92047f032e5a38577d0c68a5"
     }
   ]
 }

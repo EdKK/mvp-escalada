@@ -2,13 +2,15 @@
 
 ## Estado publicado
 
-A versão 17 está publicada em **MVP Escalada – Homologação**, com referência no commit `f9fc2089f0caba1c9cb10dd9db0a4df5081db4de`. A versão 16 permanece como referência de reversão.
+A versão 18 está publicada em **MVP Escalada – Homologação**, conforme a avaliação informada, a partir do commit `17278cb55c2aac1dabdff0580326d25fbf32498d`, auditado pelo Work.
 
-Os testes manuais aprovados na v17, conforme o registro informado, abrangem o salvamento de exercícios pelo treinador, a visualização e conferência da interface do aluno, o envio de feedback pelo aluno e o retorno desse feedback ao treinador.
+A avaliação manual da v18 confirmou a criação de sessão pelo treinador, a visualização pelo aluno da sessão de 28/11/2026, a apresentação dos cinco subblocos e a apresentação de orientação, inclinação, grau, séries, repetições e intervalos de recuperação. O treinador aprovou visualmente os campos da prescrição, com os ajustes descritos no [novo candidato](TREINAMENTO-ESPECIFICO.md). Houve um aviso de carregamento da biblioteca com `BUSY`. A homologação funcional completa permanece pendente.
 
-Continuam pendentes de comprovação no ambiente real as regras dos cinco subblocos, a integridade dos dados, a segurança e o isolamento entre usuários, a concorrência, a recuperação de gravações interrompidas e os demais testes de integração ainda sem evidência documentada. A aprovação do fluxo de feedback, por exemplo, cobre o retorno ao treinador. O isolamento entre alunos exige evidência própria.
+### Histórico da v17
 
-A [prescrição simplificada](TREINAMENTO-ESPECIFICO.md) é candidata a uma publicação futura. As execuções automatizadas locais em Node, Python e Chromium usam serviços simulados. Testes manuais locais e execuções manuais no ambiente real devem ter registros próprios.
+A v17 teve como referência `f9fc2089f0caba1c9cb10dd9db0a4df5081db4de`. Os testes manuais aprovados informados abrangiam salvamento de exercícios pelo treinador, visualização e conferência da interface do aluno, envio de feedback pelo aluno e retorno ao treinador. A v16 era a referência de reversão registrada naquela etapa.
+
+As regras dos cinco subblocos, integridade dos dados, segurança e isolamento, concorrência, recuperação de gravações interrompidas e demais testes de integração exigem evidência própria no ambiente real. As execuções automatizadas locais usam serviços simulados.
 
 ## Instalação atual — três Gmail pessoais
 
@@ -25,7 +27,7 @@ Resumo reproduzível:
 
 ## Protocolo de aprovação (registrar resultado, data, papel e evidência sem emails)
 
-Os casos completos abaixo aguardam evidência individual no Google. O estado da v17 acima registra os fluxos manuais aprovados. Use este protocolo para comprovar as condições adicionais de cada caso e registrar as verificações da próxima versão.
+Os casos completos abaixo aguardam evidência individual no Google. O estado publicado acima registra os fluxos manuais aprovados. Use este protocolo para comprovar as condições adicionais de cada caso e registrar as verificações da próxima versão.
 
 | Caso | Ação | Resultado obrigatório |
 | --- | --- | --- |

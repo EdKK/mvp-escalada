@@ -204,3 +204,88 @@ test('Fingerboard feedback keeps original prescription provenance during interru
   assert.equal(workout.itemFeedback[0].actualSeries[0].seconds,15);
   rejects(f.feedback(saved,{expectedRevision:1}),'CONFLICT');
 });
+
+function tractionData(f,overrides={}){
+  return f.data({subblock:'traction_blocks',grip:'edge',gripOption:'1.5',prehension:'half',side:'left',load:{kind:'external',kilograms:12.345678901},...overrides});
+}
+
+test('traction blocks support every allowed grip specification, prehension and unilateral side',()=>{
+  const f=setup();
+  const grips={edge:['0.5','1.0','1.5','2.5','3.5'],mono:['index','middle','ring','little'],two:['indexMiddle','middleRing','ringLittle'],pinch:['closed','intermediate','open']};
+  for(const [grip,options] of Object.entries(grips)){
+    for(const [index,gripOption] of options.entries()){
+      const side=index%2?'right':'left';
+      const prehension=grip==='edge'?['open','half','full'][index%3]:undefined;
+      const load={kind:'external',kilograms:index%2?8:12.345678901};
+      const {item,prescription}=ok(f.save(tractionData(f,{grip,gripOption,prehension,side,load})));
+      assert.equal(item.exercise,'Blocos de tração');
+      assert.deepEqual([prescription.totalVolume,prescription.volumeUnitId],[30,'unit-seconds']);
+      const directed=JSON.parse(prescription.snapshotJson).directed;
+      assert.deepEqual([directed.grip,directed.gripOption,directed.prehension,directed.side],[grip,gripOption,prehension,side]);
+      assert.deepEqual(directed.load,load);
+    }
+  }
+});
+
+test('traction blocks reject forged modality, grip, prehension, side, load, recovery and volume before writing',()=>{
+  const f=setup(),before=JSON.stringify(f.tables);
+  const invalid=[
+    {modality:'pull'}, {grip:'sloper',gripOption:'level1'}, {grip:'jug'}, {grip:'mono',gripOption:'index'},
+    {gripOption:'2.0'}, {prehension:undefined}, {side:'bilateral'}, {sets:0}, {durationSeconds:undefined},
+    {repetitionsPerSet:1}, {restBetweenRepetitionsSeconds:1}, {restBetweenSetsSeconds:2},
+    {load:{kind:'bodyweight'}}, {load:{kind:'added',kilograms:2}}, {load:{kind:'assisted',assistance:'foot'}},
+    {load:{kind:'external',kilograms:1,assistance:'foot'}},
+    ...[undefined,null,'','2',0,-1,NaN,Infinity].map(kilograms=>({load:{kind:'external',kilograms}}))
+  ];
+  for(const patch of invalid)rejects(f.save(tractionData(f,patch)));
+  rejects(f.save({...tractionData(f),volume:{total:500}}));
+  assert.equal(JSON.stringify(f.tables),before);
+});
+
+test('traction blocks preserve recovery and resume creation and revision in a mixed session',()=>{
+  const f=setup(),fingerboard=ok(f.save());
+  const body=tractionData(f,{restBetweenRepetitionsSeconds:0,restBetweenSetsSeconds:300});
+  f.fail('PRESCRICAO_SERIES');
+  rejects(f.save(body,'traction-new'),'INTERNAL_ERROR');
+  assert.equal(f.read().items.length,1);
+  const pending=ok(f.lib('listPendingCoachSaves',{}))[0];
+  const saved=ok(f.save(pending.data,pending.requestId));
+  assert.equal(ok(f.save(body,'traction-new')).prescription.id,saved.prescription.id);
+  const read=f.read();
+  assert.deepEqual(Array.from(read.items,i=>i.prescription.directed.subblock),['fingerboard','traction_blocks']);
+  assert.equal(read.items[1].prescription.directed.restBetweenRepetitionsSeconds,0);
+  assert.equal(read.items[1].prescription.restSeconds,300);
+  const edited=tractionData(f,{side:'right',repetitionsPerSet:1,restBetweenRepetitionsSeconds:undefined,durationSeconds:8,restBetweenSetsSeconds:60}).directed;
+  rejects(f.revise(fingerboard,edited));
+  f.fail('PRESCRICOES');
+  rejects(f.revise(saved,edited,'traction-revise'),'INTERNAL_ERROR');
+  const revision=ok(f.lib('listPendingCoachSaves',{}))[0];
+  const revised=ok(f.save(revision.data,revision.requestId));
+  assert.equal(revised.item.id,saved.item.id);
+  assert.equal(revised.prescription.supersedesId,saved.prescription.id);
+  const p=f.read().items[1].prescription;
+  assert.equal(p.directed.side,'right');
+  assert.equal(p.directed.restBetweenRepetitionsSeconds,undefined);
+  assert.deepEqual([p.restSeconds,p.volume.total,p.quantityUnit],[60,16,'seconds']);
+  assert.equal(f.tables.Items.length,3);
+  assert.equal(f.tables.PRESCRICOES.length,4);
+  assert.equal(f.tables.PRESCRICAO_SERIES.length,7);
+});
+
+test('traction block feedback records the prescribed dose, incomplete efforts and explicit zero in seconds',()=>{
+  const f=setup(),saved=ok(f.save(tractionData(f)));
+  const complete=ok(f.feedback(saved));
+  assert.deepEqual([complete.actualQuantity,complete.actualSets,complete.quantityUnit],[30,2,'seconds']);
+  assert.equal(complete.actualSeries[0].seconds,15);
+  rejects(f.feedback(saved,{expectedRevision:1,status:'partial',actualSeries:[{repetitions:1},{repetitions:0,seconds:3}]}));
+  const actualSeries=[{repetitions:1,seconds:6.5},{repetitions:0,seconds:3}];
+  const partial=ok(f.feedback(saved,{expectedRevision:1,status:'partial',actualSeries,fingerPain:2,comment:'Esforço incompleto'}));
+  const notDone=ok(f.feedback(saved,{expectedRevision:2,status:'not_done'}));
+  assert.deepEqual([partial.actualQuantity,notDone.actualQuantity,notDone.quantityUnit],[9.5,0,'seconds']);
+  const coach=f.read('coach');
+  assert.equal(coach.items[0].prescription.volume.total,30);
+  assert.equal(coach.itemFeedback[1].prescriptionId,saved.prescription.id);
+  assert.equal(coach.itemFeedback[1].fingerPain,2);
+  assert.equal(coach.itemFeedback[1].comment,'Esforço incompleto');
+  assert.deepEqual(JSON.parse(JSON.stringify(coach.itemFeedback[1].actualSeries)),actualSeries);
+});

@@ -122,7 +122,7 @@ function effectiveItemPrescription_(workout,item,index,context){
   if(snapshot.task){p.task=snapshot.task;var rest=snapshot.task.version>=2?snapshot.task.restBetweenRepetitionsSeconds:snapshot.task.restSeconds;if(rest!==undefined)p.restSeconds=numberRange_(rest,0,86400,true);}
   if(snapshot.directed){
     var d=snapshot.directed;
-    if(record.classification!=='directed'||snapshot.classification!=='directed'||d.version!==1||d.subblock!=='fingerboard'||snapshot.task)fail_('SCHEMA_ERROR');
+    if(record.classification!=='directed'||snapshot.classification!=='directed'||d.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),d.subblock)||snapshot.task)fail_('SCHEMA_ERROR');
     p.directed=d;
     p.restSeconds=d.restBetweenRepetitionsSeconds>0?d.restBetweenRepetitionsSeconds:d.restBetweenSetsSeconds;
   }
@@ -167,7 +167,7 @@ function directedFeedbackDetails_(record,reservation,prescriptions){
     var prescription=prescriptions.get(data.prescriptionId);
     if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
     var directed=studentJson_(prescription.snapshotJson).directed;
-    if(!directed||directed.version!==1||directed.subblock!=='fingerboard')fail_('SCHEMA_ERROR');
+    if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
     record.actualSeries=Array.from({length:directed.sets},function(){
       var line={repetitions:directed.repetitionsPerSet};
       if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;

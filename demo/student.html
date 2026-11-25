@@ -184,7 +184,7 @@ var StudentModel = (() => {
       const d=p.directed,l=d.labels;
       const grip=[l.grip,l.gripOption,l.prehension].filter(Boolean).join(' • ');
       const load=[l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • ');
-      const details=['Treinamento direcionado • Fingerboard • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
+      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
       if(d.restBetweenRepetitionsSeconds!==undefined)details.push('Recuperação entre repetições: '+d.restBetweenRepetitionsSeconds+' s');
       details.push('Recuperação entre séries: '+d.restBetweenSetsSeconds/60+' min');
       return details;
@@ -528,7 +528,7 @@ function effectiveItemPrescription_(workout,item,index,context){
   if(snapshot.task){p.task=snapshot.task;var rest=snapshot.task.version>=2?snapshot.task.restBetweenRepetitionsSeconds:snapshot.task.restSeconds;if(rest!==undefined)p.restSeconds=numberRange_(rest,0,86400,true);}
   if(snapshot.directed){
     var d=snapshot.directed;
-    if(record.classification!=='directed'||snapshot.classification!=='directed'||d.version!==1||d.subblock!=='fingerboard'||snapshot.task)fail_('SCHEMA_ERROR');
+    if(record.classification!=='directed'||snapshot.classification!=='directed'||d.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),d.subblock)||snapshot.task)fail_('SCHEMA_ERROR');
     p.directed=d;
     p.restSeconds=d.restBetweenRepetitionsSeconds>0?d.restBetweenRepetitionsSeconds:d.restBetweenSetsSeconds;
   }
@@ -573,7 +573,7 @@ function directedFeedbackDetails_(record,reservation,prescriptions){
     var prescription=prescriptions.get(data.prescriptionId);
     if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
     var directed=studentJson_(prescription.snapshotJson).directed;
-    if(!directed||directed.version!==1||directed.subblock!=='fingerboard')fail_('SCHEMA_ERROR');
+    if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
     record.actualSeries=Array.from({length:directed.sets},function(){
       var line={repetitions:directed.repetitionsPerSet};
       if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
@@ -801,7 +801,7 @@ window.StudentAPI=(()=>{
         body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
       if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
-        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' s de suspensão'}`));
+        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}`));
       });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);

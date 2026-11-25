@@ -676,11 +676,11 @@ select.native-hidden {
         <h2 id="coachPrescriptionTitle" tabindex="-1">Montar treino — prescrição</h2>
         <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
 <section class="coach-field-group"><h3>Bloco principal</h3><label for="libraryClassification">Bloco de treinamento</label><select id="libraryClassification"><option value="general">Treinamento geral</option><option value="directed">Treinamento direcionado</option><option value="specific">Treinamento específico</option></select></section>
-<section id="directedSubblockPanel" class="coach-field-group" hidden><label for="directedSubblock">Subbloco</label><select id="directedSubblock"><option value="">Exercício da biblioteca</option><option value="fingerboard">Fingerboard</option></select></section>
+<section id="directedSubblockPanel" class="coach-field-group" hidden><label for="directedSubblock">Subbloco</label><select id="directedSubblock"><option value="">Exercício da biblioteca</option><option value="fingerboard">Fingerboard</option><option value="traction_blocks">Blocos de tração</option></select></section>
 <section id="fingerboardFields" class="coach-field-group" hidden>
 <p id="fingerboardEditing" role="status" hidden></p><button type="button" id="cancelFingerboardEdit" hidden>Cancelar edição</button>
-<div class="row"><div><label for="fbModality">Tarefa</label><select id="fbModality"></select></div><div><label for="fbGrip">Agarra</label><select id="fbGrip"></select></div><div id="fbGripOptionField"><label for="fbGripOption">Especificação da agarra</label><select id="fbGripOption"></select></div><div id="fbPrehensionField"><label for="fbPrehension">Preensão</label><select id="fbPrehension"></select></div></div>
-<div class="row"><div><label for="fbSide">Lateralidade</label><select id="fbSide"></select></div><div><label for="fbLoad">Condição de carga</label><select id="fbLoad"></select></div><div id="fbKilogramsField"><label for="fbKilograms">Sobrecarga adicional (kg)</label><select id="fbKilograms"></select></div><div id="fbAssistanceField"><label for="fbAssistance">Tipo de assistência</label><select id="fbAssistance"></select></div></div>
+<div class="row"><div id="fbModalityField"><label for="fbModality">Tarefa</label><select id="fbModality"></select></div><p id="tractionTask" hidden>Tração isométrica</p><div><label for="fbGrip">Agarra</label><select id="fbGrip"></select></div><div id="fbGripOptionField"><label for="fbGripOption">Especificação da agarra</label><select id="fbGripOption"></select></div><div id="fbPrehensionField"><label for="fbPrehension">Preensão</label><select id="fbPrehension"></select></div></div>
+<div class="row"><div><label for="fbSide">Lateralidade</label><select id="fbSide"></select></div><div id="fbLoadField"><label for="fbLoad">Condição de carga</label><select id="fbLoad"></select></div><div id="tractionLoadField" hidden><label for="tractionLoad">Carga externa (kg)</label><input id="tractionLoad" type="number" min="0" step="any"></div><div id="fbKilogramsField"><label for="fbKilograms">Sobrecarga adicional (kg)</label><select id="fbKilograms"></select></div><div id="fbAssistanceField"><label for="fbAssistance">Tipo de assistência</label><select id="fbAssistance"></select></div></div>
 <div class="row"><div><label for="fbSets">Séries</label><input id="fbSets" type="number" min="1" max="100" step="1"></div><div><label for="fbRepetitions">Repetições por série</label><input id="fbRepetitions" type="number" min="1" max="10000" step="1"></div><div id="fbDurationField"><label for="fbDuration">Duração por repetição (s)</label><input id="fbDuration" type="number" min="0.001" max="86400" step="any"></div></div>
 <div class="row"><div id="fbRepetitionRestField"><label for="fbRepetitionRest">Recuperação entre repetições (s)</label><select id="fbRepetitionRest"></select></div><div><label for="fbSeriesRest">Recuperação entre séries (min)</label><select id="fbSeriesRest"></select></div></div>
 <output id="fbVolume" aria-live="polite"></output>
@@ -957,16 +957,16 @@ var SpecificTaskModel=(()=>{
   let coachRefreshButton,coachInvalidField=null,coachExercises=[];
   let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
   const coachRenderedItems=new Map();
-  let fingerboardDefs,editingFingerboard=null;
+  let fingerboardDefs,editingDirected=null;
   const fingerboardInputs={modality:'fbModality',grip:'fbGrip',gripOption:'fbGripOption',prehension:'fbPrehension',side:'fbSide',sets:'fbSets',repetitionsPerSet:'fbRepetitions',durationSeconds:'fbDuration',restBetweenRepetitionsSeconds:'fbRepetitionRest',restBetweenSetsSeconds:'fbSeriesRest'};
-  const fingerboardDraftFields=[...Object.values(fingerboardInputs),'fbLoad','fbKilograms','fbAssistance'];
+  const fingerboardDraftFields=[...Object.values(fingerboardInputs),'fbLoad','fbKilograms','fbAssistance','tractionLoad'];
   const coachDraftFields=['itemBloco','itemCategoria','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','libraryMethod','libraryProtocol','libraryCapacity','libraryClassification','libraryAssessment','gradeScale','libraryVolumeUnit','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','specificSubblock','specificOrientation','specificInclination','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets'];
   const coachDraftSignature=()=>JSON.stringify(coachDraftFields.map(id=>{
-    if(isFingerboard())return id==='libraryClassification'||id==='itemNotas'?$(id).value:'';
+    if(hasDirectedSubblock())return id==='libraryClassification'||id==='itemNotas'?$(id).value:'';
     if(id==='libraryClassification'||id==='itemNotas')return $(id).value;
     const specific=$('libraryClassification').value==='specific';
     return id.startsWith('specific')===specific?$(id).value:'';
-  }).concat(isFingerboard()?['fingerboard',editingFingerboard?.itemId,...fingerboardDraftFields.map(id=>$(id).value)]:[]));
+  }).concat(hasDirectedSubblock()?[$('directedSubblock').value,editingDirected?.itemId,...fingerboardDraftFields.map(id=>$(id).value)]:[]));
   const coachDraftDirty=()=>coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
   let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
@@ -998,7 +998,7 @@ var SpecificTaskModel=(()=>{
     const feedback=await rpc({action:'listFeedback',data:{workoutId:id}});
     if(ticket!==generation) return;
     $('itemPosition').value=Math.max(0,...w.items.map((i,n)=>i.prescription?.position||n+1))+1;
-    if(selected!==id&&editingFingerboard)resetCoachDraft();
+    if(selected!==id&&editingDirected)resetCoachDraft();
     if(selected!==id){coachReview=null;$('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;}
     selectedWorkout=w;
     if(session?.role==='coach')$('coachAluno').value=w.studentId;
@@ -1017,7 +1017,7 @@ var SpecificTaskModel=(()=>{
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
     (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')),f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
-    if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(libraryReady&&!isSpecificTask()&&!isFingerboard())await refreshAssessments();}
+    if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(libraryReady&&!isSpecificTask()&&!hasDirectedSubblock())await refreshAssessments();}
   }
   async function refresh(id) {
     const workouts=await rpc({action:'listWorkouts',data:{}});
@@ -1051,11 +1051,11 @@ var SpecificTaskModel=(()=>{
     if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft','btnReviewSession','btnConfirmSession'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
     else {$('alunoTreinoId').disabled=busy;}
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
-    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!selected||(!isSpecificTask()&&(isFingerboard()?!fingerboardDefs:(!libraryReady||!exerciseSelection)))));
+    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!selected||(!isSpecificTask()&&(hasDirectedSubblock()?!fingerboardDefs:(!libraryReady||!exerciseSelection)))));
     coachTabs.forEach(tab=>$(tab.button).disabled=busy);
     $('btnReviewSession').disabled=busy||!selected;
     $('btnConfirmSession').disabled=busy||!!pendingCoachSave||!coachReview||!coachReview.ready||coachDraftDirty();
-    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':editingFingerboard?'Salvar revisão':'Salvar e adicionar próximo exercício';
+    $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':editingDirected?'Salvar revisão':'Salvar e adicionar próximo exercício';
   }
   async function loadLibrary(){
     libraryReady=false;exerciseSelection=null;libraryController=CoachLibraryModel.selectionController(library);
@@ -1075,13 +1075,15 @@ var SpecificTaskModel=(()=>{
     updateCoachControls();
   }
   const isSpecificTask=()=>$('libraryClassification').value==='specific';
-  const isFingerboard=()=>$('libraryClassification').value==='directed'&&$('directedSubblock').value==='fingerboard';
+  const hasDirectedSubblock=()=>$('libraryClassification').value==='directed'&&$('directedSubblock').value!=='';
+  const isTractionBlock=()=>$('directedSubblock').value==='traction_blocks';
+  const directedOptions=()=>isTractionBlock()?fingerboardDefs?.tractionBlocks:fingerboardDefs;
   const choiceRows=choices=>Object.entries(choices).map(([id,name])=>({id,name}));
-  async function loadFingerboard(){
+  async function loadDirectedOptions(){
     if(fingerboardDefs)return;
     fingerboardDefs=await library('fingerboardDefinitions',{});
     const d=fingerboardDefs;
-    for(const [id,choices] of Object.entries({fbModality:d.modalities,fbGrip:Object.fromEntries(Object.entries(d.grips).map(([key,grip])=>[key,grip.label])),fbPrehension:d.prehensions,fbSide:d.sides,fbLoad:d.loads,fbAssistance:d.assistance})){
+    for(const [id,choices] of Object.entries({fbPrehension:d.prehensions,fbLoad:d.loads,fbAssistance:d.assistance})){
       options(id,choiceRows(choices),'Selecione');
     }
     for(const [id,values,scale] of [['fbKilograms',d.kilograms,1],['fbRepetitionRest',d.repetitionRest,1],['fbSeriesRest',d.seriesRest,60]]){
@@ -1089,39 +1091,59 @@ var SpecificTaskModel=(()=>{
     }
     $('fbLoad').value='bodyweight';
   }
-  function syncFingerboard(){
-    const gripId=$('fbGrip').value,grip=fingerboardDefs?.grips[gripId],option=$('fbGripOption');
+  function syncDirectedChoices(){
+    const d=directedOptions();
+    if(!d)return;
+    for(const [id,choices] of Object.entries({fbModality:d.modalities,fbGrip:Object.fromEntries(Object.entries(d.grips).map(([key,grip])=>[key,grip.label])),fbSide:d.sides})){
+      const previous=$(id).value;
+      options(id,choiceRows(choices),'Selecione');
+      if(Object.hasOwn(choices,previous))$(id).value=previous;
+    }
+    if(isTractionBlock())$('fbModality').value='isometric';
+  }
+  function syncDirectedFields(){
+    const gripId=$('fbGrip').value,grip=directedOptions()?.grips[gripId],option=$('fbGripOption');
     if(option.dataset.grip!==gripId){
       options('fbGripOption',choiceRows(grip?.options||{}),'Selecione');
       option.dataset.grip=gripId;
     }
     const iso=$('fbModality').value==='isometric';
-    const active={fbGripOption:!!grip?.options,fbPrehension:$('fbGrip').value==='edge',fbDuration:iso,fbKilograms:$('fbLoad').value==='added',fbAssistance:$('fbLoad').value==='assisted',fbRepetitionRest:Number($('fbRepetitions').value)>1};
+    const traction=isTractionBlock();
+    $('fbModalityField').hidden=traction;
+    $('tractionTask').hidden=!traction;
+    $('fbLoadField').hidden=traction;
+    const active={tractionLoad:traction,fbGripOption:!!grip?.options,fbPrehension:$('fbGrip').value==='edge',fbDuration:iso,fbKilograms:!traction&&$('fbLoad').value==='added',fbAssistance:!traction&&$('fbLoad').value==='assisted',fbRepetitionRest:Number($('fbRepetitions').value)>1};
     for(const [id,shown] of Object.entries(active)){
       $(id+'Field').hidden=!shown;
       if(!shown)$(id).value='';
     }
     const perSet=Number($('fbRepetitions').value)*(iso?Number($('fbDuration').value):1);
     const volume=Number($('fbSets').value)*(Math.round(perSet*1e9)/1e9);
-    $('fbVolume').textContent=$('fbModality').value&&volume>0?'Volume prescrito: '+Math.round(volume*1e9)/1e9+' '+(iso?'s de suspensão':'repetições'):'';
+    $('fbVolume').textContent=$('fbModality').value&&volume>0?'Volume prescrito: '+Math.round(volume*1e9)/1e9+' '+(traction?'segundos':iso?'s de suspensão':'repetições'):'';
   }
   $('directedSubblock').addEventListener('change',()=>perform(async()=>{
-    if(editingFingerboard)resetCoachDraft();
+    if(editingDirected)resetCoachDraft();
     syncSpecificUi();
-    if(isFingerboard())await loadFingerboard();
-    syncFingerboard();
+    if(hasDirectedSubblock())await loadDirectedOptions();
+    $('fbModality').value='';
+    $('fbLoad').value=isTractionBlock()?'':'bodyweight';
+    $('tractionLoad').value='';
+    syncDirectedChoices();
+    syncDirectedFields();
   }));
-  $('fingerboardFields').addEventListener('input',syncFingerboard);
+  $('fingerboardFields').addEventListener('input',syncDirectedFields);
   $('cancelFingerboardEdit').addEventListener('click',()=>{resetCoachDraft();updateCoachControls();});
-  async function editFingerboard(item){
-    await loadFingerboard();
-    editingFingerboard={itemId:item.id,expectedRevision:item.prescription.revision};
+  async function editDirected(item){
+    await loadDirectedOptions();
+    editingDirected={itemId:item.id,expectedRevision:item.prescription.revision};
     const d=item.prescription.directed;
-    $('libraryClassification').value='directed';$('directedSubblock').value='fingerboard';
+    $('libraryClassification').value='directed';$('directedSubblock').value=d.subblock;
+    syncDirectedChoices();
     for(const [key,id] of Object.entries(fingerboardInputs))if(key!=='gripOption')$(id).value=d[key]??'';
+    $('tractionLoad').value=isTractionBlock()?d.load.kilograms:'';
     $('fbLoad').value=d.load.kind;$('fbKilograms').value=d.load.kilograms??'';$('fbAssistance').value=d.load.assistance??'';
     $('itemNotas').value=d.guidance||'';
-    syncSpecificUi();syncFingerboard();$('fbGripOption').value=d.gripOption??'';
+    syncSpecificUi();syncDirectedFields();$('fbGripOption').value=d.gripOption??'';
     $('coachPrescriptionTitle').focus();$('coachPrescription').scrollIntoView({block:'start'});
   }
   function renderCoachExercises(){
@@ -1137,13 +1159,13 @@ var SpecificTaskModel=(()=>{
   }
   function syncSpecificUi(){
     const sp=isSpecificTask(),d=SpecificTaskModel.definition($('specificSubblock').value);
-    const fb=isFingerboard(),structured=sp||fb;
+    const fb=hasDirectedSubblock(),structured=sp||fb;
     $('directedSubblockPanel').hidden=$('libraryClassification').value!=='directed';
     $('fingerboardFields').hidden=!fb;
     $('coachNotesLabel').textContent=fb?'Orientações adicionais (opcional)':'Notas do treinador';
-    $('fingerboardEditing').hidden=!editingFingerboard;
-    $('cancelFingerboardEdit').hidden=!editingFingerboard;
-    if(editingFingerboard)$('fingerboardEditing').textContent='Editando Fingerboard • revisão '+editingFingerboard.expectedRevision;
+    $('fingerboardEditing').hidden=!editingDirected;
+    $('cancelFingerboardEdit').hidden=!editingDirected;
+    if(editingDirected)$('fingerboardEditing').textContent='Editando '+(isTractionBlock()?'Blocos de tração':'Fingerboard')+' • revisão '+editingDirected.expectedRevision;
     $('specificSubblockPanel').hidden=!sp;$('libraryPanel').hidden=structured;
     ['legacyBlockContext','legacyCapacityContext','legacyIntensityControls','libraryCapacities','intensityHelp','legacyIntensityGroup','legacyVolumeGroup','libraryMethodGroup'].forEach(id=>$(id).hidden=structured);
     $('specificTaskFeatures').hidden=!sp||!d;
@@ -1156,7 +1178,7 @@ var SpecificTaskModel=(()=>{
     const kind=CoachLibraryModel.kinds[$('libraryVolumeUnit').value];
     $('quantityLabel').textContent=({isometric:'Duração de cada suspensão (segundos)',hand_moves:'Movimentos de mão por trecho/boulder',repetitions:'Repetições por série',time:'Segundos por série',distance:'Metros por série'}[kind]||'Quantidade por série/trecho')+(kind?' (obrigatória)':'');
   }
-  $('libraryClassification').addEventListener('change',()=>perform(async()=>{clearCoachValidation();if(editingFingerboard)resetCoachDraft();renderCoachExercises();specificGrades();syncSpecificUi();if(isFingerboard())await loadFingerboard();syncFingerboard();updateCoachControls();}));
+  $('libraryClassification').addEventListener('change',()=>perform(async()=>{clearCoachValidation();if(editingDirected)resetCoachDraft();renderCoachExercises();specificGrades();syncSpecificUi();if(hasDirectedSubblock())await loadDirectedOptions();syncDirectedChoices();syncDirectedFields();updateCoachControls();}));
   $('specificSubblock').addEventListener('change',()=>{clearCoachValidation();specificGrades();syncSpecificUi();});
   async function chooseExercise(){
     clearCoachValidation();coachHint('info',isSpecificTask()?'Informe o número de séries e de repetições por série.':'Informe Método e os parâmetros obrigatórios conforme o exercício selecionado.');
@@ -1214,7 +1236,7 @@ var SpecificTaskModel=(()=>{
         const d=p.directed,l=d.labels;
         text(parent,[l.modality,l.grip,l.gripOption,l.prehension,l.side,l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • '));
         text(parent,[d.sets+' séries × '+d.repetitionsPerSet+' repetições',d.durationSeconds===undefined?'':d.durationSeconds+' s por repetição','Volume: '+volume.total+' '+labels[volume.unitId],d.restBetweenRepetitionsSeconds===undefined?'':'Entre repetições: '+d.restBetweenRepetitionsSeconds+' s','Entre séries: '+d.restBetweenSetsSeconds/60+' min','Revisão '+p.revision,d.guidance].filter(Boolean).join(' • '));
-        button(parent,'Editar Fingerboard',()=>editFingerboard(item));
+        button(parent,'Editar '+snapshot.exercise.name,()=>editDirected(item));
         return;
       }
       if(task?.version>=2){
@@ -1266,9 +1288,9 @@ var SpecificTaskModel=(()=>{
     clearCoachValidation();
     if(!selectedWorkout||!selected)coachFieldError('coachTreinoId','Crie ou selecione uma sessão.');
     if(selectedWorkout.studentId!==$('coachAluno').value)coachFieldError('coachAluno','O aluno escolhido difere da sessão. Selecione a sessão correta.');
-    if(isFingerboard()){
+    if(hasDirectedSubblock()){
       function required(id){
-        if($(id).value==='')coachFieldError(id,'Preencha este campo do Fingerboard.');
+        if($(id).value==='')coachFieldError(id,'Preencha este campo da prescrição.');
         return $(id).value;
       }
       function bounded(id,integer,min,max){
@@ -1276,15 +1298,15 @@ var SpecificTaskModel=(()=>{
         if(value<min||value>max)coachFieldError(id,'Informe um valor entre '+min+' e '+max+'.');
         return value;
       }
-      const directed={version:1,subblock:'fingerboard',modality:required('fbModality'),grip:required('fbGrip'),side:required('fbSide'),load:{kind:required('fbLoad')},sets:bounded('fbSets',true,1,100),repetitionsPerSet:bounded('fbRepetitions',true,1,10000),restBetweenSetsSeconds:Number(required('fbSeriesRest'))};
-      if(fingerboardDefs.grips[directed.grip].options)directed.gripOption=required('fbGripOption');
+      const directed={version:1,subblock:$('directedSubblock').value,modality:required('fbModality'),grip:required('fbGrip'),side:required('fbSide'),load:isTractionBlock()?{kind:'external',kilograms:coachNumber('tractionLoad',false,'Informe a carga externa em kg, maior que zero.')}:{kind:required('fbLoad')},sets:bounded('fbSets',true,1,100),repetitionsPerSet:bounded('fbRepetitions',true,1,10000),restBetweenSetsSeconds:Number(required('fbSeriesRest'))};
+      if(directedOptions().grips[directed.grip].options)directed.gripOption=required('fbGripOption');
       if(directed.grip==='edge')directed.prehension=required('fbPrehension');
       if(directed.load.kind==='added')directed.load.kilograms=Number(required('fbKilograms'));
       if(directed.load.kind==='assisted')directed.load.assistance=required('fbAssistance');
       if(directed.modality==='isometric')directed.durationSeconds=bounded('fbDuration',false,0.001,86400);
       if(directed.repetitionsPerSet>1)directed.restBetweenRepetitionsSeconds=Number(required('fbRepetitionRest'));
       if($('itemNotas').value.trim())directed.guidance=$('itemNotas').value.trim();
-      return {workoutId:selected,classification:'directed',directed,...(editingFingerboard||{block:'Treinamento direcionado'})};
+      return {workoutId:selected,classification:'directed',directed,...(editingDirected||{block:'Treinamento direcionado'})};
     }
     const specific=isSpecificTask();
     if(specific&&!SpecificTaskModel.definition($('specificSubblock').value))coachFieldError('specificSubblock','Selecione a extensão da sequência.');
@@ -1356,10 +1378,10 @@ var SpecificTaskModel=(()=>{
     try{await detail(result.item.workoutId);await loadPendingSaves();}catch(e){coachHint('warning','Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.');}
   }
   function resetCoachDraft(){
-    if(isFingerboard()||editingFingerboard){
-      editingFingerboard=null;
+    if(hasDirectedSubblock()||editingDirected){
+      editingDirected=null;
       fingerboardDraftFields.forEach(id=>$(id).value='');
-      $('fbLoad').value='bodyweight';syncFingerboard();
+      $('fbLoad').value=isTractionBlock()?'':'bodyweight';syncDirectedChoices();syncDirectedFields();
     }
     exerciseSelection=null;assessmentVersion++;assessments=[];
     ['specificOrientation','specificInclination','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','gradeScale'].forEach(id=>$(id).value='');
@@ -1425,7 +1447,7 @@ var SpecificTaskModel=(()=>{
   function clearSession() {
     sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
     pendingCoachEntries=[];coachDraftBaseline='';coachReview=null;
-    editingFingerboard=null;clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
+    editingDirected=null;clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
     $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;
     placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;

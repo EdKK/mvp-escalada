@@ -82,7 +82,7 @@
         body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
       if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
-        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' s de suspensão'}`));
+        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}`));
       });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);

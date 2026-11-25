@@ -38,7 +38,7 @@ var StudentModel = (() => {
       const d=p.directed,l=d.labels;
       const grip=[l.grip,l.gripOption,l.prehension].filter(Boolean).join(' • ');
       const load=[l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • ');
-      const details=['Treinamento direcionado • Fingerboard • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
+      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
       if(d.restBetweenRepetitionsSeconds!==undefined)details.push('Recuperação entre repetições: '+d.restBetweenRepetitionsSeconds+' s');
       details.push('Recuperação entre séries: '+d.restBetweenSetsSeconds/60+' min');
       return details;

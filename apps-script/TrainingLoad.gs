@@ -32,7 +32,7 @@ function libraryVolume_(exercise,input,mode){
   if(mode!=='prescribed'&&mode!=='executed')fail_('INVALID_DATA');
   fields_(input,['kind','unitId','sets','blocks']);
   var allowed=exercise.volumeUnitIds||JSON.parse(exercise.volumeUnitIdsJson);
-  var expected={isometric:'unit-hang-seconds',repetitions:'unit-repetitions',hand_moves:'unit-hand-moves',time:'unit-seconds',distance:'unit-meters'};
+  var expected={isometric:exercise.isometricUnitId||'unit-hang-seconds',repetitions:'unit-repetitions',hand_moves:'unit-hand-moves',time:'unit-seconds',distance:'unit-meters'};
   if(expected[input.kind]!==input.unitId || allowed.indexOf(input.unitId)<0)fail_('INCOMPATIBLE_UNIT');
   var lines=[],min=mode==='prescribed'?1:0;
   function add(block,order,quantity,occurrences,duration){var total=quantity*occurrences*(duration===''?1:duration);if(!Number.isFinite(total)||total>1e12)fail_('INVALID_DATA');lines.push({blockOrder:block,setOrder:order,quantity:quantity,occurrences:occurrences,durationSeconds:duration,volumeUnitId:input.unitId,total:Math.round(total*1e9)/1e9});if(lines.length>100)fail_('INVALID_DATA');}
@@ -123,6 +123,18 @@ function fingerboardDefinitions_(){
     seriesRest:[60,120,180,300,600,900]
   };
 }
+function directedSubblockNames_(){
+  return {fingerboard:'Fingerboard',traction_blocks:'Blocos de tração'};
+}
+function tractionBlockDefinitions_(){
+  var definitions=fingerboardDefinitions_();
+  delete definitions.grips.sloper;
+  delete definitions.grips.jug;
+  delete definitions.sides.bilateral;
+  definitions.modalities={isometric:'Tração isométrica'};
+  definitions.loads={external:'Carga externa'};
+  return definitions;
+}
 function directedChoice_(value,choices){
   if(typeof value!=='string'||!Object.prototype.hasOwnProperty.call(choices,value))fail_('INVALID_DATA');
   return value;
@@ -133,9 +145,12 @@ function directedOption_(value,choices){
 }
 function validateDirectedLoad_(data,workout,item){
   fields_(data,['workoutId','itemId','classification','expectedRevision','directed']);
-  var d=data.directed,defs=fingerboardDefinitions_();
+  var d=data.directed;
   fields_(d,['version','subblock','modality','grip','gripOption','prehension','side','load','sets','repetitionsPerSet','durationSeconds','restBetweenRepetitionsSeconds','restBetweenSetsSeconds','guidance']);
-  if(data.classification!=='directed'||item.block!=='Treinamento direcionado'||d.version!==1||d.subblock!=='fingerboard')fail_('INVALID_DATA');
+  if(data.classification!=='directed'||item.block!=='Treinamento direcionado'||d.version!==1)fail_('INVALID_DATA');
+  var names=directedSubblockNames_();
+  directedChoice_(d.subblock,names);
+  var traction=d.subblock==='traction_blocks',defs=traction?tractionBlockDefinitions_():fingerboardDefinitions_();
   directedChoice_(d.modality,defs.modalities);
   var grip=defs.grips[directedChoice_(d.grip,defs.grips)];
   if(grip.options)directedChoice_(d.gripOption,grip.options);
@@ -145,7 +160,8 @@ function validateDirectedLoad_(data,workout,item){
   directedChoice_(d.side,defs.sides);
   fields_(d.load,['kind','kilograms','assistance']);
   directedChoice_(d.load.kind,defs.loads);
-  if(d.load.kind==='added')directedOption_(d.load.kilograms,defs.kilograms);
+  if(traction)libraryNumber_(d.load.kilograms,Number.MIN_VALUE,Number.MAX_VALUE,false);
+  else if(d.load.kind==='added')directedOption_(d.load.kilograms,defs.kilograms);
   else if(d.load.kilograms!==undefined)fail_('INVALID_DATA');
   if(d.load.kind==='assisted')directedChoice_(d.load.assistance,defs.assistance);
   else if(d.load.assistance!==undefined)fail_('INVALID_DATA');
@@ -165,12 +181,12 @@ function validateDirectedLoad_(data,workout,item){
   if(d.prehension!==undefined)directed.labels.prehension=defs.prehensions[d.prehension];
   if(d.load.assistance!==undefined)directed.labels.assistance=defs.assistance[d.load.assistance];
   if(d.guidance!==undefined)directed.guidance=text_(d.guidance,2000);
-  var kind=isometric?'isometric':'repetitions',unitId=isometric?'unit-hang-seconds':'unit-repetitions';
+  var kind=isometric?'isometric':'repetitions',unitId=traction?'unit-seconds':isometric?'unit-hang-seconds':'unit-repetitions';
   var sets=Array.from({length:d.sets},function(){
     return isometric?{suspensions:d.repetitionsPerSet,seconds:d.durationSeconds}:{repetitions:d.repetitionsPerSet};
   });
-  var volume=libraryVolume_({volumeUnitIds:[unitId]},{kind:kind,unitId:unitId,sets:sets},'prescribed');
-  return {workout:workout,item:item,exercise:{id:'directed:fingerboard',name:'Fingerboard'},method:null,protocol:null,capacity:null,classification:'directed',intensity:{notPrescribed:true},auxiliaryIntensities:[],volume:volume,directed:directed};
+  var volume=libraryVolume_({volumeUnitIds:[unitId],isometricUnitId:traction?'unit-seconds':undefined},{kind:kind,unitId:unitId,sets:sets},'prescribed');
+  return {workout:workout,item:item,exercise:{id:'directed:'+d.subblock,name:names[d.subblock]},method:null,protocol:null,capacity:null,classification:'directed',intensity:{notPrescribed:true},auxiliaryIntensities:[],volume:volume,directed:directed};
 }
 function libraryValidateLoad_(db,user,data,candidateItem){
   fields_(data,['workoutId','itemId','exerciseId','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','expectedRevision','task','directed']);
@@ -226,7 +242,10 @@ function libraryCreatePrescription_(db,user,req){
     var d=req.data,validated=libraryValidateLoad_(db,user,d);libraryNumber_(d.expectedRevision,0,100000,true);
     var existing=libraryRows_(db,'PRESCRICOES').filter(function(r){return r.itemId===d.itemId;}).sort(function(a,b){return b.revision-a.revision;})[0];
     if(d.expectedRevision!==(existing?existing.revision:0))fail_('CONFLICT');
-    if(existing&&Boolean(JSON.parse(existing.snapshotJson).directed)!==Boolean(validated.directed))fail_('INVALID_DATA');
+    if(existing){
+      var previousDirected=JSON.parse(existing.snapshotJson).directed;
+      if((previousDirected&&previousDirected.subblock)!==(validated.directed&&validated.directed.subblock))fail_('INVALID_DATA');
+    }
     if(validated.directed&&!existing){
       var creation=rows_(db,'Requests').some(function(r){
         if(r.entity!=='Items'||r.entityId!==d.itemId||r.userId!==user.id)return false;

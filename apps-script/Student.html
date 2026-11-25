@@ -149,7 +149,7 @@ var StudentModel = (() => {
       const d=p.directed,l=d.labels;
       const grip=[l.grip,l.gripOption,l.prehension].filter(Boolean).join(' • ');
       const load=[l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • ');
-      const details=['Treinamento direcionado • Fingerboard • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
+      const details=['Treinamento direcionado • '+p.snapshot.exercise.name+' • '+l.modality,grip+' • '+l.side,load,'Volume prescrito: '+p.volume.total+' '+units[p.quantityUnit]];
       if(d.restBetweenRepetitionsSeconds!==undefined)details.push('Recuperação entre repetições: '+d.restBetweenRepetitionsSeconds+' s');
       details.push('Recuperação entre séries: '+d.restBetweenSetsSeconds/60+' min');
       return details;
@@ -277,7 +277,7 @@ window.StudentAPI=(()=>{
         body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
       if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
-        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' s de suspensão'}`));
+        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}`));
       });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);

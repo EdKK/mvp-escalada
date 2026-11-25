@@ -29,7 +29,7 @@
   }
   async function chooseDate(date){
     if(sending)return;selectedDate=date;renderDates();const options=M.forDate(workouts,date);$('sessionSelect').replaceChildren();
-    options.forEach((w,index)=>{const o=el('option','',`${index+1}. ${w.goal}`);o.value=w.id;$('sessionSelect').append(o);});
+    options.forEach((w,index)=>{const o=el('option','',`${index+1}. ${w.microcycleType||w.goal}`);o.value=w.id;$('sessionSelect').append(o);});
     $('sessionSelect').hidden=options.length<2;$('sessionLabel').hidden=options.length<2;
     $('sessionDate').textContent=new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
     if(options.length)await loadWorkout(options[0].id);
@@ -37,7 +37,7 @@
   async function loadWorkout(id){
     const version=++loadVersion;workout=null;$('sessionContent').hidden=true;
     const data=await api.call('getWorkout',{workoutId:id});if(version!==loadVersion)return;
-    workout=data;$('dayGoal').textContent=data.goal;$('dayInstructions').replaceChildren();
+    workout=data;$('dayGoalLabel').textContent=data.microcycleType?'Tipo de microciclo':'Objetivo do dia';$('dayGoal').textContent=data.microcycleType||data.goal;$('dayInstructions').replaceChildren();
     (data.instructions||[]).forEach(text=>$('dayInstructions').append(el('li','',text)));
     $('noInstructions').hidden=!!data.instructions?.length;$('sessionContent').hidden=false;$('emptyState').hidden=true;renderExercises();
   }
@@ -56,7 +56,7 @@
       if(prev)title.append(el('span','status-label',M.statuses[prev.status]));
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics');
-      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(p.task?.version===2?'Entre repetições':'Descanso',p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'),metric('Intensidade',M.intensity(p),'intensity'));body.append(metrics);
+      metrics.append(metric(p.volume?.kind==='hand_moves'?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(p.task?.version>=2?'Entre repetições':'Descanso',p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'),metric('Intensidade',M.intensity(p),'intensity'));body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
         M.prescriptionDetails(p).forEach(description=>content.append(el('p','',description)));
@@ -66,7 +66,7 @@
       const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);
       timer.append(clock,button('Iniciar','timer-btn primary',()=>{timers.set(key,M.start(timers.get(key),Date.now()));paintClocks();},'play'),button('Pausar','timer-btn',()=>{timers.set(key,M.pause(timers.get(key),Date.now()));paintClocks();},'pause'),button('Zerar','timer-btn',()=>{timers.set(key,M.zero());paintClocks();},'reset'));body.append(timer);
       if(p.restSeconds!==undefined&&p.restSeconds!==''&&p.restSeconds>0){
-        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',p.task?.version===2?'Recuperação entre repetições':'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
+        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',p.task?.version>=2?'Recuperação entre repetições':'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
         rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
       }
       const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);

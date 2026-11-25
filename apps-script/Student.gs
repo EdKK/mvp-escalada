@@ -45,8 +45,9 @@ function positionTaken_(db,workoutId,itemId,position) {
   });
 }
 function ensureStudentData_(db, req, record) {
-  if (req.action==='createWorkout' && req.data.instructions !== undefined) {
-    supplement_(db,'WorkoutGuidance',record.id,{id:record.id,workoutId:record.id,steps:JSON.stringify(req.data.instructions)});
+  if (req.action==='createWorkout' && (req.data.instructions !== undefined||req.data.microcycleType!==undefined)) {
+    var steps=req.data.microcycleType===undefined?req.data.instructions:{version:1,microcycleType:req.data.microcycleType,instructions:req.data.instructions||[]};
+    supplement_(db,'WorkoutGuidance',record.id,{id:record.id,workoutId:record.id,steps:JSON.stringify(steps)});
   }
   if (req.action==='addItem' && req.data.prescription !== undefined) {
     var p=prescription_(req.data.prescription);
@@ -118,14 +119,23 @@ function effectiveItemPrescription_(workout,item,index,context){
   // A scalar is only a compatibility hint; heterogeneous doses stay in series/volume.
   var doses=lines.map(function(line){return volume.kind==='isometric'?line.durationSeconds:line.quantity;});
   if(doses.every(function(value){return value===doses[0];}))p.quantity=doses[0];
-  if(snapshot.task){p.task=snapshot.task;var rest=snapshot.task.version===2?snapshot.task.restBetweenRepetitionsSeconds:snapshot.task.restSeconds;if(rest!==undefined)p.restSeconds=numberRange_(rest,0,86400,true);}
+  if(snapshot.task){p.task=snapshot.task;var rest=snapshot.task.version>=2?snapshot.task.restBetweenRepetitionsSeconds:snapshot.task.restSeconds;if(rest!==undefined)p.restSeconds=numberRange_(rest,0,86400,true);}
   return p;
+}
+function workoutGuidance_(rows,workoutId) {
+  var matches=rows.filter(function(g){return g.workoutId===workoutId;});
+  if(matches.length>1) fail_('SCHEMA_ERROR');
+  if(!matches.length) return {instructions:[]};
+  var data=studentJson_(matches[0].steps);
+  if(Array.isArray(data)) return {instructions:data};
+  if(!data||data.version!==1||typeof data.microcycleType!=='string'||!Array.isArray(data.instructions)) fail_('SCHEMA_ERROR');
+  return data;
 }
 function hydrateStudentWorkout_(db, workout, user) {
   var context=studentPrescriptionContext_(db);
-  var guidance=optionalRows_(db,'WorkoutGuidance').filter(function(g){return g.workoutId===workout.id;});
-  if (guidance.length>1) fail_('SCHEMA_ERROR');
-  workout.instructions=guidance.length?studentJson_(guidance[0].steps):[];
+  var guidance=workoutGuidance_(optionalRows_(db,'WorkoutGuidance'),workout.id);
+  workout.instructions=guidance.instructions;
+  if(guidance.microcycleType!==undefined) workout.microcycleType=guidance.microcycleType;
   workout.items=workout.items.filter(function(item,index){
     var p=effectiveItemPrescription_(workout,item,index,context);
     if(!p){if(!user||user.role!=='coach')return false;item.prescriptionPending=true;}

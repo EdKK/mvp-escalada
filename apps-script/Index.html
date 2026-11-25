@@ -374,7 +374,7 @@ select.native-hidden {
       #loginPanel p{font-size:18px;line-height:1.6}
       #loginPanel button,#googleLoginLink{font-size:18px;min-height:56px}
     }
-  #libraryPanel select,#libraryPanel input,#libraryPanel textarea{font-size:16px;min-height:44px}#libraryPanel .row{margin-top:10px}#libraryPanel p{overflow-wrap:anywhere}#libraryPanel details{margin-top:12px}#libraryPanel summary{cursor:pointer;min-height:44px}#itemExercicio{font-size:16px}#savedPrescription{color:#bff7d0}
+  #libraryPanel select,#libraryPanel input,#libraryPanel textarea,#specificTaskFeatures select,#specificTaskFeatures input,#itemNotas{font-size:16px;min-height:44px}#libraryPanel .row,#specificTaskFeatures .row{margin-top:10px}#libraryPanel p,#specificTaskFeatures p,#libraryLoadStatus{overflow-wrap:anywhere}#libraryPanel details{margin-top:12px}#libraryPanel summary{cursor:pointer;min-height:44px}#itemExercicio{font-size:16px}#savedPrescription{color:#bff7d0}
 
     #panelCoach select{color-scheme:dark}
     #panelCoach select option,#panelCoach select optgroup{background:#101a33;color:#eaf0ff}
@@ -640,13 +640,17 @@ select.native-hidden {
 
         <div class="row">
           <div>
-            <label for="coachObjetivoDia">Objetivo do dia</label>
-            <select id="coachObjetivoDia">
-              <option value="Força">Força</option>
-              <option value="Técnica">Técnica</option>
-              <option value="Resistência">Resistência</option>
-              <option value="Volume">Volume</option>
-              <option value="Regenerativo">Regenerativo</option>
+            <label for="coachMicrocycleType">Tipo de microciclo</label>
+            <select id="coachMicrocycleType">
+              <option value="Introdutório">Introdutório</option>
+              <option value="Ordinário">Ordinário</option>
+              <option value="Choque">Choque</option>
+              <option value="Estabilizador">Estabilizador</option>
+              <option value="Manutenção">Manutenção</option>
+              <option value="Recuperativo">Recuperativo</option>
+              <option value="Controle">Controle</option>
+              <option value="Pré-competitivo">Pré-competitivo</option>
+              <option value="Competitivo">Competitivo</option>
             </select>
           </div>
         </div>
@@ -670,6 +674,15 @@ select.native-hidden {
         <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
 <section class="coach-field-group"><h3>Bloco principal</h3><label for="libraryClassification">Bloco de treinamento</label><select id="libraryClassification"><option value="general">Treinamento geral</option><option value="directed">Treinamento direcionado</option><option value="specific">Treinamento específico</option></select></section>
 <section id="specificSubblockPanel" class="coach-field-group" hidden><label for="specificSubblock">Extensão da sequência — subbloco</label><select id="specificSubblock"><option value="">Selecione o subbloco</option><option value="boulder_short">Boulder curto — 2–6 movimentos</option><option value="boulder_long">Boulder longo — 7–10 movimentos</option><option value="resistance_short">Resistência curta — 11–25 movimentos</option><option value="resistance_long">Resistência longa — 26–40 movimentos</option><option value="continuity">Continuidade — 41 ou mais movimentos</option></select><p class="muted">Faixas de extensão da sequência, sem classificação fisiológica automática.</p><span id="specificFieldError" class="muted" role="status" hidden></span></section>
+<section id="specificTaskFeatures" class="coach-field-group" hidden>
+<h3>Características da tarefa</h3>
+<div class="row"><div><label for="specificOrientation">Orientação do deslocamento (opcional)</label><select id="specificOrientation"><option value="">Não informada</option><option value="horizontal">Horizontal — travessia</option><option value="vertical">Vertical — escalada ascendente ou desescalada</option><option value="mixed">Misto</option></select></div><div><label for="specificInclination">Inclinação da parede (opcional)</label><select id="specificInclination"><option value="">Não informada</option><option value="0_15">0°–15°</option><option value="15_30">Acima de 15° até 30°</option><option value="30_45">Acima de 30° até 45°</option><option value="over_45">Acima de 45°</option></select></div></div>
+<p class="muted">0° é parede vertical; ângulos positivos indicam extraprumo. Paredes positivas não estão incluídas.</p>
+<div class="row"><div><label id="specificGradeLabel" for="specificGrade">Dificuldade (opcional)</label><select id="specificGrade"><option value="">Não prescrita</option></select></div><div><label for="specificSets">Número de séries (obrigatório)</label><input id="specificSets" aria-required="true" type="number" min="1" max="100" step="1" /></div><div><label for="specificRepetitions">Repetições por série (obrigatório)</label><input id="specificRepetitions" aria-required="true" type="number" min="1" max="100" step="1" /></div></div>
+<div class="row"><div><label for="specificRestSeconds">Recuperação entre repetições (segundos, opcional)</label><input id="specificRestSeconds" type="number" min="0" max="86400" step="1" /></div><div><label for="specificRestSets">Recuperação entre séries (opcional)</label><select id="specificRestSets"><option value="">Não informada</option><option value="60">1 minuto</option><option value="120">2 minutos</option><option value="180">3 minutos</option><option value="300">5 minutos</option><option value="600">10 minutos</option><option value="900">15 minutos</option></select></div></div>
+<p id="specificRangeHint" class="muted">Movimentos efetivos incluem juntar a outra mão na mesma agarra e rebotear. A faixa vale para cada sequência, não para o volume total.</p>
+</section>
+        <p id="libraryLoadStatus" class="muted" role="status" hidden></p>
         <section id="libraryPanel">
           <div id="coachLibrarySection"><section class="coach-field-group"><h3>Exercício e contexto</h3>
 <div id="legacyBlockContext"><div class="row">
@@ -716,14 +729,7 @@ select.native-hidden {
               <option value="Metros">Metros</option>
             </select>
           </div>
-        </div><section id="specificTaskFeatures" class="coach-field-group" hidden>
-<h3>Características da tarefa</h3>
-<div class="row"><div><label for="specificOrientation">Orientação do deslocamento (opcional)</label><select id="specificOrientation"><option value="">Não informada</option><option value="horizontal">Horizontal — travessia</option><option value="vertical">Vertical — escalada ascendente ou desescalada</option><option value="mixed">Misto</option></select></div><div><label for="specificInclination">Inclinação da parede (opcional)</label><select id="specificInclination"><option value="">Não informada</option><option value="0_15">0°–15°</option><option value="15_30">Acima de 15° até 30°</option><option value="30_45">Acima de 30° até 45°</option><option value="over_45">Acima de 45°</option></select></div></div>
-<p class="muted">0° é parede vertical; ângulos positivos indicam extraprumo. Paredes positivas não estão incluídas.</p>
-<div class="row"><div><label id="specificGradeLabel" for="specificGrade">Dificuldade (opcional)</label><select id="specificGrade"><option value="">Não prescrita</option></select></div><div><label for="specificSets">Número de séries (obrigatório)</label><input id="specificSets" aria-required="true" type="number" min="1" max="100" step="1" /></div><div><label for="specificRepetitions">Repetições por série (obrigatório)</label><input id="specificRepetitions" aria-required="true" type="number" min="1" max="100" step="1" /></div></div>
-<div class="row"><div><label for="specificRestSeconds">Recuperação entre repetições (segundos, opcional)</label><input id="specificRestSeconds" type="number" min="0" max="86400" step="1" /></div><div><label for="specificRestSets">Recuperação entre séries (opcional)</label><select id="specificRestSets"><option value="">Não informada</option><option value="60">1 minuto</option><option value="120">2 minutos</option><option value="180">3 minutos</option><option value="300">5 minutos</option><option value="600">10 minutos</option><option value="900">15 minutos</option></select></div></div>
-<p id="specificRangeHint" class="muted">Movimentos efetivos incluem juntar a outra mão na mesma agarra e rebotear. A faixa vale para cada sequência, não para o volume total.</p>
-</section>
+        </div>
 <p id="libraryDescription" class="muted" aria-live="polite">Selecione um exercício para ver a descrição e os parâmetros.</p>
 <p id="libraryCapacities" class="muted"></p>
 <details id="libraryMethodGroup" open><summary hidden>Método e protocolo</summary><div class="row"><div><label id="libraryMethodLabel" for="libraryMethod">Método (obrigatório)</label><select id="libraryMethod" required></select></div><div><label for="libraryProtocol">Protocolo (opcional)</label><select id="libraryProtocol"></select></div></div></details>
@@ -758,7 +764,9 @@ select.native-hidden {
             <input id="itemMin" type="number" min="0" step="5" placeholder="Ex: 15" />
           </div></div>
 <details><summary>Distribuição individual por série/bloco (opcional)</summary><label for="volumeDistribution" id="distributionLabel">Uma série por linha</label><textarea id="volumeDistribution"></textarea><p class="muted">Se preenchida, esta distribuição numérica substitui a repetição dos valores padrão; será gravada como séries estruturadas.</p></details>
-</section><section class="coach-field-group"><h3>Observações e gravação</h3>
+</section>
+        </section>
+<section class="coach-field-group"><h3>Observações e gravação</h3>
 <div style="margin-top:10px">
           <label for="itemNotas">Notas do treinador</label>
           <textarea id="itemNotas" placeholder="Pausas, técnica, foco do bloco, etc."></textarea>
@@ -771,7 +779,6 @@ select.native-hidden {
 <div class="btnbar"><button id="btnAddItem" class="primary">Salvar e adicionar próximo exercício</button></div>
 <p class="muted">O aluno acessa o treino em sua própria conta Google.</p>
 </section>
-        </section>
       </section>
       <aside class="coach-results card" aria-labelledby="coachResultsTitle">
         <h2 id="coachResultsTitle">Treino prescrito</h2>
@@ -918,7 +925,7 @@ var CoachLibraryModel = (() => {
     return input;
   }
   function intensity(selection,values){const indicator=selection.indicator,out={indicatorId:indicator.id};if(indicator.kind==='relative'){if(!values.assessmentId)throw Error('Selecione uma avaliação válida');out.assessmentId=values.assessmentId;out.percent=number(values.value);}else if(indicator.kind==='ordinal'){if(!String(values.value).trim()||!String(values.scale).trim())throw Error('Informe grau e escala');out.value=String(values.value).trim();out.scale=String(values.scale).trim();}else if(indicator.kind==='undefined'){if(!String(values.value).trim())throw Error('Descreva a referência pendente');out.description=String(values.value).trim();}else out.value=number(values.value,true);return out;}
-  function selectionController(lib){let catalog,exercises=[],version=0,current=null;return {async load(){const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1]).sort((a,b)=>a.name.localeCompare(b.name));return {catalog,exercises};},async select(id){const ticket=++version;current=null;if(!exercises.some(e=>e.id===id))throw Error('Selecione um exercício ativo');const details=await lib('getExercise',{exerciseId:id});if(ticket!==version)return null;current=describe(details,catalog);return current;},get current(){return current;}};}
+  function selectionController(lib){let catalog,exercises=[],version=0,current=null;return {async load(){catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{})).sort((a,b)=>a.name.localeCompare(b.name));return {catalog,exercises};},async select(id){const ticket=++version;current=null;if(!exercises.some(e=>e.id===id))throw Error('Selecione um exercício ativo');const details=await lib('getExercise',{exerciseId:id});if(ticket!==version)return null;current=describe(details,catalog);return current;},get current(){return current;}};}
   return {kinds,metrics,number,active,describe,volume,intensity,selectionController};
 })();
 
@@ -926,8 +933,7 @@ var SpecificTaskModel=(()=>{
   const definitions=[{id:'boulder_short',label:'Boulder curto',min:2,max:6,scale:'Hueco'},{id:'boulder_long',label:'Boulder longo',min:7,max:10,scale:'Hueco'},{id:'resistance_short',label:'Resistência curta',min:11,max:25,scale:'Brasileira'},{id:'resistance_long',label:'Resistência longa',min:26,max:40,scale:'Brasileira'},{id:'continuity',label:'Continuidade',min:41,max:null,scale:'Brasileira'}];
   function grades(scale){if(scale==='Hueco')return Array.from({length:16},(_,i)=>'V'+i);const list=['4º','4º sup','5º','5º sup','6º','6º sup'];for(let n=7;n<=12;n++)['a','b','c'].forEach(letter=>list.push(n+letter));return list;}
   function definition(id){return definitions.find(d=>d.id===id);}
-  function eligible(e){return e.status==='active'&&e.modality==='Escalada'&&e.primaryIndicatorId==='int-grade'&&JSON.parse(e.volumeUnitIdsJson).includes('unit-hand-moves');}
-  return {definitions,grades,definition,eligible};
+  return {definitions,grades,definition};
 })();
 
 // UI integration
@@ -940,7 +946,11 @@ var SpecificTaskModel=(()=>{
   let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
   const coachRenderedItems=new Map();
   const coachDraftFields=['itemBloco','itemCategoria','itemExercicio','itemQtd','itemIntensVal','itemMin','itemNotas','libraryMethod','libraryProtocol','libraryCapacity','libraryClassification','libraryAssessment','gradeScale','libraryVolumeUnit','librarySets','librarySuspensions','libraryBlocks','libraryBouts','volumeDistribution','specificSubblock','specificOrientation','specificInclination','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets'];
-  const coachDraftSignature=()=>JSON.stringify(coachDraftFields.map(id=>id.startsWith('specific')&&$('libraryClassification').value!=='specific'?'':$(id).value));
+  const coachDraftSignature=()=>JSON.stringify(coachDraftFields.map(id=>{
+    if(id==='libraryClassification'||id==='itemNotas')return $(id).value;
+    const specific=$('libraryClassification').value==='specific';
+    return id.startsWith('specific')===specific?$(id).value:'';
+  }));
   const coachDraftDirty=()=>coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
   let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
   const pending = new Map();
@@ -976,7 +986,7 @@ var SpecificTaskModel=(()=>{
     selectedWorkout=w;
     if(session?.role==='coach')$('coachAluno').value=w.studentId;
     selected=id; $('coachTreinoId').value=id; $('alunoTreinoId').value=id;
-    text($('previewTreinoAluno'),w.date+' • '+w.goal+' • '+w.studentId);
+    text($('previewTreinoAluno'),w.date+' • '+(w.microcycleType||w.goal)+' • '+w.studentId);
     w.items.forEach((i,index) => {
       let parent=$('previewTreinoAluno');
       if(session?.role==='coach'){
@@ -990,21 +1000,23 @@ var SpecificTaskModel=(()=>{
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
     (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
-    if(session?.role==='coach' && libraryReady){await refreshAssessments();await showLibraryPrescriptions(w.id);}
+    if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(libraryReady&&!isSpecificTask())await refreshAssessments();}
   }
   async function refresh(id) {
     const workouts=await rpc({action:'listWorkouts',data:{}});
     $('listaTreinos').replaceChildren(); $('alunoTreinoId').replaceChildren();
     workouts.forEach(w => {
-      button($('listaTreinos'),w.date+' • '+w.studentId+' • '+w.goal,()=>detail(w.id));
-      const option=document.createElement('option'); option.value=w.id; option.textContent=w.date+' • '+w.goal; $('alunoTreinoId').appendChild(option);
+      button($('listaTreinos'),w.date+' • '+w.studentId+' • '+(w.microcycleType||w.goal),()=>detail(w.id));
+      const option=document.createElement('option'); option.value=w.id; option.textContent=w.date+' • '+(w.microcycleType||w.goal); $('alunoTreinoId').appendChild(option);
     });
     $('coachStorageInfo').textContent=workouts.length+' treinos'; $('studentStorageInfo').textContent=workouts.length+' treinos';
     if(workouts.length) await detail(workouts.some(w=>w.id===id)?id:workouts[0].id);
     else { selected=''; $('coachTreinoId').value=''; $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren(); }
   }
   $('btnCriarTreino').addEventListener('click',()=>perform(async()=>{
-    const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,goal:$('coachObjetivoDia').value,...($('coachInstructions').value.trim()?{instructions:$('coachInstructions').value.trim().split('\n').map(s=>s.trim()).filter(Boolean)}:{})});
+    const microcycle=$('coachMicrocycleType');
+    if(!Array.from(microcycle.children).some(option=>option.value===microcycle.value))throw Error('Selecione um tipo de microciclo.');
+    const w=await write('createWorkout',{studentId:$('coachAluno').value,date:$('coachData').value,microcycleType:microcycle.value,...($('coachInstructions').value.trim()?{instructions:$('coachInstructions').value.trim().split('\n').map(s=>s.trim()).filter(Boolean)}:{})});
     await refresh(w.id);
     $('coachPrescriptionTitle').focus();
     $('coachPrescription').scrollIntoView({block:'start',behavior:'smooth'});
@@ -1022,7 +1034,7 @@ var SpecificTaskModel=(()=>{
     if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft','btnReviewSession','btnConfirmSession'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
     else {$('alunoTreinoId').disabled=busy;}
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
-    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!libraryReady||!exerciseSelection||!selected));
+    $('btnAddItem').disabled=busy||(!pendingCoachSave&&(!selected||(!isSpecificTask()&&(!libraryReady||!exerciseSelection))));
     coachTabs.forEach(tab=>$(tab.button).disabled=busy);
     $('btnReviewSession').disabled=busy||!selected;
     $('btnConfirmSession').disabled=busy||!!pendingCoachSave||!coachReview||!coachReview.ready||coachDraftDirty();
@@ -1030,13 +1042,24 @@ var SpecificTaskModel=(()=>{
   }
   async function loadLibrary(){
     libraryReady=false;exerciseSelection=null;libraryController=CoachLibraryModel.selectionController(library);
-    try{const result=await libraryController.load();coachExercises=result.exercises;renderCoachExercises();syncSpecificUi();libraryReady=true;$('librarySaveHint').textContent=result.exercises.length+' exercícios ativos disponíveis. Nenhuma avaliação será criada automaticamente.';await loadPendingSaves();}
-    catch(e){options('itemExercicio',[],'Biblioteca indisponível');$('librarySaveHint').textContent='Não foi possível carregar a biblioteca: '+e.message+'. Confira os módulos e propriedades da homologação. A criação de sessões permanece disponível.';}
+    const status=$('libraryLoadStatus');
+    status.hidden=true;
+    try{
+      const result=await libraryController.load();
+      coachExercises=result.exercises;renderCoachExercises();libraryReady=true;
+      $('librarySaveHint').textContent=result.exercises.length+' exercícios ativos disponíveis. Nenhuma avaliação será criada automaticamente.';
+    }catch(e){
+      options('itemExercicio',[],'Biblioteca indisponível');status.hidden=false;
+      status.textContent='Não foi possível carregar a biblioteca: '+e.message+'. O Treinamento específico continua disponível.';
+    }
+    try{await loadPendingSaves();}
+    catch(e){coachHint('warning','Não foi possível consultar gravações pendentes: '+e.message+'.');}
+    syncSpecificUi();
     updateCoachControls();
   }
   const isSpecificTask=()=>$('libraryClassification').value==='specific';
   function renderCoachExercises(){
-    const previous=$('itemExercicio').value,rows=isSpecificTask()?coachExercises.filter(SpecificTaskModel.eligible):coachExercises;
+    const previous=$('itemExercicio').value,rows=coachExercises;
     options('itemExercicio',rows,'Selecione um exercício ativo');if(rows.some(e=>e.id===previous))$('itemExercicio').value=previous;
     else exerciseSelection=null;
   }
@@ -1048,10 +1071,9 @@ var SpecificTaskModel=(()=>{
   }
   function syncSpecificUi(){
     const sp=isSpecificTask(),d=SpecificTaskModel.definition($('specificSubblock').value);
-    $('specificSubblockPanel').hidden=!sp;$('libraryPanel').hidden=sp&&!d;
+    $('specificSubblockPanel').hidden=!sp;$('libraryPanel').hidden=sp;
     ['legacyBlockContext','legacyCapacityContext','legacyIntensityControls','libraryCapacities','intensityHelp','legacyIntensityGroup','legacyVolumeGroup','libraryMethodGroup'].forEach(id=>$(id).hidden=sp);
     $('specificTaskFeatures').hidden=!sp||!d;
-    $('itemExercicioLabel').textContent=sp?'Tarefa da biblioteca (obrigatória)':'Exercício (obrigatório)';
     $('gradeField').hidden=sp||exerciseSelection?.indicator.kind!=='ordinal';
     $('assessmentField').hidden=sp||exerciseSelection?.indicator.kind!=='relative';
     $('libraryAssessment').setAttribute('aria-required',String(!sp&&exerciseSelection?.indicator.kind==='relative'));
@@ -1061,7 +1083,7 @@ var SpecificTaskModel=(()=>{
     const kind=CoachLibraryModel.kinds[$('libraryVolumeUnit').value];
     $('quantityLabel').textContent=({isometric:'Duração de cada suspensão (segundos)',hand_moves:'Movimentos de mão por trecho/boulder',repetitions:'Repetições por série',time:'Segundos por série',distance:'Metros por série'}[kind]||'Quantidade por série/trecho')+(kind?' (obrigatória)':'');
   }
-  $('libraryClassification').addEventListener('change',()=>perform(async()=>{clearCoachValidation();renderCoachExercises();specificGrades();syncSpecificUi();if(!exerciseSelection)$('libraryDescription').textContent='Selecione uma tarefa ativa da biblioteca.';}));
+  $('libraryClassification').addEventListener('change',()=>perform(async()=>{clearCoachValidation();renderCoachExercises();specificGrades();syncSpecificUi();updateCoachControls();}));
   $('specificSubblock').addEventListener('change',()=>{clearCoachValidation();specificGrades();syncSpecificUi();});
   async function chooseExercise(){
     clearCoachValidation();coachHint('info',isSpecificTask()?'Informe o número de séries e de repetições por série.':'Informe Método e os parâmetros obrigatórios conforme o exercício selecionado.');
@@ -1107,15 +1129,15 @@ var SpecificTaskModel=(()=>{
     if(rows.some(a=>a.id===previous))$('libraryAssessment').value=previous;
     $('assessmentInfo').textContent=rows.length?'Referências filtradas pelo aluno e pela data da sessão.':'Nenhuma avaliação válida. Registre a referência pelo processo de avaliações da homologação; não será estimada automaticamente.';
   }
-  async function showLibraryPrescriptions(workoutId){
-    const rows=await library('listLibraryPrescriptions',{workoutId});if(selected!==workoutId)return;
-    const latest=new Map();rows.forEach(p=>{if(!latest.has(p.itemId)||latest.get(p.itemId).revision<p.revision)latest.set(p.itemId,p);});
-    latest.forEach(p=>{
-      const intensity=JSON.parse(p.intensityJson).primary,volume=JSON.parse(p.volumeJson),snapshot=JSON.parse(p.snapshotJson);
+  function showLibraryPrescriptions(items){
+    items.forEach(item=>{
+      const p=item.prescription;
+      if(p?.source!=='library')return;
+      const {volume,snapshot}=p,intensity=p.intensity.primary;
       const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:
         intensity.kind==='ordinal'?(intensity.notPrescribed?'Dificuldade não prescrita':`${intensity.value} (${intensity.scale})`):intensity.description||String(intensity.value);
-      const parent=coachRenderedItems.get(p.itemId)||$('previewTreinoAluno'),task=snapshot.task;
-      if(task?.version===2){
+      const parent=coachRenderedItems.get(item.id)||$('previewTreinoAluno'),task=snapshot.task;
+      if(task?.version>=2){
         text(parent,`${snapshot.exercise.name} • ${task.sets} séries × ${task.repetitionsPerSet} repetições • ${value} • revisão ${p.revision}`);
       }else{
         const method=snapshot.method?snapshot.method.name:'Método não informado';
@@ -1126,7 +1148,7 @@ var SpecificTaskModel=(()=>{
       const orientation={horizontal:'Horizontal — travessia',vertical:'Vertical — ascendente ou desescalada',mixed:'Misto'}[task.orientation]||'não informado';
       const inclination={'0_15':'0°–15°','15_30':'>15° até 30°','30_45':'>30° até 45°',over_45:'>45°'}[task.wallInclination]||'não informada';
       const characteristics=`${task.label} • deslocamento: ${orientation} • inclinação: ${inclination}`;
-      if(task.version===2){
+      if(task.version>=2){
         const repetitions=task.restBetweenRepetitionsSeconds===undefined?'não informada':task.restBetweenRepetitionsSeconds+' s';
         const sets=task.restBetweenSetsSeconds===undefined?'não informada':task.restBetweenSetsSeconds/60+' min';
         text(parent,`${characteristics} • recuperação entre repetições: ${repetitions} • recuperação entre séries: ${sets}`);
@@ -1166,12 +1188,10 @@ var SpecificTaskModel=(()=>{
     if(selectedWorkout.studentId!==$('coachAluno').value)coachFieldError('coachAluno','O aluno escolhido difere da sessão. Selecione a sessão correta.');
     const specific=isSpecificTask();
     if(specific&&!SpecificTaskModel.definition($('specificSubblock').value))coachFieldError('specificSubblock','Selecione a extensão da sequência.');
-    if(!exerciseSelection||exerciseSelection.exercise.id!==$('itemExercicio').value)coachFieldError('itemExercicio','Selecione um exercício ativo.');
-    if(!specific&&!exerciseSelection.methods.some(method=>method.id===$('libraryMethod').value))coachFieldError('libraryMethod','Selecione um método compatível (obrigatório).');
     if(specific){
-      const task={version:2,subblock:$('specificSubblock').value};
+      const task={version:3,subblock:$('specificSubblock').value};
       const grade=$('specificGrade').value,definition=SpecificTaskModel.definition(task.subblock);
-      const intensity={indicatorId:exerciseSelection.indicator.id};
+      const intensity={indicatorId:'int-grade'};
       if(grade){
         if(!SpecificTaskModel.grades(definition.scale).includes(grade))coachFieldError('specificGrade','Selecione um grau da escala indicada.');
         intensity.value=grade;
@@ -1193,8 +1213,10 @@ var SpecificTaskModel=(()=>{
         if(![60,120,180,300,600,900].includes(rest))coachFieldError('specificRestSets','Selecione uma recuperação entre séries.');
         task.restBetweenSetsSeconds=rest;
       }
-      return {workoutId:selected,exerciseId:exerciseSelection.exercise.id,block:'Treinamento específico',classification:'specific',notes:$('itemNotas').value,intensity,task};
+      return {workoutId:selected,block:'Treinamento específico',classification:'specific',notes:$('itemNotas').value,intensity,task};
     }
+    if(!exerciseSelection||exerciseSelection.exercise.id!==$('itemExercicio').value)coachFieldError('itemExercicio','Selecione um exercício ativo.');
+    if(!exerciseSelection.methods.some(method=>method.id===$('libraryMethod').value))coachFieldError('libraryMethod','Selecione um método compatível (obrigatório).');
     const kind=exerciseSelection.indicator.kind;
     if(kind==='relative'&&!assessments.some(a=>a.id===$('libraryAssessment').value))coachFieldError('libraryAssessment','Este exercício exige uma avaliação individual válida do aluno para a data da sessão.');
     if(!$('itemIntensVal').value.trim())coachFieldError('itemIntensVal',kind==='relative'?'Informe o percentual da referência individual (obrigatório neste exercício).':kind==='ordinal'?'Informe o grau de dificuldade.':kind==='undefined'?'Informe a referência qualitativa prescrita.':'Informe a intensidade prescrita.');

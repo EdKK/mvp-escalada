@@ -105,3 +105,62 @@ test('interrupted simplified saves resume with the same intent and round-trip ex
  assert.equal(f.read('coach').itemFeedback[0].id,result.id);
  assert.equal(f.read('coach').itemFeedback[0].actualQuantity,2);
 });
+
+test('standalone tasks use subblock identity even when the catalog tables are missing',()=>{
+ const f=setup();
+ const old=ok(f.lib('saveCoachPrescription',simplified(f,'boulder_short')));
+ delete f.tables.EXERCICIOS;
+ delete f.tables.INDICADORES;
+ error(f.lib('catalog'),'SCHEMA_ERROR');
+ const data=simplified(f,'continuity',{version:3,restBetweenRepetitionsSeconds:0,restBetweenSetsSeconds:300});
+ delete data.exerciseId;
+ data.intensity={indicatorId:'int-grade',value:'7a',scale:'Brasileira'};
+ f.fail('PRESCRICAO_SERIES');
+ error(f.lib('saveCoachPrescription',data,'standalone'),'INTERNAL_ERROR');
+ assert.equal(f.read().items.length,1);
+ const saved=ok(f.lib('saveCoachPrescription',data,'standalone'));
+ assert.equal(saved.item.exercise,'Continuidade');assert.equal(saved.prescription.exerciseId,'specific:continuity');
+ const [historical,current]=f.read().items;
+ assert.equal(historical.id,old.item.id);assert.equal(historical.prescription.task.version,2);
+ assert.equal(current.prescription.task.version,3);assert.equal(current.prescription.restSeconds,0);
+ assert.equal(M.quantity(current.prescription),'3 por série');
+ const feedback=ok(f.api('submitItemFeedback',{workoutId:f.w.id,itemId:saved.item.id,status:'partial',fingerPain:0,actualSets:1,actualQuantity:2,quantityUnit:'repetitions',expectedRevision:0},'standalone-feedback','a'));
+ assert.equal(f.read('coach').itemFeedback[0].id,feedback.id);
+ error(f.lib('saveCoachPrescription',{...data,exerciseId:'exercise-route'}));
+ error(f.lib('saveCoachPrescription',{...data,metric:'Reps'}));
+ error(f.lib('saveCoachPrescription',{...data,intensity:{indicatorId:'int-grade',value:'V4',scale:'Hueco'}}));
+});
+test('nine microcycle types round-trip separately from historical objectives and instructions',()=>{
+ const f=setup();
+ const types=['Introdutório','Ordinário','Choque','Estabilizador','Manutenção','Recuperativo','Controle','Pré-competitivo','Competitivo'];
+ for(const microcycleType of types){
+  const opts={studentId:'s1',date:'2026-11-28',microcycleType,instructions:['Aquecer']};
+  const saved=ok(f.api('createWorkout',opts,microcycleType));
+  assert.equal(saved.goal,'');assert.equal(saved.microcycleType,microcycleType);
+  const read=ok(f.api('getWorkout',{workoutId:saved.id},undefined,'a'));
+  assert.equal(read.microcycleType,microcycleType);assert.equal(read.instructions[0],'Aquecer');
+  assert.equal(ok(f.api('createWorkout',opts,microcycleType)).id,saved.id);
+ }
+ const legacy=ok(f.api('createWorkout',{studentId:'s1',date:'2026-11-28',goal:'Controle',instructions:['Legado']}));
+ const old=ok(f.api('getWorkout',{workoutId:legacy.id},undefined,'a'));
+ assert.equal(old.goal,'Controle');assert.equal(old.microcycleType,undefined);assert.equal(old.instructions[0],'Legado');
+ assert.equal(ok(f.api('listWorkouts',{},undefined,'a')).filter(w=>w.microcycleType).length,9);
+ assert.equal(ok(f.api('listWorkouts',{},undefined,'b')).length,0);
+ for(const patch of [{microcycleType:'Força'},{},{microcycleType:'Controle',goal:'Técnica'}]){
+  error(f.api('createWorkout',{studentId:'s1',date:'2026-11-28',...patch}));
+ }
+ f.fail('WorkoutGuidance');
+ const retry={studentId:'s1',date:'2026-11-28',microcycleType:'Controle'};
+ error(f.api('createWorkout',retry,'microcycle-retry'),'INTERNAL_ERROR');
+ assert.equal(ok(f.api('listWorkouts',{},undefined,'a')).length,11);
+ assert.equal(ok(f.api('createWorkout',retry,'microcycle-retry')).microcycleType,'Controle');
+});
+
+test('BUSY is returned before a catalog read when the script lock cannot be acquired',()=>{
+ const f=setup();
+ f.busy(true);
+ error(f.lib('catalog'),'BUSY');
+ error(f.api('listWorkouts',{}),'BUSY');
+ f.busy(false);
+ assert.ok(ok(f.lib('catalog')).INDICADORES.length);
+});

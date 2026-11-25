@@ -62,15 +62,21 @@ function fingerprint_(action, data) {
   var canonical = {}; Object.keys(data).sort().forEach(function(k) { canonical[k] = data[k]; });
   return JSON.stringify([action, canonical]);
 }
+function microcycleType_(value) {
+  if (['Introdutório','Ordinário','Choque','Estabilizador','Manutenção','Recuperativo','Controle','Pré-competitivo','Competitivo'].indexOf(value)<0) fail_('INVALID_DATA');
+  return value;
+}
 function create_(db, user, req) {
   if (user.role !== (req.action === 'submitFeedback' ? 'student' : 'coach')) fail_('FORBIDDEN');
   var d = req.data, entity, record;
   var key = text_(req.requestId, 100);
   if (req.action === 'createWorkout') {
-    fields_(d, ['studentId', 'date', 'goal', 'instructions']);
+    fields_(d, ['studentId', 'date', 'goal', 'microcycleType', 'instructions']);
     if (d.instructions !== undefined && (!Array.isArray(d.instructions) || d.instructions.length>20)) fail_('INVALID_DATA');
     if (d.instructions) d.instructions.forEach(function(step){text_(step,500);});
-    var student = text_(d.studentId, 100), date = text_(d.date, 10), goal = text_(d.goal, 500);
+    if ((d.goal === undefined) === (d.microcycleType === undefined)) fail_('INVALID_DATA');
+    if (d.microcycleType !== undefined) { microcycleType_(d.microcycleType); sheet_(db,'WorkoutGuidance'); }
+    var student = text_(d.studentId, 100), date = text_(d.date, 10), goal = d.goal===undefined?'':text_(d.goal, 500);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail_('INVALID_DATA');
     if (!linked_(db, user.id, student)) fail_('FORBIDDEN');
     entity = 'Workouts'; record = {id: id_(), coachId: user.id, studentId: student, date: date, goal: goal, createdAt: new Date().toISOString()};
@@ -112,9 +118,12 @@ function persistRecord_(db,user,req,entity,record,beforeInsert) {
     append_(db,'Requests',{id:id_(),userId:user.id,key:key,fingerprint:fingerprint,entity:entity,entityId:record.id});
     SpreadsheetApp.flush();
   }
-  if(!existing.length) {append_(db,entity,record); SpreadsheetApp.flush();}
   var saved=existing[0]||record;
-  ensureStudentData_(db,req,saved);
+  var microcycle=req.action==='createWorkout'&&req.data.microcycleType!==undefined;
+  if(microcycle) ensureStudentData_(db,req,saved);
+  if(!existing.length) {append_(db,entity,record); SpreadsheetApp.flush();}
+  if(!microcycle) ensureStudentData_(db,req,saved);
+  else saved.microcycleType=req.data.microcycleType;
   return saved;
 }
 
@@ -141,7 +150,12 @@ function api(request) {
       result = rows_(db, 'Feedback').filter(function(f) { return f.workoutId === target.id && f.studentId === target.studentId; });
     } else if (request.action === 'listWorkouts') {
       fields_(request.data, []);
-      result = rows_(db, 'Workouts').filter(function(w) { return visible_(db, user, w); });
+      var guidance=optionalRows_(db,'WorkoutGuidance');
+      result = rows_(db, 'Workouts').filter(function(w) { return visible_(db, user, w); }).map(function(w){
+        var metadata=workoutGuidance_(guidance,w.id);
+        if(metadata.microcycleType!==undefined) w.microcycleType=metadata.microcycleType;
+        return w;
+      });
     } else if (request.action === 'getWorkout') {
       fields_(request.data, ['workoutId']);
       result = workout_(db, user, text_(request.data.workoutId, 100));

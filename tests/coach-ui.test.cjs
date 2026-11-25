@@ -26,14 +26,14 @@ function dom(source=html){const elements=new Map(),all=[];
 async function boot(options={}){
  const f=options.backend||fixture();if(!options.backend){for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();f.context.libraryApi({action:'recordAssessment',data:{studentId:'s1',exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment',sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})});}
  const d=dom(options.source);const requests=[];let lose=!!options.loseSaveResponse;
- class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}}
+ class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else if(options.catalogBusy&&method==='libraryApi'&&r.action==='catalog')result={ok:false,error:{code:'BUSY'}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}}
  const context=vm.createContext({document:d.document,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
  const click=async id=>{const e=d.elements.get(id);assert.equal(e.disabled,false,'button disabled '+id);await e.events.click();};
  const change=async(id,value)=>{d.elements.get(id).value=value;await d.elements.get(id).events.change();};
  await click('btnLogin');await click('btnFinishLogin');
  return {f,...d,context,requests,click,change,set(id,value){d.elements.get(id).value=value;}};
 }
-async function fill(ui){ui.set('coachData','2026-11-18');ui.set('coachObjetivoDia','Força');ui.set('coachInstructions','Aquecer\nRespeitar intervalos');await ui.click('btnCriarTreino');await ui.change('itemExercicio','exercise-bench');ui.set('libraryMethod','method-max-effort');ui.set('libraryAssessment',ui.f.tables.AVALIACOES[1][0]);ui.set('itemIntensVal','85');ui.set('librarySets','5');ui.set('itemQtd','3');ui.set('itemMin','5');ui.set('itemNotas','Técnica preservada');}
+async function fill(ui){ui.set('coachData','2026-11-18');if(ui.elements.has('coachMicrocycleType'))ui.set('coachMicrocycleType','Ordinário');else ui.set('coachObjetivoDia','Força');ui.set('coachInstructions','Aquecer\nRespeitar intervalos');await ui.click('btnCriarTreino');await ui.change('itemExercicio','exercise-bench');ui.set('libraryMethod','method-max-effort');ui.set('libraryAssessment',ui.f.tables.AVALIACOES[1][0]);ui.set('itemIntensVal','85');ui.set('librarySets','5');ui.set('itemQtd','3');ui.set('itemMin','5');ui.set('itemNotas','Técnica preservada');}
 test('trainer UI loads library and preserves session fields through select/prescribe/save/read',async()=>{
  const ui=await boot();assert.equal(ui.elements.get('itemExercicio').children.length,11);await fill(ui);assert.match(ui.elements.get('libraryDescription').textContent,/força/);assert.equal(ui.elements.get('itemMetrica').value,'Reps');assert.equal(ui.elements.get('assessmentField').hidden,false);
  await ui.click('btnAddItem');assert.equal(ui.f.tables.Workouts.length,2);assert.equal(ui.f.tables.Items.length,2);assert.equal(ui.f.tables.PRESCRICOES.length,2);assert.equal(ui.f.tables.PRESCRICAO_SERIES.length,6);assert.equal(ui.f.tables.WorkoutGuidance.length,2);assert.match(ui.elements.get('savedPrescription').textContent,/volume 15 repetições/);assert.equal(ui.elements.get('pendingCoachPanel').hidden,true);
@@ -51,11 +51,13 @@ const withoutExecutedFields=source=>source.replace(/function coachExecutedFeedba
 const baselineHtml=require('node:child_process').execFileSync('git',['show','737a4afda80702fe15dcc377c36ef6ca438e30eb:apps-script/Index.html'],{encoding:'utf8'});
 test('layout preserves original field IDs, labels, handlers and request payloads',async()=>{
  const before=await boot({source:baselineHtml}),after=await boot();
- for(const [id,element] of before.elements){assert.ok(after.elements.has(id),id);assert.deepEqual(Object.keys(after.elements.get(id).events),id==='libraryClassification'?['change']:Object.keys(element.events),'events '+id);}
- const labels=source=>[...source.matchAll(/<label\b[^>]*\bfor="([^"]+)"/g)].map(m=>m[1]).sort();assert.deepEqual(labels(html).filter(id=>labels(baselineHtml).includes(id)),labels(baselineHtml));
+ for(const [id,element] of before.elements){if(id==='coachObjetivoDia')continue;assert.ok(after.elements.has(id),id);assert.deepEqual(Object.keys(after.elements.get(id).events),id==='libraryClassification'?['change']:Object.keys(element.events),'events '+id);}
+ const labels=source=>[...source.matchAll(/<label\b[^>]*\bfor="([^"]+)"/g)].map(m=>m[1]).sort();assert.deepEqual(labels(html).filter(id=>labels(baselineHtml).includes(id)),labels(baselineHtml).filter(id=>id!=='coachObjetivoDia'));
  for(const ui of [before,after]){await fill(ui);await ui.click('btnAddItem');}
  const saves=ui=>ui.requests.filter(r=>['createWorkout','saveCoachPrescription'].includes(r.request.action)).map(r=>({method:r.method,action:r.request.action,data:{...r.request.data,...(r.request.action==='saveCoachPrescription'?{workoutId:'SESSION',intensity:{...r.request.data.intensity,assessmentId:'ASSESSMENT'}}:{})}}));
- assert.deepEqual(saves(after),saves(before));
+ const [created, saved]=saves(after);
+ assert.equal(created.data.microcycleType,'Ordinário');assert.equal(created.data.goal,undefined);
+ assert.deepEqual(saved,saves(before)[1]);
 });
 test('coach-only mounting preserves functional ancestry and restores shared consultation on logout/student login',async()=>{
  const ui=await boot();assert.ok(ui.elements.get('appPanel').classList.contains('coach-layout-active'));
@@ -116,9 +118,9 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 });
 
 
-test('student overview stays static; prescription RPC/model stay byte-identical to navigation baseline',()=>{
+test('student overview stays static; prescription RPC/model retain their contracts to navigation baseline',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
+ assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  // Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
@@ -129,9 +131,9 @@ test('student overview stays static; prescription RPC/model stay byte-identical 
 });
 
 
-test('library overview adds four presentation-only cards while student markup and prescription RPC/model remain unchanged',()=>{
+test('library overview adds four presentation-only cards while student markup and prescription RPC/model retain their contracts',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
- assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
+ assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const students=source=>source.slice(source.indexOf('<section id="coachStudentsPanel"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
@@ -166,16 +168,30 @@ test('volume and minutes errors focus their own fields without requests; communi
 test('three main blocks retain legacy General/Directed controls; five specific subblocks navigate without analytical requirements',async()=>{
  const ui=await boot();await fill(ui);const session=ui.elements.get('coachTreinoId').value;
  for(const classification of ['general','directed']){await ui.change('libraryClassification',classification);assert.equal(ui.elements.get('legacyBlockContext').hidden,false);assert.equal(ui.elements.get('libraryMethod').required,true);assert.equal(ui.elements.get('coachTreinoId').value,session);}
- await ui.change('libraryClassification','specific');assert.equal(ui.elements.get('specificSubblockPanel').hidden,false);assert.equal(ui.elements.get('libraryPanel').hidden,true);assert.equal(ui.elements.get('itemExercicio').children.length,3);
- for(const sub of ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']){await ui.change('specificSubblock',sub);assert.equal(ui.elements.get('libraryPanel').hidden,false);assert.equal(ui.elements.get('legacyBlockContext').hidden,true);assert.equal(ui.elements.get('libraryMethod').required,false);assert.equal(ui.elements.get('libraryCapacity').value,'');assert.equal(ui.elements.get('coachTreinoId').value,session);assert.equal(ui.elements.get('specificGrade').children.length,sub.startsWith('boulder')?17:25);}
+ await ui.change('libraryClassification','specific');assert.equal(ui.elements.get('specificSubblockPanel').hidden,false);assert.equal(ui.elements.get('libraryPanel').hidden,true);assert.equal(ui.elements.get('itemExercicio').children.length,11);
+ for(const sub of ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']){await ui.change('specificSubblock',sub);assert.equal(ui.elements.get('libraryPanel').hidden,true);assert.equal(ui.elements.get('specificTaskFeatures').hidden,false);assert.equal(ui.elements.get('legacyBlockContext').hidden,true);assert.equal(ui.elements.get('libraryMethod').required,false);assert.equal(ui.elements.get('coachTreinoId').value,session);assert.equal(ui.elements.get('specificGrade').children.length,sub.startsWith('boulder')?17:25);}
 });
 test('specific task saves without method, category or grade; keeps session across progressive tasks and recovers metadata',async()=>{
- const ui=await boot();await fill(ui);const session=ui.elements.get('coachTreinoId').value;await ui.change('libraryClassification','specific');await ui.change('specificSubblock','boulder_short');await ui.change('itemExercicio','exercise-boulder');
+ const ui=await boot();await fill(ui);const session=ui.elements.get('coachTreinoId').value;await ui.change('libraryClassification','specific');await ui.change('specificSubblock','boulder_short');
  for(const [id,value] of [['specificSets','2'],['specificRepetitions','1'],['specificRestSets','300'],['specificOrientation','horizontal'],['specificInclination','0_15'],['specificRestSeconds','60']])ui.set(id,value);
- await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);const save=ui.requests.find(r=>r.request.action==='saveCoachPrescription').request.data;assert.equal(save.classification,'specific');assert.equal(save.category,undefined);assert.equal(save.quantity,undefined);assert.equal(save.minutes,undefined);assert.equal(save.volume,undefined);assert.equal(save.methodId,undefined);assert.equal(save.intensity.value,undefined);assert.equal(save.task.restBetweenRepetitionsSeconds,60);assert.equal(save.task.restBetweenSetsSeconds,300);assert.equal(ui.elements.get('coachTreinoId').value,session);assert.match(ui.elements.get('coachNextExercise').textContent,/Próximo: Exercício 2/);
- await ui.change('specificSubblock','resistance_short');await ui.change('itemExercicio','exercise-route');ui.set('specificGrade','7a');ui.set('specificSets','1');ui.set('specificRepetitions','1');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,3);assert.equal(ui.elements.get('coachTreinoId').value,session);
+ await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);const save=ui.requests.find(r=>r.request.action==='saveCoachPrescription').request.data;assert.equal(save.classification,'specific');assert.equal(save.exerciseId,undefined);assert.equal(save.metric,undefined);assert.equal(save.task.version,3);assert.equal(save.category,undefined);assert.equal(save.quantity,undefined);assert.equal(save.minutes,undefined);assert.equal(save.volume,undefined);assert.equal(save.methodId,undefined);assert.equal(save.intensity.value,undefined);assert.equal(save.task.restBetweenRepetitionsSeconds,60);assert.equal(save.task.restBetweenSetsSeconds,300);assert.equal(ui.elements.get('coachTreinoId').value,session);assert.match(ui.elements.get('coachNextExercise').textContent,/Próximo: Exercício 2/);
+ await ui.change('specificSubblock','resistance_short');ui.set('specificGrade','7a');ui.set('specificSets','1');ui.set('specificRepetitions','1');await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,3);assert.equal(ui.elements.get('coachTreinoId').value,session);
 });
 test('specific series and repetition counts validate locally without writes and grades are never converted on subblock change',async()=>{
- const ui=await boot();await fill(ui);await ui.change('libraryClassification','specific');await ui.change('specificSubblock','boulder_short');await ui.change('itemExercicio','exercise-boulder');ui.set('specificGrade','V4');ui.set('specificSets','1');ui.set('specificRepetitions','0');const before=ui.requests.length;await ui.click('btnAddItem');assert.equal(ui.requests.length,before);assert.equal(ui.elements.get('specificRepetitions')['aria-invalid'],'true');assert.equal(ui.elements.get('specificFieldError').hidden,false);assert.equal(ui.elements.get('specificFieldError').parentNode,ui.elements.get('specificRepetitions').parentNode);
+ const ui=await boot();await fill(ui);await ui.change('libraryClassification','specific');await ui.change('specificSubblock','boulder_short');ui.set('specificGrade','V4');ui.set('specificSets','1');ui.set('specificRepetitions','0');const before=ui.requests.length;await ui.click('btnAddItem');assert.equal(ui.requests.length,before);assert.equal(ui.elements.get('specificRepetitions')['aria-invalid'],'true');assert.equal(ui.elements.get('specificFieldError').hidden,false);assert.equal(ui.elements.get('specificFieldError').parentNode,ui.elements.get('specificRepetitions').parentNode);
  await ui.change('specificSubblock','resistance_short');assert.equal(ui.elements.get('specificGrade').value,'');assert.equal(ui.elements.get('specificGradeLabel').textContent,'Dificuldade — Brasileira (opcional)');
+});
+
+test('specific prescription saves and reloads with a catalog BUSY error still visible',async()=>{
+ const ui=await boot({catalogBusy:true});
+ assert.match(ui.elements.get('libraryLoadStatus').textContent,/BUSY/);
+ await ui.change('libraryClassification','specific');
+ ui.set('coachData','2026-11-28');ui.set('coachMicrocycleType','Choque');await ui.click('btnCriarTreino');
+ for(const subblock of ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']){
+  await ui.change('specificSubblock',subblock);ui.set('specificSets','2');ui.set('specificRepetitions','3');await ui.click('btnAddItem');
+ }
+ assert.equal(ui.f.tables.Items.length,6);assert.equal(ui.f.tables.PRESCRICOES.length,6);
+ assert.match(ui.elements.get('libraryLoadStatus').textContent,/BUSY/);
+ assert.equal(ui.elements.get('libraryLoadStatus').hidden,false);
+ assert.ok(ui.elements.get('previewTreinoAluno').children.some(e=>e.children.some(n=>/Continuidade/.test(n.textContent))));
 });

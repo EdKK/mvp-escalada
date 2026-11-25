@@ -145,12 +145,12 @@ try:
                 channels=[int(n)/255 for n in re.findall(r'\d+',value)[:3]]
                 return sum(w*(v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4) for w,v in zip([.2126,.7152,.0722],channels))
             a,b=sorted([lum(colors['color']),lum(colors['background'])]);return (b+.05)/(a+.05)
-        colors=page.locator('#coachObjetivoDia option').evaluate_all('(options)=>options.map(e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor}))')
+        colors=page.locator('#coachMicrocycleType option').evaluate_all('(options)=>options.map(e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor}))')
         assert all(contrast(c)>=4.5 for c in colors)
-        page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>e.disabled=true')
-        disabled=page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor})')
+        page.locator('#coachMicrocycleType option').nth(1).evaluate('e=>e.disabled=true')
+        disabled=page.locator('#coachMicrocycleType option').nth(1).evaluate('e=>({color:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor})')
         assert contrast(disabled)>=4.5
-        page.locator('#coachObjetivoDia option').nth(1).evaluate('e=>e.disabled=false')
+        page.locator('#coachMicrocycleType option').nth(1).evaluate('e=>e.disabled=false')
         print('PASS: desktop layout, normal/selected/disabled option contrast >=4.5:1')
         page.request.post(base+'/test-control',data={'delayNext':600,'loseNext':False})
         page.locator('#btnAddItem').click()

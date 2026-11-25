@@ -32,7 +32,9 @@ function coachSavePrescription_(db,user,request){
   if(items.length&&completed&&libraryRows_(db,'PRESCRICOES').some(function(p){return p.id===completed.entityId;})){
     var restored=libraryCreatePrescription_(db,user,prescriptionRequest);return {item:items[0],prescription:restored};
   }
-  var exercise=libraryExercise_(db,d.exerciseId),simplified=d.task&&d.task.version===2;
+  var standalone=d.task&&d.task.version===3;
+  var exercise=standalone?specificExercise_(d.task.subblock):libraryExercise_(db,d.exerciseId);
+  var simplified=standalone||(d.task&&d.task.version===2);
   if(simplified&&['metric','quantity','minutes'].some(function(key){return d[key]!==undefined;}))fail_('INVALID_DATA');
   var item={id:itemId,workoutId:w.id,block:text_(d.block,500),category:d.task&&(d.category===undefined||d.category==='')?'':text_(d.category,500),exercise:exercise.name,metric:simplified?'Reps':text_(d.metric,500),quantity:simplified?'':libraryNumber_(d.quantity,0,100000,false),minutes:simplified?'':libraryNumber_(d.minutes,0,100000,false),notes:d.notes===undefined||d.notes===''?'':text_(d.notes,2000),createdAt:new Date().toISOString()};
   if(d.task&&d.block!=='Treinamento específico')fail_('INVALID_DATA');

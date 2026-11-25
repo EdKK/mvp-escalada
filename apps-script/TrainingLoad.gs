@@ -69,6 +69,11 @@ function specificTaskDefinitions_(){return [
   {id:'resistance_long',label:'Resistência longa',min:26,max:40,scale:'Brasileira'},
   {id:'continuity',label:'Continuidade',min:41,max:null,scale:'Brasileira'}
 ];}
+function specificExercise_(subblock){
+  var definition=specificTaskDefinitions_().filter(function(d){return d.id===subblock;})[0];
+  if(!definition) fail_('INVALID_DATA');
+  return {id:'specific:'+definition.id,name:definition.label,modality:'Escalada',primaryIndicatorId:'int-grade'};
+}
 function specificTaskGrades_(scale){
   if(scale==='Hueco')return Array.from({length:16},function(_,i){return 'V'+i;});
   var grades=['4º','4º sup','5º','5º sup','6º','6º sup'];
@@ -76,9 +81,9 @@ function specificTaskGrades_(scale){
 }
 function validateSpecificTask_(exercise,data,volume){
   if(!data||typeof data!=='object')fail_('INVALID_DATA');
-  var simplified=data.version===2;
+  var simplified=data.version===2||data.version===3;
   fields_(data,['version','subblock','orientation','wallInclination'].concat(simplified?['sets','repetitionsPerSet','restBetweenRepetitionsSeconds','restBetweenSetsSeconds']:['restSeconds']));
-  if((!simplified&&data.version!==1)||exercise.primaryIndicatorId!=='int-grade'||exercise.modality!=='Escalada'||JSON.parse(exercise.volumeUnitIdsJson).indexOf('unit-hand-moves')<0)fail_('INVALID_DATA');
+  if((!simplified&&data.version!==1)||exercise.primaryIndicatorId!=='int-grade'||exercise.modality!=='Escalada'||(data.version!==3&&JSON.parse(exercise.volumeUnitIdsJson).indexOf('unit-hand-moves')<0))fail_('INVALID_DATA');
   if(!simplified&&(volume.kind!=='hand_moves'||volume.unitId!=='unit-hand-moves'))fail_('INVALID_DATA');
   var definition=specificTaskDefinitions_().filter(function(d){return d.id===data.subblock;})[0];if(!definition)fail_('INVALID_DATA');
   if(!simplified)volume.lines.forEach(function(line){if(line.quantity<definition.min||(definition.max!==null&&line.quantity>definition.max))fail_('INVALID_DATA');});
@@ -102,7 +107,10 @@ function libraryValidateLoad_(db,user,data,candidateItem){
   var w=workout_(db,user,text_(data.workoutId,100));
   var item=candidateItem?[candidateItem]:rows_(db,'Items').filter(function(i){return i.id===data.itemId && i.workoutId===w.id;});
   if(item.length!==1||item[0].id!==data.itemId||item[0].workoutId!==w.id)fail_('NOT_FOUND');
-  var exercise=libraryExercise_(db,data.exerciseId),simplified=data.task&&data.task.version===2;
+  var standalone=data.task&&data.task.version===3;
+  if(standalone&&(data.exerciseId!==undefined||data.auxiliaryIntensities!==undefined))fail_('INVALID_DATA');
+  var exercise=standalone?specificExercise_(data.task.subblock):libraryExercise_(db,data.exerciseId);
+  var simplified=standalone||(data.task&&data.task.version===2);
   var volume,task=null;
   if(simplified){
     if(['volume','methodId','protocolId','capacityId'].some(function(key){return data[key]!==undefined;}))fail_('INVALID_DATA');
@@ -122,7 +130,18 @@ function libraryValidateLoad_(db,user,data,candidateItem){
   if(capacity&&!libraryRows_(db,'EXERCICIO_CAPACIDADES').some(function(c){return c.exerciseId===exercise.id && c.capacityId===capacity.id;}))fail_('INVALID_DATA');
   if(['general','directed','specific'].indexOf(data.classification)<0)fail_('INVALID_DATA');
   var intensity,aux=[];
-  if(task&&data.intensity&&data.intensity.value===undefined){
+  if(standalone){
+    fields_(data.intensity,['indicatorId','value','scale']);
+    if(data.intensity.indicatorId!=='int-grade')fail_('INCOMPATIBLE_INDICATOR');
+    intensity={indicatorId:'int-grade',kind:'ordinal',value:'',scale:task.scale};
+    if(data.intensity.value===undefined){
+      if(data.intensity.scale!==undefined)fail_('INVALID_DATA');
+      intensity.notPrescribed=true;
+    }else{
+      if(data.intensity.scale!==task.scale||specificTaskGrades_(task.scale).indexOf(data.intensity.value)<0)fail_('INVALID_DATA');
+      intensity.value=data.intensity.value;
+    }
+  }else if(task&&data.intensity&&data.intensity.value===undefined){
     fields_(data.intensity,['indicatorId']);if(data.intensity.indicatorId!==exercise.primaryIndicatorId)fail_('INCOMPATIBLE_INDICATOR');
     libraryOne_(db,'INDICADORES',exercise.primaryIndicatorId,true);
     intensity={indicatorId:exercise.primaryIndicatorId,kind:'ordinal',value:'',scale:task.scale,notPrescribed:true};
@@ -141,6 +160,6 @@ function libraryCreatePrescription_(db,user,req){
     validated.volume.lines.forEach(function(line){line.id=id_();});
     var snapshot={exercise:validated.exercise,method:validated.method,protocol:validated.protocol,capacity:validated.capacity,intensity:validated.intensity,auxiliaryIntensities:validated.auxiliaryIntensities,classification:validated.classification,session:{id:validated.workout.id,studentId:validated.workout.studentId,date:validated.workout.date},volumeMode:'prescribed'};
     if(validated.task)snapshot.task=validated.task;
-    return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:d.exerciseId,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||'',snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
+    return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||'',snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
   });
 }

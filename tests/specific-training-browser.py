@@ -13,18 +13,20 @@ try:
         errors=[];context.on('page',lambda page:page.on('pageerror',lambda e:errors.append(str(e))))
         coach=context.new_page();coach.goto(base);coach.locator('#btnLogin').click();coach.locator('#btnFinishLogin').click();expect(coach.locator('#appPanel')).to_be_visible()
         expect(coach.locator('#libraryClassification option')).to_have_text(['Treinamento geral','Treinamento direcionado','Treinamento específico'])
+        expect(coach.locator('#coachMicrocycleType option')).to_have_text(['Introdutório','Ordinário','Choque','Estabilizador','Manutenção','Recuperativo','Controle','Pré-competitivo','Competitivo'])
+        coach.locator('#coachMicrocycleType').select_option('Choque')
         coach.locator('#coachAluno').select_option('s1');coach.locator('#coachData').fill('2026-11-24');coach.locator('#btnCriarTreino').click();expect(coach.locator('#previewTreinoAluno')).to_contain_text('2026-11-24');session=coach.locator('#coachTreinoId').input_value()
         before=coach.request.post(base+'/test-tables',data={}).json()
         coach.locator('#libraryClassification').select_option('specific');expect(coach.locator('#libraryPanel')).to_be_hidden()
         for sub in ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']:
-            coach.locator('#specificSubblock').select_option(sub);expect(coach.locator('#libraryPanel')).to_be_visible()
-            for removed in ['libraryCapacity','libraryMethod','libraryProtocol','legacyVolumeGroup','itemQtd','itemMin','volumeDistribution']:
+            coach.locator('#specificSubblock').select_option(sub);expect(coach.locator('#libraryPanel')).to_be_hidden()
+            for removed in ['coachLibrarySection','itemExercicio','itemMetrica','libraryCapacity','libraryMethod','libraryProtocol','legacyVolumeGroup','itemQtd','itemMin','volumeDistribution']:
                 expect(coach.locator('#'+removed)).to_be_hidden()
-            for kept in ['specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets']:
+            for kept in ['itemNotas','btnAddItem','specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets']:
                 expect(coach.locator('#'+kept)).to_be_visible()
         assert coach.locator('#specificRestSets option').evaluate_all('(options) => options.map(o => o.value)')==['','60','120','180','300','600','900']
         assert coach.request.post(base+'/test-tables',data={}).json()==before
-        coach.locator('#specificSubblock').select_option('boulder_short');coach.locator('#itemExercicio').select_option('exercise-boulder');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
+        coach.locator('#specificSubblock').select_option('boulder_short');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
         expect(coach.locator('#specificGrade option')).to_have_count(17)
         coach.locator('#specificGrade').select_option('V4');coach.locator('#specificSubblock').select_option('resistance_short')
         expect(coach.locator('#specificGrade')).to_have_value('');expect(coach.locator('#specificGrade option')).to_have_count(25)
@@ -36,14 +38,15 @@ try:
         coach.locator('#specificRepetitions').fill('3');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 2')
         expect(coach.locator('#previewTreinoAluno')).to_contain_text('Horizontal — travessia');expect(coach.locator('#previewTreinoAluno')).to_contain_text('recuperação entre repetições: 90 s')
         print('PASS: five subblocks navigate without method/capacity; grade scales never convert; invalid repetition count cannot write; short task persists')
-        coach.locator('#specificSubblock').select_option('resistance_short');coach.locator('#itemExercicio').select_option('exercise-route');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
+        coach.locator('#specificSubblock').select_option('resistance_short');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
         coach.locator('#specificGrade').select_option('7a');coach.locator('#specificOrientation').select_option('vertical');coach.locator('#specificInclination').select_option('over_45');coach.locator('#specificRestSeconds').fill('0')
         coach.locator('#specificSets').fill('1');coach.locator('#specificRepetitions').fill('2');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 3')
-        coach.locator('#specificSubblock').select_option('continuity');coach.locator('#itemExercicio').select_option('exercise-route');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
+        coach.locator('#specificSubblock').select_option('continuity');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
         coach.locator('#specificSets').fill('1');coach.locator('#specificRepetitions').fill('2');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 4');expect(coach.locator('#coachTreinoId')).to_have_value(session)
         tables=coach.request.post(base+'/test-tables',data={}).json();assert len(tables['Items'])==4 and len(tables['PRESCRICOES'])==4
         print('PASS: Brazilian resistance task and continuity with optional characteristics save progressively in the same session')
         student=context.new_page();student.goto(base+'/student');student.evaluate("window.testProfile='student'");student.locator('#prepareLogin').click();student.locator('#finishLogin').click();expect(student.locator('#trainingPanel')).to_be_visible();student.locator('#days button[data-date="2026-11-24"]').click();expect(student.locator('.exercise')).to_have_count(3)
+        expect(student.locator('#dayGoalLabel')).to_have_text('Tipo de microciclo');expect(student.locator('#dayGoal')).to_have_text('Choque')
         cards=student.locator('.exercise');first=cards.nth(0)
         if not first.evaluate('e=>e.open'):first.locator('summary').click()
         expect(first).to_contain_text('Boulder curto');expect(first).to_contain_text('V4 (Hueco)');expect(first).to_contain_text('Horizontal — travessia');expect(first).to_contain_text('0°–15°');expect(first).to_contain_text('90 s');expect(first).to_contain_text('rebotear');expect(first).to_contain_text('Recuperação entre séries: 5 min');expect(first).to_contain_text('3 por série')

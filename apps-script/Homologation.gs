@@ -35,3 +35,8 @@ function homologationFixture_() {
     ]
   };
 }
+
+// Administrative entry point for manual use in the Apps Script editor.
+function prepararDadosTeste_() {
+  seedHomologation_();
+}

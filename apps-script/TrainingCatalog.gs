@@ -45,3 +45,8 @@ function initializeLibraryDevelopment_(){
     return {ok:true,createdCatalogOnly:true,tables:Object.keys(LIBRARY_SCHEMA_)};
   }finally{lock.releaseLock();}
 }
+
+// Administrative entry point for manual use in the Apps Script editor.
+function prepararBibliotecaTeste_() {
+  return initializeLibraryDevelopment_();
+}

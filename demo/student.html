@@ -694,6 +694,11 @@ function homologationFixture_() {
   };
 }
 
+// Administrative entry point for manual use in the Apps Script editor.
+function prepararDadosTeste_() {
+  seedHomologation_();
+}
+
   function reset() {
     sequence=0;
     tables=Object.fromEntries(Object.entries(SCHEMA_).map(([name,headers])=>[name,[[...headers]]]));

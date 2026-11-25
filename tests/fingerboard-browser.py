@@ -314,6 +314,46 @@ try:
             figure.screenshot(path=str(Path(evidence)/'botes-duplos-mobile.png'))
         assert not errors, errors
         print('PASS: Campus revision reopens the same item and renders synchronized double moves and the turn')
+        catalog = {
+            'CB01': 'E2 D3 E4 D5 E6 D7 E8 D9 E10',
+            'CB02': 'D3 E4 D5 E6 D7 E8 D9 E10',
+            'CB03': 'D1 D2 D3 E3 E4 E5 D5 D6 D7 E7 E8 E9 D9',
+            'CB04': 'D3 E3 E5 D5 D7 E7 E9 D9',
+            'CB05': 'D3 E5 D7 E9',
+            'CB06': 'D4 E7 D10 E10',
+            'CB07': 'D2 D3 D4 D3 D2 D1',
+            'CB08': 'D2 E3 D4 E5 D5 E4 D3 E2 D1 E1',
+        }
+        for sequence in catalog.values():
+            tokens = sequence.split()
+            student.evaluate('''tokens => {
+                document.querySelector('#campusAuditFigure')?.remove();
+                const figure = renderCampusBoard({start:1,holdCount:10,steps:tokens.map(token=>[token])});
+                figure.id='campusAuditFigure';
+                document.querySelector('.campus-board').after(figure);
+            }''', tokens)
+            audit = student.locator('#campusAuditFigure')
+            previous = {'E': 1, 'D': 1}
+            for order, token in enumerate(tokens, 1):
+                hand, hold = token[0], int(token[1:])
+                expect(audit.locator(
+                    f'path[data-hand="{hand}"][data-order="{order}"]'
+                    f'[data-from="{previous[hand]}"][data-to="{hold}"]'
+                )).to_have_count(1)
+                previous[hand] = hold
+            expect(audit.locator('path[data-hand]')).to_have_count(len(tokens))
+            expect(audit.locator('.campus-notation')).to_have_text(
+                'Início E1+D1 · ' + ' · '.join(f'{i}. {token}' for i, token in enumerate(tokens, 1))
+            )
+            expect(audit.locator('button, select, input')).to_have_count(0)
+            for width in [320, 390]:
+                student.set_viewport_size({'width': width, 'height': 820})
+                assert student.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                assert audit.locator('svg').bounding_box()['width'] > 240
+        expect(campus.locator('select, .campus-board button')).to_have_count(0)
+        expect(coach.locator('#previewTreinoAluno .campus-board, #fingerboardFields svg')).to_have_count(0)
+        assert not errors, errors
+        print('PASS: all eight canonical sequences render ordered hands, notation and a fitting SVG at both widths')
         browser.close()
 finally:
     server.terminate()

@@ -1044,13 +1044,16 @@ function saveItemFeedback_(db,user,req) {
   var items=rows_(db,'Items').filter(function(i){return i.id===d.itemId && i.workoutId===w.id;});
   if(items.length!==1) fail_('NOT_FOUND');
   var context=studentPrescriptionContext_(db);
-  var reservation=context.requests.find(function(r){return r.userId===user.id&&r.key===req.requestId;});
+  var reservations=context.requests.filter(function(r){return r.userId===user.id&&r.key===req.requestId;});
+  if(reservations.length>1)fail_('CONFLICT');
+  var reservation=reservations[0];
   var prescriptions;
   if(d.prescriptionId!==undefined)prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
   if(reservation&&d.prescriptionId!==undefined){
     if(reservation.entity!=='ItemFeedback'||reservation.fingerprint!==fingerprint_(req.action,d))fail_('CONFLICT');
-    var saved=optionalRows_(db,'ItemFeedback').find(function(f){return f.id===reservation.entityId;});
-    if(saved)return directedFeedbackDetails_(saved,reservation,prescriptions);
+    var saved=optionalRows_(db,'ItemFeedback').filter(function(f){return f.id===reservation.entityId;});
+    if(saved.length>1)fail_('SCHEMA_ERROR');
+    if(saved.length)return directedFeedbackDetails_(saved[0],reservation,prescriptions);
     // An interrupted submission retains the original prescription even after an edit.
     context.prescriptions=context.prescriptions.filter(function(p){return p.itemId!==d.itemId||p.id===d.prescriptionId;});
     context.requests=context.requests.filter(function(r){

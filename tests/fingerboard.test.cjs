@@ -411,3 +411,104 @@ test('Campus Board recovers writes, retains historical paths and pins feedback t
   assert.deepEqual(JSON.parse(JSON.stringify(coach.itemFeedback[1].actualSeries)),actualSeries);
   assert.equal(f.tables.Items.length,4);
 });
+
+test('one workout retains five directed prescriptions in order and all three feedback states per modality',()=>{
+  const f=setup();
+  const dose={sets:3,repetitionsPerSet:4,durationSeconds:7};
+  const cases=[
+    [f.data(dose),84,'hang_seconds',{repetitions:0,seconds:3},3],
+    [f.data({...dose,modality:'pull',repetitionsPerSet:5,durationSeconds:undefined}),15,'repetitions',{repetitions:2},2],
+    [tractionData(f,{...dose,load:{kind:'external',kilograms:12.5}}),84,'seconds',{repetitions:0,seconds:3},3],
+    [campusData(f,{sets:3,repetitionsPerSet:2,sequenceId:'CB04'}),48,'moves',{repetitions:1,additionalMoves:3},11],
+    [campusData(f,{sets:3,repetitionsPerSet:2,modality:'double',sequenceId:undefined,interval:2,direction:'up',bouts:3}),36,'moves',{repetitions:1,additionalMoves:3},9]
+  ];
+  const itemIds=[];
+  for(const [index,[body,total,unit,line,actual]] of cases.entries()){
+    const key='integrated-save-'+index;
+    f.busy(true);
+    rejects(f.save(body,key),'BUSY');
+    f.busy(false);
+    const saved=ok(f.save(body,key));
+    assert.equal(ok(f.save(body,key)).prescription.id,saved.prescription.id);
+    itemIds.push(saved.item.id);
+    const read=f.read();
+    assert.equal(read.id,f.workoutId);
+    assert.equal(read.items.map(item=>item.id).join(','),itemIds.join(','));
+    const item=read.items[index];
+    assert.equal(item.workoutId,f.workoutId);
+    assert.equal(item.prescription.volume.total,total);
+    assert.equal(item.prescription.quantityUnit,unit);
+
+    const complete=ok(f.feedback(saved,{fingerPain:0,comment:'Completa'}));
+    assert.equal(complete.actualQuantity,total);
+    assert.equal(complete.actualSets,3);
+    const zero=Object.fromEntries(Object.keys(line).map(key=>[key,0]));
+    const partial={status:'partial',expectedRevision:1,actualSeries:[line,zero,zero],fingerPain:3,comment:'Parcial'};
+    rejects(f.feedback(saved,{...partial,actualSeries:[line,zero]}));
+    rejects(f.feedback(saved,{...partial,actualSeries:[{},zero,zero]}));
+    rejects(f.feedback(saved,{...partial,actualSeries:[{...line,repetitions:10001},zero,zero]}));
+    const returned=ok(f.feedback(saved,partial,'integrated-feedback-'+index));
+    assert.equal(returned.actualQuantity,actual);
+    assert.equal(returned.actualSets,1);
+    assert.equal(ok(f.feedback(saved,partial,'integrated-feedback-'+index)).id,returned.id);
+    rejects(f.feedback(saved,partial),'CONFLICT');
+    const notDone=ok(f.feedback(saved,{status:'not_done',expectedRevision:2,fingerPain:0}));
+    assert.equal(notDone.actualQuantity,0);
+    assert.equal(notDone.actualSeries,undefined);
+
+    const revised=ok(f.revise(saved,{...body.directed,guidance:'Instrução revisada'}));
+    rejects(f.revise(saved,body.directed),'CONFLICT');
+    assert.equal(revised.item.id,saved.item.id);
+    assert.equal(revised.prescription.totalVolume,total);
+    const coach=f.read('coach');
+    assert.equal(coach.items[index].prescription.prescriptionId,revised.prescription.id);
+    assert.equal(f.read().items[index].prescription.directed.guidance,'Instrução revisada');
+    const history=coach.itemFeedback.filter(record=>record.itemId===saved.item.id);
+    assert.equal(history.length,3);
+    assert.ok(history.every(record=>record.prescriptionId===saved.prescription.id&&record.quantityUnit===unit));
+    assert.equal(history[1].fingerPain,3);
+    assert.equal(history[1].comment,'Parcial');
+    assert.deepEqual(JSON.parse(JSON.stringify(history[1].actualSeries)),[line,zero,zero]);
+    assert.equal(f.tables.PRESCRICOES[index*2+1][f.tables.PRESCRICOES[0].indexOf('snapshotJson')],saved.prescription.snapshotJson);
+  }
+  assert.equal(f.tables.Items.length,6);
+  assert.equal(f.tables.PRESCRICOES.length,11);
+  assert.equal(f.tables.PRESCRICAO_SERIES.length,31);
+  assert.equal(f.tables.ItemFeedback.length,16);
+  rejects(f.api('getWorkout',{workoutId:f.workoutId},undefined,'other'),'NOT_FOUND');
+});
+
+test('directed snapshot coexists with general, legacy directed and specific prescriptions',()=>{
+  const f=setup();
+  const legacy=(block,exercise)=>ok(f.api('addItem',{
+    workoutId:f.workoutId,block,exercise,category:'Técnica',metric:'Reps',quantity:5,minutes:2
+  }));
+  const general=legacy('Treinamento geral','Aquecimento');
+  const oldDirected=legacy('Treinamento direcionado','Exercício histórico');
+  const specific=ok(f.save({
+    workoutId:f.workoutId,block:'Treinamento específico',classification:'specific',
+    intensity:{indicatorId:'int-grade'},
+    task:{version:3,subblock:'continuity',sets:2,repetitionsPerSet:3,restBetweenRepetitionsSeconds:0,restBetweenSetsSeconds:300}
+  }));
+  const directed=ok(f.save());
+  const items=f.read().items;
+  assert.equal(items.map(i=>i.id).join(','),[general.id,oldDirected.id,specific.item.id,directed.item.id].join(','));
+  assert.equal(items[0].prescription.quantity,5);
+  assert.equal(items[1].prescription.directed,undefined);
+  assert.equal(items[2].prescription.task.version,3);
+  assert.equal(items[3].prescription.directed.version,1);
+});
+
+test('directed feedback replay rejects duplicate reservations and duplicate saved rows',()=>{
+  const f=setup(),saved=ok(f.save()),key='duplicate-feedback';
+  const first=ok(f.feedback(saved,{},key));
+  const receipt=f.tables.Requests.find(row=>row[2]===key);
+  f.tables.Requests.push([...receipt]);
+  rejects(f.feedback(saved,{},key),'CONFLICT');
+  f.tables.Requests.pop();
+  const persisted=f.tables.ItemFeedback.find(row=>row[0]===first.id);
+  f.tables.ItemFeedback.push([...persisted]);
+  rejects(f.feedback(saved,{},key),'SCHEMA_ERROR');
+  f.tables.ItemFeedback.pop();
+  assert.equal(ok(f.feedback(saved,{},key)).id,first.id);
+});

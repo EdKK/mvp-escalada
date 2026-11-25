@@ -18,7 +18,11 @@ try:
         coach.locator('#libraryClassification').select_option('specific');expect(coach.locator('#libraryPanel')).to_be_hidden()
         for sub in ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']:
             coach.locator('#specificSubblock').select_option(sub);expect(coach.locator('#libraryPanel')).to_be_visible()
-            expect(coach.locator('#libraryCapacity')).to_be_hidden();expect(coach.locator('#libraryMethod')).to_be_hidden()
+            for removed in ['libraryCapacity','libraryMethod','libraryProtocol','legacyVolumeGroup','itemQtd','itemMin','volumeDistribution']:
+                expect(coach.locator('#'+removed)).to_be_hidden()
+            for kept in ['specificGrade','specificSets','specificRepetitions','specificRestSeconds','specificRestSets']:
+                expect(coach.locator('#'+kept)).to_be_visible()
+        assert coach.locator('#specificRestSets option').evaluate_all('(options) => options.map(o => o.value)')==['','60','120','180','300','600','900']
         assert coach.request.post(base+'/test-tables',data={}).json()==before
         coach.locator('#specificSubblock').select_option('boulder_short');coach.locator('#itemExercicio').select_option('exercise-boulder');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
         expect(coach.locator('#specificGrade option')).to_have_count(17)
@@ -26,23 +30,23 @@ try:
         expect(coach.locator('#specificGrade')).to_have_value('');expect(coach.locator('#specificGrade option')).to_have_count(25)
         coach.locator('#specificSubblock').select_option('boulder_short');coach.locator('#specificGrade').select_option('V4')
         coach.locator('#specificOrientation').select_option('horizontal');coach.locator('#specificInclination').select_option('0_15');coach.locator('#specificRestSeconds').fill('90')
-        coach.locator('#libraryBlocks').fill('2');coach.locator('#libraryBouts').fill('1');coach.locator('#itemQtd').fill('7');coach.locator('#itemMin').fill('5');coach.locator('#btnAddItem').click()
-        expect(coach.locator('#itemQtd')).to_be_focused();expect(coach.locator('#librarySaveHint')).to_contain_text('faixa do subbloco')
+        coach.locator('#specificSets').fill('2');coach.locator('#specificRepetitions').fill('0');coach.locator('#specificRestSets').select_option('300');coach.locator('#btnAddItem').click()
+        expect(coach.locator('#specificRepetitions')).to_be_focused();expect(coach.locator('#librarySaveHint')).to_contain_text('entre 1 e 100')
         assert coach.request.post(base+'/test-tables',data={}).json()==before
-        coach.locator('#itemQtd').fill('6');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 2')
-        expect(coach.locator('#previewTreinoAluno')).to_contain_text('Horizontal — travessia');expect(coach.locator('#previewTreinoAluno')).to_contain_text('descanso: 90 s')
-        print('PASS: five subblocks navigate without method/capacity; grade scales never convert; invalid extent cannot write; short task persists')
+        coach.locator('#specificRepetitions').fill('3');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 2')
+        expect(coach.locator('#previewTreinoAluno')).to_contain_text('Horizontal — travessia');expect(coach.locator('#previewTreinoAluno')).to_contain_text('recuperação entre repetições: 90 s')
+        print('PASS: five subblocks navigate without method/capacity; grade scales never convert; invalid repetition count cannot write; short task persists')
         coach.locator('#specificSubblock').select_option('resistance_short');coach.locator('#itemExercicio').select_option('exercise-route');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
         coach.locator('#specificGrade').select_option('7a');coach.locator('#specificOrientation').select_option('vertical');coach.locator('#specificInclination').select_option('over_45');coach.locator('#specificRestSeconds').fill('0')
-        coach.locator('#libraryBlocks').fill('1');coach.locator('#libraryBouts').fill('1');coach.locator('#itemQtd').fill('11');coach.locator('#itemMin').fill('5');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 3')
+        coach.locator('#specificSets').fill('1');coach.locator('#specificRepetitions').fill('2');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 3')
         coach.locator('#specificSubblock').select_option('continuity');coach.locator('#itemExercicio').select_option('exercise-route');expect(coach.locator('#specificTaskFeatures')).to_be_visible()
-        coach.locator('#libraryBlocks').fill('1');coach.locator('#libraryBouts').fill('1');coach.locator('#itemQtd').fill('41');coach.locator('#itemMin').fill('5');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 4');expect(coach.locator('#coachTreinoId')).to_have_value(session)
+        coach.locator('#specificSets').fill('1');coach.locator('#specificRepetitions').fill('2');coach.locator('#btnAddItem').click();expect(coach.locator('#coachNextExercise')).to_contain_text('Próximo: Exercício 4');expect(coach.locator('#coachTreinoId')).to_have_value(session)
         tables=coach.request.post(base+'/test-tables',data={}).json();assert len(tables['Items'])==4 and len(tables['PRESCRICOES'])==4
         print('PASS: Brazilian resistance task and continuity with optional characteristics save progressively in the same session')
         student=context.new_page();student.goto(base+'/student');student.evaluate("window.testProfile='student'");student.locator('#prepareLogin').click();student.locator('#finishLogin').click();expect(student.locator('#trainingPanel')).to_be_visible();student.locator('#days button[data-date="2026-11-24"]').click();expect(student.locator('.exercise')).to_have_count(3)
         cards=student.locator('.exercise');first=cards.nth(0)
         if not first.evaluate('e=>e.open'):first.locator('summary').click()
-        expect(first).to_contain_text('Boulder curto');expect(first).to_contain_text('V4 (Hueco)');expect(first).to_contain_text('Horizontal — travessia');expect(first).to_contain_text('0°–15°');expect(first).to_contain_text('90 s');expect(first).to_contain_text('rebotear');expect(first).to_contain_text('Método: não informado')
+        expect(first).to_contain_text('Boulder curto');expect(first).to_contain_text('V4 (Hueco)');expect(first).to_contain_text('Horizontal — travessia');expect(first).to_contain_text('0°–15°');expect(first).to_contain_text('90 s');expect(first).to_contain_text('rebotear');expect(first).to_contain_text('Recuperação entre séries: 5 min');expect(first).to_contain_text('3 por série')
         second=cards.nth(1)
         if not second.evaluate('e=>e.open'):second.locator('summary').click()
         expect(second).to_contain_text('Resistência curta');expect(second).to_contain_text('7a (Brasileira)');expect(second).to_contain_text('Acima de 45°');expect(second).to_contain_text('0 s')
@@ -50,7 +54,7 @@ try:
         if not third.evaluate('e=>e.open'):third.locator('summary').click()
         expect(third).to_contain_text('Continuidade');expect(third.locator('.metrics')).to_contain_text('Não informada')
         second.locator('.feedback-btn').click();student.locator('#feedbackStatus').select_option('partial');student.locator('#feedbackPain').fill('1');student.locator('#actualSets').fill('1');student.locator('#actualQuantity').fill('2');student.locator('#saveFeedback').click();expect(student.locator('#feedbackDialog')).to_be_hidden()
-        coach.get_by_role('button',name='Atualizar treinos',exact=True).click();expect(coach.locator('#listaRetornos')).to_contain_text('Quantidade executada: 2 movimentos');expect(coach.locator('#previewTreinoAluno')).to_contain_text('Resistência curta')
+        coach.get_by_role('button',name='Atualizar treinos',exact=True).click();expect(coach.locator('#listaRetornos')).to_contain_text('Quantidade executada: 2 repetições');expect(coach.locator('#previewTreinoAluno')).to_contain_text('Resistência curta')
         print('PASS: student receives task characteristics, grade/rest and definitions; partial feedback returns to coach without reclassifying the task')
         for width in [1600,1024,390]:
             coach.set_viewport_size({'width':width,'height':1000});assert coach.evaluate('document.documentElement.scrollWidth<=innerWidth')

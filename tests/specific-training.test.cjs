@@ -56,3 +56,52 @@ test('general/directed and historical specific requests keep original required m
 test('new task options cannot bypass authorization or exercise/method validation',()=>{
  const f=setup(),data=f.data('boulder_short',6),saved=ok(f.lib('saveCoachPrescription',data));error(f.lib('saveCoachPrescription',data,'bad','a'),'FORBIDDEN');error(f.api('getWorkout',{workoutId:f.w.id},undefined,'b'),'NOT_FOUND');error(f.lib('getLibraryPrescription',{prescriptionId:saved.prescription.id},undefined,'b'),'NOT_FOUND');error(f.lib('saveCoachPrescription',{...data,classification:'general'}));error(f.lib('saveCoachPrescription',{...data,methodId:'method-isometric'}));error(f.lib('saveCoachPrescription',{...data,block:'Boulder'}));
 });
+
+function simplified(f, subblock, options={}){
+ return {workoutId:f.w.id,exerciseId:'exercise-boulder',block:'Treinamento específico',classification:'specific',intensity:{indicatorId:'int-grade'},task:{version:2,subblock,sets:2,repetitionsPerSet:3,...options}};
+}
+test('simplified tasks preserve the five ranges and known repetitions without making up movement counts or duration',()=>{
+ const f=setup();
+ const old=ok(f.lib('saveCoachPrescription',f.data('boulder_short',6)));
+ const rests=[60,120,180,300,600,900];
+ for(const [index,d] of definitions.entries()){
+  const data=simplified(f,d.id,{restBetweenRepetitionsSeconds:0,restBetweenSetsSeconds:rests[index]});
+  const saved=ok(f.lib('saveCoachPrescription',data));
+  assert.equal(saved.item.quantity,'');assert.equal(saved.item.minutes,'');
+  assert.equal(saved.prescription.totalVolume,6);assert.equal(saved.prescription.volumeUnitId,'unit-repetitions');
+  const p=f.read().items.find(i=>i.id===saved.item.id).prescription;
+  assert.equal(p.task.minMoves,d.min);assert.equal(p.task.maxMoves,d.max);
+  assert.equal(p.sets,2);assert.equal(p.quantity,3);assert.equal(p.quantityUnit,'repetitions');
+  assert.equal(p.restSeconds,0);assert.equal(p.task.restBetweenSetsSeconds,rests[index]);
+  assert.equal(M.quantity(p),'3 por série');
+ }
+ const historical=f.read().items.find(i=>i.id===old.item.id).prescription;
+ assert.equal(historical.task.version,1);assert.equal(historical.volume.total,6);assert.equal(historical.quantityUnit,'moves');
+});
+test('simplified parameters fail before writes when missing or invalid',()=>{
+ const f=setup(),before=JSON.stringify(f.tables);
+ for(const patch of [{sets:undefined},{sets:0},{sets:101},{repetitionsPerSet:undefined},{repetitionsPerSet:1.5},{repetitionsPerSet:'2'},{restBetweenSetsSeconds:0},{restBetweenSetsSeconds:240},{restBetweenRepetitionsSeconds:86401},{restSeconds:0},{subblock:'unknown'}]){
+  error(f.lib('saveCoachPrescription',simplified(f,'boulder_short',patch)));
+ }
+ for(const patch of [{quantity:0},{minutes:0},{methodId:'method-circuit'},{intensity:{indicatorId:'int-grade',value:'7a',scale:'Brasileira'}}]){
+  error(f.lib('saveCoachPrescription',{...simplified(f,'boulder_short'),...patch}));
+ }
+ assert.equal(JSON.stringify(f.tables),before);
+});
+test('interrupted simplified saves resume with the same intent and round-trip execution feedback',()=>{
+ const f=setup(),data=simplified(f,'continuity',{restBetweenSetsSeconds:900});
+ f.fail('PRESCRICAO_SERIES');
+ error(f.lib('saveCoachPrescription',data,'resume'),'INTERNAL_ERROR');
+ assert.equal(f.read().items.length,0);
+ const pending=ok(f.lib('listPendingCoachSaves'));
+ assert.equal(pending.length,1);
+ const saved=ok(f.lib('saveCoachPrescription',pending[0].data,pending[0].requestId));
+ assert.equal(ok(f.lib('saveCoachPrescription',data,'resume')).prescription.id,saved.prescription.id);
+ assert.equal(ok(f.lib('listPendingCoachSaves')).length,0);
+ assert.equal(f.read().items[0].prescription.restSeconds,'');
+ const feedback={workoutId:f.w.id,itemId:saved.item.id,status:'partial',fingerPain:0,actualSets:1,actualQuantity:2,quantityUnit:'repetitions',expectedRevision:0};
+ error(f.api('submitItemFeedback',{...feedback,quantityUnit:'moves'},undefined,'a'));
+ const result=ok(f.api('submitItemFeedback',feedback,undefined,'a'));
+ assert.equal(f.read('coach').itemFeedback[0].id,result.id);
+ assert.equal(f.read('coach').itemFeedback[0].actualQuantity,2);
+});

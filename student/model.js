@@ -15,7 +15,7 @@ var StudentModel = (() => {
   function remaining(t,now){return t?.endsAt!==null&&t?.endsAt!==undefined?Math.max(0,t.endsAt-now):(t?.remaining||0);}
   function restStart(t,seconds,now){return {remaining:t?.remaining??seconds*1000,endsAt:now+(t?.remaining??seconds*1000)};}
   function restPause(t,now){return {remaining:remaining(t,now),endsAt:null};}
-  function quantity(p){if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
+  function quantity(p){if(p.task?.version===2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
   function intensity(p){
     if(p.source==='library'){
       const i=p.intensity.primary;if(i.notPrescribed)return 'Não informada';
@@ -34,7 +34,7 @@ var StudentModel = (() => {
   }
   function prescriptionDetails(p){
     if(p.source!=='library')return [];
-    const snapshot=p.snapshot,details=[`Método: ${snapshot.method?snapshot.method.name:'não informado'}${snapshot.protocol?' • protocolo: '+snapshot.protocol.name:''}`];
+    const snapshot=p.snapshot,details=p.task?.version===2?[]:[`Método: ${snapshot.method?snapshot.method.name:'não informado'}${snapshot.protocol?' • protocolo: '+snapshot.protocol.name:''}`];
     if(p.task){
       const t=p.task,orientations={horizontal:'Horizontal — travessia',vertical:'Vertical — ascendente ou desescalada',mixed:'Misto'},walls={'0_15':'0°–15°','15_30':'Acima de 15° até 30°','30_45':'Acima de 30° até 45°',over_45:'Acima de 45°'};
       details.push('Treinamento específico • '+t.label);
@@ -43,6 +43,11 @@ var StudentModel = (() => {
     if(snapshot.capacity)details.push('Capacidade/manifestação: '+snapshot.capacity.name);
     if(p.reference){const a=p.reference;details.push(`Referência individual: ${a.value} ${referenceUnit(a.unitId)} • avaliação ${a.id} • ${a.assessedOn} • validade ${a.validUntil}`);details.push(`Protocolo da avaliação: ${a.protocol} • ${a.referenceDefinition}`);}
     (p.intensity.auxiliary||[]).forEach(i=>details.push(i.indicatorId==='int-rpe'?`RPE auxiliar prescrito: ${i.value}`:JSON.stringify(i)));
+    if(p.task?.version===2){
+      const rest=p.task.restBetweenSetsSeconds;
+      details.push('Recuperação entre séries: '+(rest===undefined?'não informada':`${rest/60} min`));
+      return details;
+    }
     return details.concat(p.series.map(line=>seriesDescription(p,line)));
   }
   function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}

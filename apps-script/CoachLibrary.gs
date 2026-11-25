@@ -32,13 +32,14 @@ function coachSavePrescription_(db,user,request){
   if(items.length&&completed&&libraryRows_(db,'PRESCRICOES').some(function(p){return p.id===completed.entityId;})){
     var restored=libraryCreatePrescription_(db,user,prescriptionRequest);return {item:items[0],prescription:restored};
   }
-  var exercise=libraryExercise_(db,d.exerciseId);
-  var item={id:itemId,workoutId:w.id,block:text_(d.block,500),category:d.task&&(d.category===undefined||d.category==='')?'':text_(d.category,500),exercise:exercise.name,metric:text_(d.metric,500),quantity:libraryNumber_(d.quantity,0,100000,false),minutes:libraryNumber_(d.minutes,0,100000,false),notes:d.notes===undefined||d.notes===''?'':text_(d.notes,2000),createdAt:new Date().toISOString()};
+  var exercise=libraryExercise_(db,d.exerciseId),simplified=d.task&&d.task.version===2;
+  if(simplified&&['metric','quantity','minutes'].some(function(key){return d[key]!==undefined;}))fail_('INVALID_DATA');
+  var item={id:itemId,workoutId:w.id,block:text_(d.block,500),category:d.task&&(d.category===undefined||d.category==='')?'':text_(d.category,500),exercise:exercise.name,metric:simplified?'Reps':text_(d.metric,500),quantity:simplified?'':libraryNumber_(d.quantity,0,100000,false),minutes:simplified?'':libraryNumber_(d.minutes,0,100000,false),notes:d.notes===undefined||d.notes===''?'':text_(d.notes,2000),createdAt:new Date().toISOString()};
   if(d.task&&d.block!=='Treinamento específico')fail_('INVALID_DATA');
-  if(!d.volume||d.metric!==coachMetric_(d.volume.unitId))fail_('INCOMPATIBLE_UNIT');
+  if(!simplified&&(!d.volume||d.metric!==coachMetric_(d.volume.unitId)))fail_('INCOMPATIBLE_UNIT');
   // Candidate exists only in memory. All method/reference/unit checks run before writes.
   var validated=libraryValidateLoad_(db,user,plan,item);
-  if(validated.task&&(!Number.isInteger(item.quantity)||item.quantity<validated.task.minMoves||(validated.task.maxMoves!==null&&item.quantity>validated.task.maxMoves)))fail_('INVALID_DATA');
+  if(validated.task&&!simplified&&(!Number.isInteger(item.quantity)||item.quantity<validated.task.minMoves||(validated.task.maxMoves!==null&&item.quantity>validated.task.maxMoves)))fail_('INVALID_DATA');
   if(!reservations.length){append_(db,'Requests',{id:id_(),userId:user.id,key:key,fingerprint:fingerprint,entity:'Items',entityId:itemId});SpreadsheetApp.flush();}
   if(!items.length){append_(db,'Items',item);SpreadsheetApp.flush();}
   var prescription=libraryCreatePrescription_(db,user,prescriptionRequest);

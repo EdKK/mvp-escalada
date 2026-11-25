@@ -1,5 +1,34 @@
 # Treinamento específico — compatibilidade para o Work
 
+## Prescrição simplificada
+
+A base de desenvolvimento é o commit `f9fc2089f0caba1c9cb10dd9db0a4df5081db4de` de `feature/treinamento-especifico`, referência da v17 publicada. O [registro de homologação](HOMOLOGACAO.md) reúne os testes manuais informados para a v17 e as verificações pendentes no Google. A seção histórica abaixo descreve o contrato anterior.
+
+O treinador escolhe um dos cinco subblocos e uma tarefa elegível da biblioteca. O formulário exibe grau de dificuldade na escala do subbloco, orientação, inclinação, número de séries, repetições por série, dois intervalos de recuperação e notas. Séries e repetições por série exigem inteiros de 1 a 100. O grau segue opcional, com validação da escala quando preenchido. A recuperação entre repetições conserva o intervalo opcional de 0 a 86.400 segundos inteiros. Para a recuperação entre séries, as opções são 1, 2, 3, 5, 10 e 15 minutos. Zero informado entre repetições e intervalo em branco têm significados distintos.
+
+As faixas da tabela histórica continuam sendo a referência de movimentos efetivos de mão para a classificação metodológica. A prescrição simplificada usa apenas os números de séries e repetições. O servidor grava `task.version: 2` em `snapshotJson`, com `sets`, `repetitionsPerSet` e os intervalos opcionais `restBetweenRepetitionsSeconds` e `restBetweenSetsSeconds`. Reutiliza `volumeJson` e `PRESCRICAO_SERIES` para gravar as repetições prescritas por série e o total aritmético em `unit-repetitions`. A quantidade escalar legada em `Items.quantity` e a duração planejada em `Items.minutes` ficam vazias. Os movimentos por sequência e o volume em movimentos ficam desconhecidos. As tabelas e colunas existentes são reutilizadas.
+
+O aluno vê a dose por série e as duas recuperações. A contagem regressiva existente pode ser acionada para a recuperação entre repetições. O feedback quantitativo opcional registra séries executadas e o total de repetições executadas. Prescrições anteriores continuam a usar suas unidades, distribuição, descanso e feedback históricos. O servidor continua aceitando requisições da versão 1 da tarefa, inclusive nas retomadas de gravações. Prescrições sem tarefa estruturada continuam no fluxo legado.
+
+### Evidências locais desta entrega
+
+- Node (`node --test tests/*.test.cjs`), 131 testes aprovados. Inclui leitura de formatos antigos e novos, validação de série, repetição e intervalos, recuperação de gravação interrompida, repetição idempotente e feedback.
+- Python (`python -m unittest discover -s tests -p 'test_compare_apps_script.py'`), 9 testes aprovados. Inclui verificação da referência e dos hashes locais.
+- Chromium automatizado, 4 grupos no fluxo específico, 9 no ciclo de prescrição e feedback e 13 no treinador. Os cenários usam serviços e identidades simulados.
+- Testes manuais locais e testes no Apps Script para a prescrição simplificada ainda não foram executados. O Code Review automático não iniciou porque o diretório de estado da CLI é somente leitura neste ambiente. O diff foi revisado localmente.
+
+### Próxima homologação
+
+1. Conferir o conjunto instalado contra a v17 de referência e guardar a cópia de reversão. Usar o projeto e os dados de teste da homologação.
+2. Após auditoria e autorização, atualizar em conjunto `Index.html`, `TrainingLoad.gs`, `CoachLibrary.gs`, `Student.gs` e `Student.html`. Usar o alias instalado `StudentLogic.gs` se aplicável. Conferir os hashes no [manifesto](biblioteca/REFERENCIA-SINCRONIZACAO.json). Preservar o esquema e as propriedades do projeto.
+3. Em uma sessão de teste, gravar exercícios dos cinco subblocos e conferir as faixas, a entrada de grau e séries, os dois intervalos, a reabertura do treino e a leitura de registros anteriores. Conferir quantidade e duração legadas vazias, séries e repetições persistidas e distinção entre intervalo ausente e zero.
+4. Validar consulta do aluno, execução e feedback, retorno ao treinador, isolamento, integridade, concorrência, repetição e recuperação de falhas. Conferir Geral e Direcionado. Registrar evidências no Apps Script com contas de teste e sem dados pessoais.
+5. Antes de uma reversão após novas gravações, conferir a leitura de tarefas versão 2 e resolver intenções pendentes. O servidor antigo aceita apenas o formato anterior para gravação e retomada. Preservar os registros para auditoria.
+
+---
+
+## Histórico do contrato anterior
+
 ## Referência e escopo
 
 Branch `feature/treinamento-especifico`, criada a partir do commit funcional `dcc8fbd9fedecc5239bd98fdb6701b6ed4e48308`. A versão 16 de homologação foi informada pelo usuário; seus arquivos e dados não foram acessados ou comparados nesta implementação. Não houve implantação, inicialização, migração, alteração de OAuth nem acesso a planilhas. A branch de referência e a main foram preservadas.
@@ -52,7 +81,7 @@ Operacionais alterados:
 - `apps-script/Student.gs`: recuperação compatível da tarefa e descanso.
 - `apps-script/Student.html`: artefato regenerado de `student/model.js`, com apresentação mínima das características e suporte a método/grau omitidos.
 
-Também foram atualizados a fonte `student/model.js`, seu artefato `demo/student.html`, testes e documentação. O manifesto `docs/biblioteca/REFERENCIA-SINCRONIZACAO.json` aponta o commit-fonte e hashes do conjunto operacional.
+Também foram atualizados a fonte `student/model.js`, seu artefato `demo/student.html`, testes e documentação. Naquela etapa, o manifesto fixava o commit-fonte e os hashes do conjunto operacional correspondente.
 
 Para futura homologação, comparar primeiro os arquivos instalados com a referência funcional. Se a base for equivalente, atualizar **os cinco arquivos operacionais acima em conjunto**, usando StudentLogic.gs como nome instalado quando esse for o alias atual de Student.gs. Nunca instalar ambos os aliases. Backend.gs, Auth.gs, TrainingLibrary.gs, TrainingCatalog.gs e appsscript.json não precisam de mudanças para este recurso. Preservar propriedades, IDs e planilhas; não executar inicialização. A publicação de uma nova versão de homologação requer autorização separada e não foi realizada aqui.
 
@@ -71,4 +100,4 @@ Antes de homologar: comparar os arquivos instalados; usar exclusivamente ambient
 
 Não se calcula carga global, conversão de graus ou capacidade fisiológica a partir da extensão. O descanso é um único intervalo opcional da tarefa em segundos, não uma modelagem nova de pausas por série. A distribuição segue os limites técnicos existentes do volume; continuidade não remove os limites de segurança de entrada. Inclinação registra uma faixa, não um ângulo exato. Campos opcionais permanecem não informados quando omitidos. O catálogo pode ser ampliado futuramente mediante decisão separada; esta etapa não modifica sua semente.
 
-Compatibilidade local demonstrada; homologação real permanece pendente. Recomendação ao Work: revisar os contratos opcionais e o conjunto de cinco arquivos antes de autorizar atualização em homologação. Nenhuma alteração de produção é necessária ou autorizada por esta entrega.
+Compatibilidade local demonstrada naquela etapa. O estado publicado e as evidências informadas posteriormente constam no registro de homologação. Recomendação ao Work: revisar os contratos opcionais e o conjunto de cinco arquivos antes de autorizar atualização em homologação. Nenhuma alteração de produção é necessária ou autorizada por esta entrega.

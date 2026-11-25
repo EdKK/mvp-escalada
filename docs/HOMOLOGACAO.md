@@ -1,5 +1,15 @@
 # Homologação real — instalação manual reproduzível
 
+## Estado publicado
+
+A versão 17 está publicada em **MVP Escalada – Homologação**, com referência no commit `f9fc2089f0caba1c9cb10dd9db0a4df5081db4de`. A versão 16 permanece como referência de reversão.
+
+Os testes manuais aprovados na v17, conforme o registro informado, abrangem o salvamento de exercícios pelo treinador, a visualização e conferência da interface do aluno, o envio de feedback pelo aluno e o retorno desse feedback ao treinador.
+
+Continuam pendentes de comprovação no ambiente real as regras dos cinco subblocos, a integridade dos dados, a segurança e o isolamento entre usuários, a concorrência, a recuperação de gravações interrompidas e os demais testes de integração ainda sem evidência documentada. A aprovação do fluxo de feedback, por exemplo, cobre o retorno ao treinador. O isolamento entre alunos exige evidência própria.
+
+A [prescrição simplificada](TREINAMENTO-ESPECIFICO.md) é candidata a uma publicação futura. As execuções automatizadas locais em Node, Python e Chromium usam serviços simulados. Testes manuais locais e execuções manuais no ambiente real devem ter registros próprios.
+
 ## Instalação atual — três Gmail pessoais
 
 A instalação e autenticação foram atualizadas para OAuth explícito. Seguir [AUTENTICACAO-GMAIL.md](AUTENTICACAO-GMAIL.md) para criar cliente OAuth externo em Testing, adicionar as três contas Gmail controladas e configurar redirect /exec e credenciais somente no Google. Não é necessário Workspace e não se usa Session.getActiveUser. Não aplicar as orientações anteriores de acesso restrito ao domínio.
@@ -15,7 +25,7 @@ Resumo reproduzível:
 
 ## Protocolo de aprovação (registrar resultado, data, papel e evidência sem emails)
 
-Todos os testes abaixo estão PENDENTES até execução no Google. Testes Node são simulações e não substituem este protocolo.
+Os casos completos abaixo aguardam evidência individual no Google. O estado da v17 acima registra os fluxos manuais aprovados. Use este protocolo para comprovar as condições adicionais de cada caso e registrar as verificações da próxima versão.
 
 | Caso | Ação | Resultado obrigatório |
 | --- | --- | --- |
@@ -64,7 +74,7 @@ Conferir linhas e IDs como proprietário. Não registrar emails, cookies, tokens
 
 ## Impedimentos e encerramento
 
-Dependem de ação manual: criação de contas/projeto/planilha, cliente OAuth externo em Testing, consentimento, cadastro de test users, redirect autorizado, implantação de teste e observação das identidades reais. Não há prova de funcionamento Google no repositório. Se H01 ou H02 falhar, não prosseguir para usuários reais; documentar a modalidade de implantação e revisar autenticação. Após os testes, arquivar a implantação de homologação quando não for mais necessária; preservar evidências sem dados pessoais. Esta etapa não autoriza migração, implantação em produção ou merge.
+Dependem de ação manual: criação de contas/projeto/planilha, cliente OAuth externo em Testing, consentimento, cadastro de test users, redirect autorizado, implantação de teste e observação das identidades reais. Os resultados manuais informados para a v17 constam em Estado publicado. Se H01 ou H02 falhar, não prosseguir para usuários reais; documentar a modalidade de implantação e revisar autenticação. Após os testes, arquivar a implantação de homologação quando não for mais necessária; preservar evidências sem dados pessoais. Esta etapa não autoriza migração, implantação em produção ou merge.
 
 
 Para a nova interface do aluno e os testes de relógios, revisões de feedback e unidades, seguir também INTERFACE-ALUNO.md. As verificações de domínio Workspace foram substituídas pelo OAuth explícito para Gmail.

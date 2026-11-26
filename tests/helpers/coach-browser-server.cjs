@@ -1,8 +1,8 @@
 /* Local browser test server. All identities, Sheets and OAuth replies are fictitious.
    Never use this adapter in an Apps Script deployment. */
 const http=require('node:http'),fs=require('node:fs'),vm=require('node:vm');
-const {fixture}=require('./gas.cjs');
-const f=fixture();
+const {fixture,setupFinance}=require('./gas.cjs');
+const f=setupFinance(fixture());
 for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);
 f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();
 f.tables.Links.push(['l2','c1','s2',true]);
@@ -20,7 +20,7 @@ class TestRunner{
  withSuccessHandler(fn){return new TestRunner(fn,this.failure)}
  withFailureHandler(fn){return new TestRunner(this.success,fn)}
  send(method,request){fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,request,profile:window.testProfile})}).then(r=>{if(!r.ok)throw Error('test transport failure');return r.json()}).then(this.success).catch(this.failure)}
- api(r){this.send('api',r)} libraryApi(r){this.send('libraryApi',r)}
+ api(r){this.send('api',r)} libraryApi(r){this.send('libraryApi',r)} financeApi(r){this.send('financeApi',r)}
 }
 window.google={script:{run:new TestRunner()}};
 </script>`;

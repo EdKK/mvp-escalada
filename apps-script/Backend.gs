@@ -23,20 +23,23 @@ function db_() {
   if (!id) fail_('CONFIGURATION_ERROR');
   return SpreadsheetApp.openById(id);
 }
-function sheet_(db, name) {
+function sheet_(db, name, schema) {
+  schema = schema || SCHEMA_;
   var s = db.getSheetByName(name);
-  if (!s || JSON.stringify(s.getRange(1, 1, 1, SCHEMA_[name].length).getValues()[0]) !== JSON.stringify(SCHEMA_[name]) || s.getLastColumn() !== SCHEMA_[name].length) fail_('SCHEMA_ERROR');
+  if (!s || JSON.stringify(s.getRange(1, 1, 1, schema[name].length).getValues()[0]) !== JSON.stringify(schema[name]) || s.getLastColumn() !== schema[name].length) fail_('SCHEMA_ERROR');
   return s;
 }
-function rows_(db, name) {
-  var s = sheet_(db, name), n = s.getLastRow();
+function rows_(db, name, schema) {
+  schema = schema || SCHEMA_;
+  var s = sheet_(db, name, schema), n = s.getLastRow();
   if (n < 2) return [];
-  return s.getRange(2, 1, n - 1, SCHEMA_[name].length).getValues().map(function(row) {
-    var out = {}; SCHEMA_[name].forEach(function(k, i) { out[k] = row[i] instanceof Date ? (k === 'date' ? row[i].toISOString().slice(0, 10) : row[i].toISOString()) : row[i]; }); return out;
+  return s.getRange(2, 1, n - 1, schema[name].length).getValues().map(function(row) {
+    var out = {}; schema[name].forEach(function(k, i) { out[k] = row[i] instanceof Date ? (k === 'date' ? row[i].toISOString().slice(0, 10) : row[i].toISOString()) : row[i]; }); return out;
   });
 }
-function append_(db, name, obj) {
-  sheet_(db, name).appendRow(SCHEMA_[name].map(function(k) { return obj[k] === undefined ? '' : obj[k]; }));
+function append_(db, name, obj, schema) {
+  schema = schema || SCHEMA_;
+  sheet_(db, name, schema).appendRow(schema[name].map(function(k) { return obj[k] === undefined ? '' : obj[k]; }));
 }
 function enabled_(v) { return v === true || v === 'TRUE'; }
 function userForEmail_(db, email) {
@@ -143,7 +146,10 @@ function api(request) {
       fields_(request.data, []); result = {id: user.id, role: user.role};
     } else if (request.action === 'listStudents') {
       fields_(request.data, []); if (user.role !== 'coach') fail_('FORBIDDEN');
-      result = rows_(db, 'Users').filter(function(u) { return u.role === 'student' && linked_(db, user.id, u.id); }).map(function(u) { return {id: u.id}; });
+      var names = typeof financeStudentNames_ === 'function' ? financeStudentNames_(db, user.id, true) : new Map();
+      result = rows_(db, 'Users').filter(function(u) { return u.role === 'student' && linked_(db, user.id, u.id); }).map(function(u) {
+        return names.has(u.id) ? {id: u.id, name: names.get(u.id)} : {id: u.id};
+      });
     } else if (request.action === 'listFeedback') {
       fields_(request.data, ['workoutId']);
       var target = workout_(db, user, text_(request.data.workoutId, 100));

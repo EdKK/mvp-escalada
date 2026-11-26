@@ -6,7 +6,7 @@ Os cinco arquivos originais na raiz permanecem intactos. Apps Script serve Index
 
 Seguir [HOMOLOGACAO.md](../docs/HOMOLOGACAO.md) e [AUTENTICACAO-GMAIL.md](../docs/AUTENTICACAO-GMAIL.md). **A configuração atual substitui a dependência de Session.getActiveUser por OAuth Google explícito**, adequado às três contas Gmail pessoais de teste. Não depende de domínio Workspace. Não usar os procedimentos antigos de login automático.
 
-Pacote atual a conferir no Apps Script: Backend.gs, Auth.gs, Homologation.gs, Student.gs (ou o alias instalado StudentLogic.gs, nunca ambos), TrainingLibrary.gs, TrainingLoad.gs, TrainingCatalog.gs, CoachLibrary.gs, Index.html, Student.html, OAuthReturn.html e appsscript.json. Para a correção do ciclo e a atualização mínima de quatro arquivos, seguir [CORRECAO-CICLO.md](../docs/biblioteca/CORRECAO-CICLO.md). Executar como proprietário; alunos não recebem acesso ao script ou à planilha. Configuração e credenciais OAuth ficam somente em Script Properties. Não há senha Gmail, refresh token ou credencial Google no navegador/repositório.
+Pacote atual a conferir no Apps Script: Backend.gs, Auth.gs, Homologation.gs, Student.gs (ou o alias instalado StudentLogic.gs, nunca ambos), TrainingLibrary.gs, TrainingLoad.gs, TrainingCatalog.gs, CoachLibrary.gs, StudentFinance.gs, Index.html, Student.html, OAuthReturn.html e appsscript.json. Para a correção do ciclo e a atualização mínima de quatro arquivos, seguir [CORRECAO-CICLO.md](../docs/biblioteca/CORRECAO-CICLO.md). Executar como proprietário; alunos não recebem acesso ao script ou à planilha. Configuração e credenciais OAuth ficam somente em Script Properties. Não há senha Gmail, refresh token ou credencial Google no navegador/repositório.
 
 ## Esquema
 
@@ -21,7 +21,19 @@ Cabeçalhos exatos estão em SCHEMA_ de Backend.gs. Inicialização cria somente
 | Feedback | id UUID; workoutId → Workouts; studentId → Users |
 | Requests | id UUID; par userId/key único; entity/entityId da gravação reservada |
 
-Users e Links são administrados exclusivamente na planilha. A identidade Google verificada é confrontada com Users em toda chamada. Não há cadastro remoto de usuários ou papéis. IDs e timestamps das entidades são gerados no servidor. Treinadores acessam apenas treinos próprios com vínculo ativo; alunos leem seus treinos e enviam retornos somente para eles.
+O treinador autenticado pode cadastrar alunos e criar seu próprio vínculo pelo cartão financeiro. O cadastro usa o papel fixo de aluno e recusa endereços que já existem em Users. A identidade Google verificada é confrontada com Users em toda chamada. O administrador continua responsável pelos papéis e pelos demais vínculos. Treinadores acessam apenas treinos próprios com vínculo ativo; alunos leem seus treinos e enviam retornos somente para eles.
+
+## Cadastro financeiro em homologação
+
+Adicione `StudentFinance.gs` ao projeto Apps Script de homologação e sincronize `Backend.gs` e `Index.html` com a mesma revisão. Use uma cópia isolada com as abas `Users` e `Links` válidas. Nas propriedades de script, confira `ENVIRONMENT=homologation` e confirme que `SPREADSHEET_ID` e `HOMOLOGATION_SPREADSHEET_ID` apontam para essa cópia. Execute `prepararCadastroFinanceiroTeste_` pelo editor. A rotina valida as tabelas existentes antes de criar as abas ausentes e é segura para reexecução. Ela cria somente cabeçalhos.
+
+| Aba | Conteúdo |
+| --- | --- |
+| CADASTROS | Nome, WhatsApp e início do acompanhamento por par treinador/aluno |
+| PLANOS | Um período por criação, renovação ou mudança de modalidade, com valor em centavos, datas e pagamento manual |
+| AULAS | Datas, plano associado e situação ativa ou cancelada |
+
+O e-mail de acesso continua em `Users`. Alterar o e-mail revincula a identidade Google ao mesmo ID do aluno e exige que ele tenha somente o treinador atual como vínculo ativo. O acesso também depende da configuração e da lista de contas de teste do OAuth já em uso. A situação de pagamento pertence a cada período, e o histórico mantém os períodos anteriores. Frequência é registrada pelo treinador no cartão.
 
 ## Contrato RPC
 

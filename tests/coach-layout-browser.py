@@ -108,7 +108,11 @@ try:
             card_selector='.library-overview-card' if is_library else '.students-card'
             prefix='#'+panel
             expect(page.locator(prefix+' '+card_selector)).to_have_count(4)
-            expect(page.locator(prefix+' input, '+prefix+' select, '+prefix+' button, '+prefix+' textarea, '+prefix+' a')).to_have_count(0)
+            static_cards = prefix+' '+card_selector
+            if not is_library:
+                static_cards += ':not([aria-labelledby="studentsRegistrationTitle"])'
+                expect(page.locator('#financeStudent option')).to_have_count(3)
+            expect(page.locator(', '.join(static_cards+' '+tag for tag in ('input','select','button','textarea','a')))).to_have_count(0)
             if is_library:
                 expect(page.locator(prefix+' .library-search-placeholder')).to_have_attribute('aria-label','Campo de busca ilustrativo, sem interação')
                 expect(page.locator('#libraryIntensityTitle')).to_have_text('Intensidade')
@@ -139,7 +143,7 @@ try:
         expect(page.locator('#coachBuildPanel')).to_be_visible()
         page.evaluate('window.scrollTo(0,0)')
         page.screenshot(path='/tmp/mvp-navegacao-treinador.png',full_page=True)
-        print('PASS: four static student/library cards in 2x2 grids, responsive widths, illustrative noninteractive search and unchanged unsaved build draft/DOM/URL')
+        print('PASS: four student/library cards with controls only in the finance card in 2x2 grids, responsive widths, illustrative noninteractive search and unchanged unsaved build draft/DOM/URL')
         def contrast(colors):
             import re
             def lum(value):

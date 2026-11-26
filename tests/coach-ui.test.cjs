@@ -1,5 +1,5 @@
 /* DOM and Google RPC substitutes exercise event handlers; no browser rendering claim. */
-const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const crypto=require('node:crypto');const {fixture}=require('./helpers/gas.cjs');
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const crypto=require('node:crypto');const {fixture,setupFinance}=require('./helpers/gas.cjs');
 const html=fs.readFileSync('apps-script/Index.html','utf8'),script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function dom(source=html){const elements=new Map(),all=[];
  class Element{
@@ -24,9 +24,9 @@ function dom(source=html){const elements=new Map(),all=[];
  return {document,elements,all,descendant};
 }
 async function boot(options={}){
- const f=options.backend||fixture();if(!options.backend){for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();f.context.libraryApi({action:'recordAssessment',data:{studentId:'s1',exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment',sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})});}
+ const f=options.backend||setupFinance(fixture());if(!options.backend){for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();f.context.libraryApi({action:'recordAssessment',data:{studentId:'s1',exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment',sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})});}
  const d=dom(options.source);const requests=[];let lose=!!options.loseSaveResponse;
- class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else if(options.catalogBusy&&method==='libraryApi'&&r.action==='catalog')result={ok:false,error:{code:'BUSY'}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}}
+ class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else if(options.catalogBusy&&method==='libraryApi'&&r.action==='catalog')result={ok:false,error:{code:'BUSY'}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}financeApi(r){this.send('financeApi',r);}}
  const context=vm.createContext({document:d.document,window:{addEventListener(){},open(){return null;}},clearTimeout,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
  const click=async id=>{const e=d.elements.get(id);assert.equal(e.disabled,false,'button disabled '+id);await e.events.click();};
  const change=async(id,value)=>{d.elements.get(id).value=value;await d.elements.get(id).events.change();};
@@ -110,7 +110,9 @@ test('coach tabs default to build and preserve the same unsaved prescription nod
   await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.ok(ui.descendant(ui.elements.get(panel==='coachLibraryPanel'?'libraryExercisesTitle':'studentsRegistrationTitle'),panel));
  }
  await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
- assert.equal(ui.requests.length,calls);assert.equal(JSON.stringify(ui.f.tables),tables);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
+ assert.equal(ui.requests.filter(r=>r.method!=='financeApi').length,calls);
+ assert.deepEqual(ui.requests.filter(r=>r.method==='financeApi').map(r=>r.request.action),['listStudents']);
+ assert.equal(JSON.stringify(ui.f.tables),tables);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
  assert.doesNotMatch(html,/Atalhos para os controles desta página|href="#coach(?:Session|LibrarySection|Prescription)"/);
 });
 test('tabs preserve pending intents and review state, support keyboard navigation, and reset only the selected tab on login',async()=>{
@@ -123,13 +125,13 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 });
 
 
-test('student overview stays static; prescription RPC/model retain their contracts to navigation baseline',()=>{
+test('only the finance card is interactive; prescription RPC/model retain their contracts to navigation baseline',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  // Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
- assert.equal((overview.match(/class="card students-card"/g)||[]).length,4);assert.doesNotMatch(overview,/<(?:input|select|textarea|button|a)\b|contenteditable=/);
+ assert.equal((overview.match(/class="card students-card"/g)||[]).length,4);assert.doesNotMatch(overview.slice(overview.indexOf('aria-labelledby="studentsAssessmentTitle"')),/<(?:input|select|textarea|button|a)\b|contenteditable=/);
  for(const title of ['Cadastro e controle financeiro','Avaliação física','Diretrizes individuais de treino','Últimas quatro sessões'])assert.ok(overview.includes(title));
  assert.equal((overview.match(/<tbody>([\s\S]*?)<\/tbody>/)[1].match(/<tr>/g)||[]).length,4);
  assert.match(overview,/Exemplo fictício, sem vínculo com as sessões cadastradas/);assert.match(overview,/role="img"/);assert.match(overview,/students-status-green/);assert.match(overview,/students-status-yellow/);assert.match(overview,/students-status-red/);
@@ -139,7 +141,7 @@ test('student overview stays static; prescription RPC/model retain their contrac
 test('library overview adds four presentation-only cards while student markup and prescription RPC/model retain their contracts',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
- const students=source=>source.slice(source.indexOf('<section id="coachStudentsPanel"'),source.indexOf('<section id="coachLibraryPanel"'));
+ const students=source=>source.slice(source.indexOf('aria-labelledby="studentsAssessmentTitle"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));

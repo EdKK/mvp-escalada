@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {fixture}=require('./helpers/gas.cjs');
+const {fixture,setupFinance}=require('./helpers/gas.cjs');
 function loginFixture() {
   const f=fixture();
   f.tables.Users[1][1]='coach-test@gmail.com';
@@ -122,4 +122,23 @@ test('three independent Gmail identities retain existing coach/student authoriza
   assert.equal(f.raw({action:'getWorkout',data:{workoutId:workout.id},sessionToken:sessions[1]}).ok,true);
   rejected(f.raw({action:'getWorkout',data:{workoutId:workout.id},sessionToken:sessions[2]}),'NOT_FOUND');
   rejected(f.raw({action:'createWorkout',data:{studentId:'s1',date:'2026-11-16',goal:'Teste'},requestId:'invalid-student-write',sessionToken:sessions[1]}),'FORBIDDEN');
+});
+
+test('a student registered by a coach can use the existing Google OAuth callback', () => {
+  const f = setupFinance(loginFixture());
+  const email = 'new-student-test@gmail.com';
+  const registration = f.context.financeApi({
+    action: 'saveStudent', requestId: require('node:crypto').randomUUID(),
+    sessionToken: f.context.issueSession_({email: 'coach-test@gmail.com', sub: '12345'}),
+    data: {studentId: '', name: 'Aluna OAuth', email, whatsapp: '11900000000', startedOn: '2026-06-01'}
+  });
+  assert.equal(registration.ok, true);
+  f.claims({email});
+  f.begin();
+  assert.equal(f.callback(), true);
+  const sessionToken = f.finish().data.sessionToken;
+  const session = f.raw({action: 'getSession', data: {}, sessionToken});
+  assert.equal(session.data.id, registration.data.id);
+  assert.equal(session.data.role, 'student');
+  rejected(f.context.financeApi({action: 'listStudents', data: {}, sessionToken}), 'FORBIDDEN');
 });

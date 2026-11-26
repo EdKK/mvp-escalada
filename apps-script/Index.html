@@ -438,12 +438,15 @@ select.native-hidden {
     #coachStudentsPanel .students-card-number{display:grid;place-items:center;flex:0 0 34px;height:34px;border:1px solid var(--line);border-radius:10px;color:var(--accent);background:rgba(110,231,255,.08);font-family:var(--mono);font-size:13px}
     #coachStudentsPanel h4{font-size:14px;margin:0 0 12px;line-height:1.5}
     #coachStudentsPanel .students-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+    #financeControls form,#financeHistory{margin-top:16px}
+    #financeControls .btnbar{margin:12px 0}
+    #financeProgress{width:100%;accent-color:var(--accent)}
+    #financeLessons li{flex-wrap:wrap}
+    #financeLessons input{width:auto;max-width:100%}
     #coachStudentsPanel .students-fields > div{padding:12px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:10px;min-width:0}
-    #coachStudentsPanel dt,#coachStudentsPanel .students-finance span{color:var(--muted);font-size:12px;line-height:1.5}
+    #coachStudentsPanel dt{color:var(--muted);font-size:12px;line-height:1.5}
     #coachStudentsPanel dd{margin:6px 0 0;font-size:14px;overflow-wrap:anywhere}
     #coachStudentsPanel .students-divider{height:1px;background:var(--line);margin:20px 0}
-    #coachStudentsPanel .students-finance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-    #coachStudentsPanel .students-finance strong{display:block;margin-top:8px;font-size:18px}
     #coachStudentsPanel .students-note{font-size:12px;color:var(--muted);line-height:1.6}
     #coachStudentsPanel .students-placeholder{border-top:1px solid var(--line);padding-top:18px;margin-top:18px}
     #coachStudentsPanel .students-placeholder p,#coachStudentsPanel .students-guidance-space p{font-size:14px;line-height:1.6;color:var(--muted);margin:0}
@@ -471,7 +474,7 @@ select.native-hidden {
     #coachStudentsPanel th,#coachStudentsPanel td{padding:10px 8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
     #coachStudentsPanel thead th{font-weight:500;color:var(--muted)}
     @media(max-width:1050px){#coachStudentsPanel .students-grid{grid-template-columns:minmax(0,1fr)}}
-    @media(max-width:480px){#coachStudentsPanel .students-card{padding:16px}#coachStudentsPanel .students-fields{grid-template-columns:minmax(0,1fr)}#coachStudentsPanel .students-finance{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:480px){#coachStudentsPanel .students-card{padding:16px}#coachStudentsPanel .students-fields{grid-template-columns:minmax(0,1fr)}}
 
     /* Illustrative library overview: presentation only, isolated from prescription. */
     #coachLibraryPanel .library-overview-heading h2{margin:0 0 8px;font-size:22px}
@@ -544,16 +547,59 @@ select.native-hidden {
   </nav>
   <div class="coach-workspace">
     <section id="coachStudentsPanel" role="tabpanel" aria-labelledby="coachTabStudents" hidden>
-      <div class="students-heading"><h2>Alunos</h2><p class="muted">Estrutura visual em preparação. Nenhum dado de aluno é consultado ou registrado nesta aba.</p></div>
+      <div class="students-heading"><h2>Alunos</h2><p class="muted">Gerencie o cadastro, os planos, as aulas e os pagamentos dos seus alunos.</p></div>
       <div class="students-grid">
         <section class="card students-card" aria-labelledby="studentsRegistrationTitle">
           <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">01</span><h3 id="studentsRegistrationTitle">Cadastro e controle financeiro</h3></div>
-          <h4>Dados cadastrais</h4>
-          <dl class="students-fields"><div><dt>Nome do aluno</dt><dd>Não preenchido</dd></div><div><dt>Contato</dt><dd>Não preenchido</dd></div><div><dt>Plano de acompanhamento</dt><dd>Não preenchido</dd></div><div><dt>Início do acompanhamento</dt><dd>Não preenchido</dd></div></dl>
-          <div class="students-divider"></div>
-          <h4>Mensalidades e pagamentos</h4>
-          <div class="students-finance"><div><span>Mensalidade</span><strong>—</strong></div><div><span>Próximo vencimento</span><strong>—</strong></div><div><span>Último pagamento</span><strong>—</strong></div></div>
-          <p class="students-note">Área reservada para informações futuras. Sem cobrança ou controle financeiro ativo.</p>
+          <p id="financeStatus" class="students-note" role="status" aria-live="polite"></p>
+          <div id="financeControls">
+            <label for="financeStudent">Aluno</label>
+            <div class="row"><select id="financeStudent"></select><button type="button" id="financeNewStudent">+ Novo aluno</button></div>
+            <form id="financeProfile" hidden>
+              <h4>Dados cadastrais</h4>
+              <div class="students-fields">
+                <div><label for="financeName">Nome completo</label><input id="financeName" maxlength="120" required></div>
+                <div><label for="financeEmail">E-mail da conta Google</label><input id="financeEmail" type="email" maxlength="254" required></div>
+                <div><label for="financePhone">WhatsApp</label><input id="financePhone" type="tel" maxlength="25" required></div>
+                <div><label for="financeStart">Início do acompanhamento</label><input id="financeStart" type="date" required></div>
+              </div>
+              <div class="btnbar"><button type="submit">Salvar cadastro</button></div>
+            </form>
+            <div id="financePlans" hidden>
+              <div class="students-divider"></div>
+              <div class="btnbar">
+                <button type="button" id="financeNewPlan">Novo plano</button>
+                <button type="button" id="financeRenew" hidden>Renovar plano</button>
+              </div>
+              <form id="financePlanForm" hidden>
+                <div class="students-fields">
+                  <div><label for="financeMode">Modalidade</label><select id="financeMode"><option value="package8">Pacote de 8 aulas</option><option value="monthly">Plano mensal</option></select></div>
+                  <div><label for="financeAmount">Valor (R$)</label><input id="financeAmount" type="number" min="0" max="9999999.99" step="0.01" required></div>
+                  <div><label for="financePlanStart">Início do plano</label><input id="financePlanStart" type="date" required></div>
+                  <div id="financeDueField" hidden><label for="financeDue">Próximo vencimento</label><input id="financeDue" type="date"></div>
+                </div>
+                <div class="btnbar"><button type="submit">Salvar novo período</button><button type="button" id="financeCancelPlan">Cancelar</button></div>
+              </form>
+              <div id="financeHistory" hidden>
+                <label for="financePeriod">Histórico de planos e pagamentos</label><select id="financePeriod"></select>
+                <p id="financeSummary" class="students-note"></p>
+                <progress id="financeProgress" aria-label="Progresso do pacote de oito aulas" max="8" value="0" hidden></progress>
+                <form id="financePaymentForm">
+                  <div class="students-fields">
+                    <div><label for="financePayment">Situação do pagamento</label><select id="financePayment"><option value="pending">Pendente</option><option value="paid">Pago</option></select></div>
+                    <div id="financePaidField" hidden><label for="financePaidDate">Data do pagamento</label><input type="date" id="financePaidDate"></div>
+                  </div>
+                  <div class="btnbar"><button type="submit">Salvar pagamento</button></div>
+                </form>
+                <form id="financeLessonForm">
+                  <label for="financeLessonDate">Data da aula realizada</label><input type="date" id="financeLessonDate" required>
+                  <div class="btnbar"><button type="submit">Registrar aula</button></div>
+                </form>
+                <h4>Histórico de frequência</h4>
+                <ul id="financeLessons" class="students-status-list"></ul>
+              </div>
+            </div>
+          </div>
         </section>
         <section class="card students-card" aria-labelledby="studentsAssessmentTitle">
           <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">02</span><h3 id="studentsAssessmentTitle">Avaliação física</h3></div>
@@ -1591,7 +1637,264 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('alunoComentario').value=''; await detail(selected);
   }));
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
+  let financeRpc, financeBusy = false, financeLoaded = false, financeVersion = 0, financeRecord;
+  const financeIntents = new Map();
+  const financeMoney = new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'});
+  const financeModeLabel = mode => mode === 'monthly' ? 'Plano mensal' : 'Pacote de 8 aulas';
+  const financeDateLabel = value => value.split('-').reverse().join('/');
+  const financeStatus = message => { $('financeStatus').textContent = message; };
+
+  function resetFinance() {
+    financeVersion++;
+    financeBusy = financeLoaded = false;
+    financeRecord = undefined;
+    financeIntents.clear();
+    $('financeControls').inert = false;
+    for (const id of ['financeProfile','financePlans','financeHistory','financePlanForm']) $(id).hidden = true;
+    for (const id of ['financeStudent','financePeriod','financeLessons']) $(id).replaceChildren();
+    financeProfileForm();
+    for (const id of ['financeAmount','financePlanStart','financeDue','financePaidDate','financeLessonDate']) $(id).value = '';
+    $('financeSummary').textContent = '';
+    $('financeProgress').value = 0;
+    $('financePayment').value = 'pending';
+    financeStatus('');
+  }
+
+  async function financeCall(action, data, requestId) {
+    const version = financeVersion;
+    const result = await financeRpc(requestId ? {action, data, requestId} : {action, data});
+    if (version !== financeVersion) throw Error('STALE');
+    return result;
+  }
+
+  async function financeRun(job) {
+    if (financeBusy || session?.role !== 'coach') return;
+    const version = financeVersion;
+    financeBusy = $('financeControls').inert = true;
+    financeStatus('Carregando…');
+    try {
+      const message = await job();
+      if (version === financeVersion) financeStatus(message || '');
+    } catch (error) {
+      if (version !== financeVersion) return;
+      if (error.message === 'UNAUTHENTICATED') clearSession();
+      else {
+        const messages = {
+          INVALID_DATA: 'Confira os campos, os valores e as datas.',
+          CONFLICT: 'O e-mail já está cadastrado, o pacote atingiu oito aulas ou o registro mudou.',
+          FORBIDDEN: 'A operação exige seu vínculo ativo. O e-mail de um aluno compartilhado só pode ser alterado pelo administrador.',
+          NOT_FOUND: 'O registro não está disponível para este treinador.',
+          SCHEMA_ERROR: 'As tabelas de cadastro financeiro da homologação precisam ser inicializadas.'
+        };
+        financeStatus(messages[error.message] || 'Não foi possível concluir. Tente novamente com os mesmos dados.');
+      }
+    } finally {
+      if (version === financeVersion) financeBusy = $('financeControls').inert = false;
+    }
+  }
+
+  async function financeWrite(action, data, refreshSaved) {
+    const signature = JSON.stringify([action, data]);
+    if (!financeIntents.has(signature)) financeIntents.set(signature, key());
+    const saved = await financeCall(action, data, financeIntents.get(signature));
+    await refreshSaved(saved);
+    financeIntents.delete(signature);
+  }
+
+  async function financeList(studentId = '') {
+    const students = await financeCall('listStudents', {});
+    options('financeStudent', students, 'Selecione um aluno', student => student.name || student.id);
+    $('financeStudent').value = studentId;
+    // Keep the training draft and its selection in place while adding newly linked students.
+    const trainingSelect = $('coachAluno');
+    const trainingOptions = new Map(Array.from(trainingSelect.options || trainingSelect.children, entry => [entry.value, entry]));
+    for (const student of students) {
+      let entry = trainingOptions.get(student.id);
+      if (!entry) {
+        entry = document.createElement('option');
+        entry.value = student.id;
+        trainingSelect.appendChild(entry);
+      }
+      entry.textContent = student.name || student.id;
+    }
+    financeLoaded = true;
+  }
+
+  function financeProfileForm(profile) {
+    $('financeProfile').hidden = !profile;
+    $('financeName').value = profile?.name || '';
+    $('financeEmail').value = profile?.email || '';
+    $('financePhone').value = profile?.whatsapp || '';
+    $('financeStart').value = profile?.startedOn || '';
+  }
+
+  function financeLessonRows(plan, lessons) {
+    const list = $('financeLessons');
+    list.replaceChildren();
+    if (!lessons.length) {
+      const row = document.createElement('li');
+      row.textContent = 'Nenhuma aula registrada neste período.';
+      list.appendChild(row);
+      return;
+    }
+    for (const lesson of lessons) {
+      const row = document.createElement('li');
+      if (lesson.active !== true && lesson.active !== 'TRUE') {
+        row.textContent = financeDateLabel(lesson.date) + ' · Registro cancelado';
+      } else {
+        const date = document.createElement('input');
+        date.type = 'date';
+        date.value = lesson.date;
+        date.required = true;
+        date.min = plan.startedOn;
+        date.setAttribute('aria-label', 'Data da aula de ' + financeDateLabel(lesson.date));
+        row.appendChild(date);
+        for (const [label, active] of [['Corrigir data', true], ['Cancelar aula', false]]) {
+          const control = document.createElement('button');
+          control.type = 'button';
+          control.textContent = label;
+          control.addEventListener('click', () => {
+            if (active && !date.reportValidity()) return;
+            return financeRun(async () => {
+              await financeWrite('saveLesson', {
+                studentId: plan.studentId, planId: plan.id, lessonId: lesson.id, date: date.value, active
+              }, () => financeSelectStudent(plan.studentId, plan.id));
+              return active ? 'Data corrigida.' : 'Aula cancelada.';
+            });
+          });
+          row.appendChild(control);
+        }
+      }
+      list.appendChild(row);
+    }
+  }
+
+  function financeRenderPeriod() {
+    const plan = financeRecord?.plans.find(row => row.id === $('financePeriod').value);
+    $('financeHistory').hidden = !plan;
+    if (!plan) return;
+    const lessons = financeRecord.lessons.filter(lesson => lesson.planId === plan.id)
+      .sort((left, right) => left.date.localeCompare(right.date));
+    const completed = lessons.filter(lesson => lesson.active === true || lesson.active === 'TRUE').length;
+    const package8 = plan.mode === 'package8';
+    const data = [financeMoney.format(plan.amountCents / 100)];
+    if (!package8) data.push('Vencimento em ' + financeDateLabel(plan.dueOn));
+    data.push(package8 ? completed + ' de 8 aulas realizadas' : completed + ' aulas realizadas');
+    if (package8) data.push((8 - completed) + ' restantes');
+    $('financeSummary').textContent = data.join(' · ');
+    $('financeProgress').hidden = !package8;
+    $('financeProgress').value = completed;
+    $('financePayment').value = plan.payment;
+    $('financePaidDate').value = plan.paidOn;
+    financePaidField();
+    $('financeLessonDate').min = plan.startedOn;
+    $('financeLessonDate').value = '';
+    $('financeLessonForm').hidden = package8 && completed >= 8;
+    financeLessonRows(plan, lessons);
+  }
+
+  async function financeSelectStudent(studentId, period = '') {
+    const result = studentId ? await financeCall('getStudent', {studentId}) : undefined;
+    financeRecord = result;
+    financeProfileForm(result?.profile);
+    $('financePlans').hidden = !result;
+    $('financePlanForm').hidden = true;
+    const plans = result?.plans || [];
+    $('financeRenew').hidden = plans.length === 0;
+    $('financeNewPlan').textContent = plans.length ? 'Mudar modalidade / novo plano' : 'Novo plano';
+    options('financePeriod', [...plans].reverse(), null, plan => {
+      const current = plan === plans[plans.length - 1] ? 'Atual · ' : '';
+      const payment = plan.payment === 'paid' ? 'Pago em ' + financeDateLabel(plan.paidOn) : 'Pendente';
+      return current + financeModeLabel(plan.mode) + ' · ' + financeDateLabel(plan.startedOn) + ' · ' + payment;
+    });
+    $('financePeriod').value = period || plans[plans.length - 1]?.id || '';
+    financeRenderPeriod();
+  }
+
+  function financeDueField() {
+    const monthly = $('financeMode').value === 'monthly';
+    $('financeDueField').hidden = !monthly;
+    $('financeDue').required = monthly;
+  }
+
+  function financePaidField() {
+    const paid = $('financePayment').value === 'paid';
+    $('financePaidField').hidden = !paid;
+    $('financePaidDate').required = paid;
+  }
+
+  function financeOpenPlan(plan) {
+    $('financePlanForm').hidden = false;
+    $('financeMode').value = plan?.mode || 'package8';
+    $('financeAmount').value = plan ? (plan.amountCents / 100).toFixed(2) : '';
+    $('financePlanStart').value = '';
+    $('financeDue').value = '';
+    financeDueField();
+    $('financeMode').focus();
+  }
+
+  function financeForm(id, handler) {
+    $(id).addEventListener('submit', event => {
+      event.preventDefault();
+      return financeRun(handler);
+    });
+  }
+
+  $('financeStudent').addEventListener('change', () => financeRun(async () => {
+    // Hide the earlier record before loading a different student.
+    await financeSelectStudent('');
+    await financeSelectStudent($('financeStudent').value);
+  }));
+  $('financeNewStudent').addEventListener('click', () => financeRun(async () => {
+    $('financeStudent').value = '';
+    await financeSelectStudent('');
+    financeProfileForm({name: '', email: '', whatsapp: '', startedOn: ''});
+  }));
+  financeForm('financeProfile', async () => {
+    await financeWrite('saveStudent', {
+      studentId: financeRecord?.profile.id || '',
+      name: $('financeName').value, email: $('financeEmail').value,
+      whatsapp: $('financePhone').value, startedOn: $('financeStart').value
+    }, async saved => {
+      await financeList(saved.id);
+      await financeSelectStudent(saved.id);
+    });
+    return 'Cadastro salvo.';
+  });
+  $('financeNewPlan').addEventListener('click', () => financeOpenPlan());
+  $('financeRenew').addEventListener('click', () => financeOpenPlan(financeRecord.plans.at(-1)));
+  $('financeCancelPlan').addEventListener('click', () => { $('financePlanForm').hidden = true; });
+  $('financeMode').addEventListener('change', financeDueField);
+  $('financePeriod').addEventListener('change', financeRenderPeriod);
+  $('financePayment').addEventListener('change', financePaidField);
+
+  financeForm('financePlanForm', async () => {
+    const studentId = financeRecord.profile.id;
+    const mode = $('financeMode').value;
+    await financeWrite('startPlan', {
+      studentId, mode, amountCents: Math.round(Number($('financeAmount').value) * 100),
+      startedOn: $('financePlanStart').value, dueOn: mode === 'monthly' ? $('financeDue').value : ''
+    }, saved => financeSelectStudent(studentId, saved.id));
+    return 'Novo período registrado. Os períodos anteriores estão no histórico.';
+  });
+  financeForm('financePaymentForm', async () => {
+    const studentId = financeRecord.profile.id, planId = $('financePeriod').value;
+    const payment = $('financePayment').value;
+    await financeWrite('savePayment', {
+      studentId, planId, payment, paidOn: payment === 'paid' ? $('financePaidDate').value : ''
+    }, () => financeSelectStudent(studentId, planId));
+    return 'Pagamento atualizado.';
+  });
+  financeForm('financeLessonForm', async () => {
+    const studentId = financeRecord.profile.id, planId = $('financePeriod').value;
+    await financeWrite('saveLesson', {
+      studentId, planId, lessonId: '', date: $('financeLessonDate').value, active: true
+    }, () => financeSelectStudent(studentId, planId));
+    return 'Aula registrada.';
+  });
+
   function clearSession() {
+    resetFinance();
     sessionToken=''; session=null; selected=''; selectedWorkout=null; loginResume.reset(); generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
     pendingCoachEntries=[];coachDraftBaseline='';coachReview=null;
     editingDirected=null;clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
@@ -1614,6 +1917,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       $(tab.button).setAttribute('aria-selected',String(active));
       $(tab.button).setAttribute('tabindex',active?'0':'-1');
     });
+    if (key === 'students' && !financeLoaded) return financeRun(() => financeList());
   }
   coachTabs.forEach((tab,index)=>{
     $(tab.button).addEventListener('click',()=>selectCoachTab(tab.key));
@@ -1650,7 +1954,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('btnEnviarRetorno').hidden=session.role!=='student';
     if(session.role==='coach') {
       const students=await rpc({action:'listStudents',data:{}});
-      $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.id; $('coachAluno').appendChild(o);});
+      $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.name || s.id; $('coachAluno').appendChild(o);});
     }
     if(session.role==='coach'){await loadLibrary();coachDraftBaseline=coachDraftSignature();}
     const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
@@ -1724,6 +2028,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     if(typeof google==='undefined' || !google.script || !google.script.run) throw Error('Abra no ambiente Google Apps Script');
     rpc=createRpc(google.script.run,()=>sessionToken);
     libraryRpc=createRpc(google.script.run,()=>sessionToken,'libraryApi');
+    financeRpc=createRpc(google.script.run,()=>sessionToken,'financeApi');
     coachRefreshButton=button($('appPanel'),'Atualizar treinos',()=>refresh(selected));
   } catch(e) { notice('Acesso indisponível: '+e.message); document.querySelectorAll('button').forEach(b=>{b.disabled=true;}); }
 

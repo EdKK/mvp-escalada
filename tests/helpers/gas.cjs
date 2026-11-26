@@ -21,7 +21,11 @@ function fixture() {
   function sheet(name) {return {
     getLastRow: () => tables[name].length,
     getLastColumn: () => tables[name][0]?.length || 0,
-    getRange: (r,c,n,w) => ({getValues: () => tables[name].slice(r-1,r-1+n).map(row => row.slice(c-1,c-1+w))}),
+    getRange: (r,c,n,w) => ({getValues: () => tables[name].slice(r-1,r-1+n).map(row => row.slice(c-1,c-1+w)),
+      setValues: values => {
+        if (failTable === name) {failTable = null; throw Error('simulated outage')}
+        values.forEach((row, offset) => tables[name][r-1+offset].splice(c-1,w,...row));
+      }}),
     appendRow: row => {if (failTable === name) {failTable = null; throw Error('simulated outage')} tables[name].push([...row]); return sheet(name)}
   }}
   vm.runInContext(fs.readFileSync('apps-script/Backend.gs','utf8'), context);
@@ -34,4 +38,10 @@ function fixture() {
   const call = (action,data={},requestId='request-1') => context.api({action,data,requestId,sessionToken:email ? context.issueSession_({email,sub:'12345'}) : undefined});
   return {context,call,tables,cache,properties,advance:ms=>now+=ms,email: value => email=value,busy: value => busy=value, fail: name => failTable=name};
 }
-module.exports={fixture};
+function setupFinance(f) {
+  vm.runInContext(fs.readFileSync('apps-script/StudentFinance.gs','utf8'), f.context);
+  f.properties.HOMOLOGATION_SPREADSHEET_ID = f.properties.SPREADSHEET_ID;
+  f.context.prepararCadastroFinanceiroTeste_();
+  return f;
+}
+module.exports={fixture,setupFinance};

@@ -216,6 +216,7 @@ var StudentModel = (() => {
     link.href = url.href;
     link.hidden = false;
     finishButton.hidden = false;
+    return url.href;
   }
 
   async function check(manual = false) {
@@ -239,6 +240,7 @@ var StudentModel = (() => {
     prepareButton.disabled = finishButton.disabled = true;
     if (manual) current.paused = false;
     else current.checks++;
+    let loadingPanel = false;
     try {
       const result = await finish({transaction: current.transaction, proof: current.proof});
       if (attempt !== current) return;
@@ -250,17 +252,25 @@ var StudentModel = (() => {
           : 'A confirmação automática foi interrompida. Use “Concluir entrada” ou prepare uma nova entrada.');
         return;
       }
+      loadingPanel = true;
       await onSuccess(result.sessionToken);
       if (attempt === current) reset();
     } catch (error) {
       if (attempt !== current) return;
+      if (watchForReturn && !loadingPanel && current.opened &&
+          ['BUSY', 'TRANSPORT_ERROR'].includes(error.message)) {
+        scheduleCheck(watchInterval);
+        onStatus('A confirmação está temporariamente indisponível. Tentaremos novamente.');
+        return;
+      }
       current.checks = maxChecks;
       current.paused = true;
       if (['AUTH_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(error.message)) {
         reset();
         onStatus('Não foi possível autenticar. Prepare uma nova entrada.');
       } else {
-        onStatus('Não foi possível concluir: ' + error.message + '. Tente “Concluir entrada” ou prepare uma nova entrada.');
+        const stage = watchForReturn && loadingPanel ? 'carregar o painel' : 'concluir';
+        onStatus('Não foi possível ' + stage + ': ' + error.message + '. Tente “Concluir entrada” ou prepare uma nova entrada.');
       }
     } finally {
       finishing = false;
@@ -268,18 +278,20 @@ var StudentModel = (() => {
     }
   }
 
+  function markOpened() {
+    if (!attempt || attempt.opened) return;
+    attempt.opened = true;
+    if (watchForReturn) scheduleCheck(checkInterval);
+  }
+
   link.addEventListener('click', event => {
     if (finishing) event.preventDefault();
-    else if (attempt && !attempt.opened) {
-      attempt.opened = true;
-      // The embedded coach page can miss both return events when the popup closes.
-      if (watchForReturn) scheduleCheck(checkInterval);
-    }
+    else markOpened();
   });
   finishButton.addEventListener('click', () => check(true));
   window.addEventListener('focus', () => check());
   document.addEventListener('visibilitychange', () => check());
-  return {prepare, reset};
+  return {prepare, markOpened, reset};
 }
 /* Same authenticated API and OAuth flow as Index; no mock identity in this build. */
 window.StudentAPI=(()=>{

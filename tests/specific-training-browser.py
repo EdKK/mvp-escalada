@@ -9,6 +9,7 @@ try:
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True,executable_path=shutil.which('chromium') or p.chromium.executable_path)
         context=browser.new_context(viewport={'width':1600,'height':1100})
+        context.add_init_script("window.open = () => null")  # Exercise manual login with no external tab.
         context.route('**/*',lambda r:r.continue_() if r.request.url.startswith(base) else r.abort())
         errors=[];context.on('page',lambda page:page.on('pageerror',lambda e:errors.append(str(e))))
         coach=context.new_page();coach.goto(base);coach.locator('#btnLogin').click();coach.locator('#btnFinishLogin').click();expect(coach.locator('#appPanel')).to_be_visible()

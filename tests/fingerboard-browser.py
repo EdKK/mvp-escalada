@@ -14,6 +14,7 @@ try:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, executable_path=shutil.which('chromium') or playwright.chromium.executable_path)
         context = browser.new_context(viewport={'width': 1440, 'height': 1000})
+        context.add_init_script("window.open = () => null")  # Exercise manual login with no external tab.
         context.route('**/*', lambda route: route.continue_() if route.request.url.startswith(base) else route.abort())
         errors = []
         context.on('page', lambda page: page.on('pageerror', lambda error: errors.append(str(error))))

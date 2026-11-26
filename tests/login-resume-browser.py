@@ -15,7 +15,8 @@ with subprocess.Popen(
         base = 'http://127.0.0.1:' + server.stdout.readline().strip()
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
-                executable_path=shutil.which('chromium') or playwright.chromium.executable_path
+                executable_path=shutil.which('chromium') or playwright.chromium.executable_path,
+                ignore_default_args=['--disable-popup-blocking'],
             )
             for role, path, prepare, link, finish, panel in [
                 ('coach', '/', '#btnLogin', '#googleLoginLink', '#btnFinishLogin', '#appPanel'),
@@ -40,12 +41,16 @@ with subprocess.Popen(
                             route.continue_()
 
                     page.route('**/rpc', rpc)
-                    page.locator(prepare).click()
-                    expect(page.locator(link)).to_be_visible()
-                    assert 'finishLogin' not in calls
+                    if role == 'student':
+                        page.locator(prepare).click()
+                        expect(page.locator(link)).to_be_visible()
+                        assert 'finishLogin' not in calls
                     with page.expect_popup() as popup:
-                        page.locator(link).click()
+                        page.locator(prepare if role == 'coach' else link).click()
                     expect(popup.value.locator('body')).to_have_text('Fictitious Google')
+                    assert popup.value.evaluate('window.opener === null')
+                    if role == 'coach':
+                        expect(page.locator(link)).to_be_hidden()
                     popup.value.close()
                     page.bring_to_front()
                     # Headless Chromium may keep every tab visible. Exercise the same return
@@ -80,12 +85,16 @@ with subprocess.Popen(
                 page = context.new_page()
                 calls = []
                 callback_ready = False
+                busy_replies = []
 
                 def coach_rpc(route):
                     action = route.request.post_data_json['request']['action']
                     calls.append(action)
                     if action == 'finishLogin' and not callback_ready:
                         route.fulfill(json={'ok': True, 'data': {'pending': True}})
+                    elif action == 'finishLogin' and not busy_replies:
+                        busy_replies.append('BUSY')
+                        route.fulfill(json={'ok': False, 'error': {'code': 'BUSY'}})
                     else:
                         route.continue_()
 
@@ -94,13 +103,12 @@ with subprocess.Popen(
                 assert response.ok, response.status
                 expect(page.locator('iframe')).to_be_attached()
                 coach = page.frame_locator('iframe')
-                coach.locator('#btnLogin').click(timeout=8000)
-                expect(coach.locator('#googleLoginLink')).to_be_visible()
-                assert calls == ['beginLogin'], calls
                 with page.expect_popup() as popup:
-                    coach.locator('#googleLoginLink').click()
+                    coach.get_by_role('button', name='Entrar com Google').click(timeout=8000)
                 google = popup.value
                 expect(google.locator('body')).to_have_text('Fictitious Google')
+                assert google.evaluate('window.opener === null')
+                expect(coach.locator('#googleLoginLink')).to_be_hidden()
                 google.goto(base + '/test-oauth-return')
                 callback_ready = True
                 with google.expect_event('close'):
@@ -108,8 +116,58 @@ with subprocess.Popen(
                 page.bring_to_front()
                 expect(coach.locator('#appPanel')).to_be_visible(timeout=10000)
                 expect(coach.locator('#btnFinishLogin')).to_be_hidden()
-                assert calls.count('finishLogin') >= 1, calls
+                assert calls.count('finishLogin') >= 2, calls
+                assert busy_replies == ['BUSY']
                 assert calls.count('getSession') == 1, calls
-                print('coach iframe: automatic completion after return without focus or visibility events')
+                print('coach iframe: automatic completion after return without focus or visibility events, even after BUSY')
+            with browser.new_context() as context:
+                context.route('**/*', lambda route: route.continue_() if route.request.url.startswith(
+                    base + '/'
+                ) else route.abort())
+                context.route('https://accounts.google.com/**', lambda route: route.fulfill(body='Fictitious Google'))
+                context.add_init_script("window.open = () => null")
+                page = context.new_page()
+                page.goto(base)
+                page.get_by_role('button', name='Entrar com Google').click()
+                expect(page.locator('#notice')).to_contain_text('A aba do Google não abriu')
+                expect(page.locator('#googleLoginLink')).to_be_visible()
+                assert len(context.pages) == 1
+                with page.expect_popup() as popup:
+                    page.locator('#googleLoginLink').click()
+                expect(popup.value.locator('body')).to_have_text('Fictitious Google')
+                assert popup.value.evaluate('window.opener === null')
+                popup.value.close()
+                page.locator('#btnFinishLogin').click()
+                expect(page.locator('#appPanel')).to_be_visible()
+                print('coach: blocked popup leaves an isolated Google link and manual completion')
+
+            with browser.new_context() as context:
+                context.route('**/*', lambda route: route.continue_() if route.request.url.startswith(
+                    base + '/'
+                ) else route.abort())
+                page = context.new_page()
+                auth_calls = []
+
+                def reject_preparation(route):
+                    action = route.request.post_data_json['request']['action']
+                    auth_calls.append(action)
+                    response = (
+                        {'ok': False, 'error': {'code': 'BUSY'}}
+                        if len(auth_calls) == 1 else
+                        {'ok': True, 'data': {'authorizationUrl': 'https://invalid.example/'}}
+                    )
+                    route.fulfill(json=response)
+
+                page.route('**/rpc', reject_preparation)
+                page.goto(base)
+                for expected_calls in (1, 2):
+                    page.get_by_role('button', name='Entrar com Google').click()
+                    expect(page.locator('#notice')).to_contain_text('Não foi possível preparar a entrada')
+                    expect(page.locator('#btnLogin')).to_be_enabled()
+                    expect(page.locator('#googleLoginLink')).to_be_hidden()
+                    expect(page.locator('#btnFinishLogin')).to_be_hidden()
+                    assert len(context.pages) == 1
+                    assert auth_calls == ['beginLogin'] * expected_calls
+                print('coach: failed preparation and invalid OAuth URL clean up the reserved tab')
     finally:
         server.terminate()

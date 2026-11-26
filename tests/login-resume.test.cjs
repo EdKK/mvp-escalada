@@ -187,3 +187,21 @@ test('coach watch stops at attempt expiry or replacement', async () => {
   assert.equal(ui.timers.size, 0);
   assert.match(ui.statuses.at(-1), /expirou/);
 });
+
+test('coach retries temporary confirmation faults', async () => {
+  let calls = 0;
+  const ui = setup(() => {
+    calls++;
+    if (calls === 1) throw Error('BUSY');
+    if (calls === 2) throw Error('TRANSPORT_ERROR');
+    return {sessionToken: 'coach'};
+  }, true);
+  ui.prepare();
+  ui.link.emit('click');
+  await ui.tick();
+  assert.match(ui.statuses.at(-1), /temporariamente/);
+  await ui.tick();
+  await ui.tick();
+  assert.deepEqual(ui.sessions, ['coach']);
+  assert.equal(ui.timers.size, 0);
+});

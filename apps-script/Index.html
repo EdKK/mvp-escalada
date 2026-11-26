@@ -514,7 +514,7 @@ select.native-hidden {
 <section id="loginPanel" class="card">
   <h1>Entrar no MVP Escalada</h1>
   <p>Use uma das contas Google autorizadas para homologação.</p>
-  <button id="btnLogin">Preparar entrada com Google</button>
+  <button id="btnLogin">Entrar com Google</button>
   <a id="googleLoginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google (nova aba)</a>
   <button id="btnFinishLogin" hidden>Concluir entrada</button>
   <p>Depois de autenticar no Google, volte a esta aba. A entrada será concluída automaticamente. Se precisar, use “Concluir entrada”.</p>
@@ -993,6 +993,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     link.href = url.href;
     link.hidden = false;
     finishButton.hidden = false;
+    return url.href;
   }
 
   async function check(manual = false) {
@@ -1016,6 +1017,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     prepareButton.disabled = finishButton.disabled = true;
     if (manual) current.paused = false;
     else current.checks++;
+    let loadingPanel = false;
     try {
       const result = await finish({transaction: current.transaction, proof: current.proof});
       if (attempt !== current) return;
@@ -1027,17 +1029,25 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
           : 'A confirmação automática foi interrompida. Use “Concluir entrada” ou prepare uma nova entrada.');
         return;
       }
+      loadingPanel = true;
       await onSuccess(result.sessionToken);
       if (attempt === current) reset();
     } catch (error) {
       if (attempt !== current) return;
+      if (watchForReturn && !loadingPanel && current.opened &&
+          ['BUSY', 'TRANSPORT_ERROR'].includes(error.message)) {
+        scheduleCheck(watchInterval);
+        onStatus('A confirmação está temporariamente indisponível. Tentaremos novamente.');
+        return;
+      }
       current.checks = maxChecks;
       current.paused = true;
       if (['AUTH_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(error.message)) {
         reset();
         onStatus('Não foi possível autenticar. Prepare uma nova entrada.');
       } else {
-        onStatus('Não foi possível concluir: ' + error.message + '. Tente “Concluir entrada” ou prepare uma nova entrada.');
+        const stage = watchForReturn && loadingPanel ? 'carregar o painel' : 'concluir';
+        onStatus('Não foi possível ' + stage + ': ' + error.message + '. Tente “Concluir entrada” ou prepare uma nova entrada.');
       }
     } finally {
       finishing = false;
@@ -1045,18 +1055,20 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     }
   }
 
+  function markOpened() {
+    if (!attempt || attempt.opened) return;
+    attempt.opened = true;
+    if (watchForReturn) scheduleCheck(checkInterval);
+  }
+
   link.addEventListener('click', event => {
     if (finishing) event.preventDefault();
-    else if (attempt && !attempt.opened) {
-      attempt.opened = true;
-      // The embedded coach page can miss both return events when the popup closes.
-      if (watchForReturn) scheduleCheck(checkInterval);
-    }
+    else markOpened();
   });
   finishButton.addEventListener('click', () => check(true));
   window.addEventListener('focus', () => check());
   document.addEventListener('visibilitychange', () => check());
-  return {prepare, reset};
+  return {prepare, markOpened, reset};
 }
 /* END GENERATED LOGIN RESUME */
 (async function() {
@@ -1652,15 +1664,59 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     finish: data => rpc({action:'finishLogin',data}),
     onSuccess: async token => {
       sessionToken = token;
-      await loadApp();
+      notice('Autorização confirmada. Carregando o painel.');
+      try {
+        await loadApp();
+      } catch (error) {
+        sessionToken = '';
+        throw error;
+      }
       notice('Entrada concluída.');
     },
     onStatus: notice
   });
-  $('btnLogin').addEventListener('click',()=>perform(async()=>{
+  $('btnLogin').addEventListener('click', async () => {
+    const button = $('btnLogin');
+    if (button.disabled) return;
+    button.disabled = true;
     clearSession();
-    loginResume.prepare(await rpc({action:'beginLogin',data:{}}));
-  }));
+
+    // Reserve the tab inside the trusted click, before waiting for Apps Script.
+    let popup;
+    try {
+      popup = window.open('about:blank', '_blank');
+      if (popup) {
+        popup.opener = null;
+        if (popup.opener !== null) throw Error('POPUP_OPENER');
+      }
+    } catch {
+      popup?.close();
+      popup = null;
+    }
+
+    notice('Preparando a entrada no Google…');
+    try {
+      const url = loginResume.prepare(await rpc({action:'beginLogin',data:{}}));
+      if (popup && !popup.closed) {
+        try {
+          popup.location.replace(url);
+          $('googleLoginLink').hidden = true;
+          loginResume.markOpened();
+          notice('Conclua a autorização no Google e volte a esta aba.');
+          return;
+        } catch {
+          popup.close();
+        }
+      }
+      notice('A aba do Google não abriu. Use “Continuar no Google”.');
+    } catch {
+      popup?.close();
+      loginResume.reset();
+      notice('Não foi possível preparar a entrada. Tente “Entrar com Google” novamente.');
+    } finally {
+      button.disabled = false;
+    }
+  });
   $('btnLogout').addEventListener('click',()=>perform(async()=>{
     try { await rpc({action:'logout',data:{}}); } finally { clearSession(); }
   }));

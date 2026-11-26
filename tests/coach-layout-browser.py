@@ -17,6 +17,7 @@ try:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, executable_path=shutil.which('chromium') or p.chromium.executable_path)
         page = browser.new_page(viewport={'width': 1600, 'height': 1100})
+        page.add_init_script("window.open = () => null")  # Exercise manual login with no external tab.
         errors = []
         page.on('pageerror', lambda e: errors.append(str(e)))
         # Abort unexpected external requests: only the local fictitious backend is usable.

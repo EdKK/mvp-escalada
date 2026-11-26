@@ -69,20 +69,24 @@ function microcycleType_(value) {
   if (['Introdutório','Ordinário','Choque','Estabilizador','Manutenção','Recuperativo','Controle','Pré-competitivo','Competitivo'].indexOf(value)<0) fail_('INVALID_DATA');
   return value;
 }
+function workoutCandidate_(db,user,d) {
+  fields_(d, ['studentId', 'date', 'goal', 'microcycleType', 'instructions']);
+  if (d.instructions !== undefined && (!Array.isArray(d.instructions) || d.instructions.length>20)) fail_('INVALID_DATA');
+  if (d.instructions) d.instructions.forEach(function(step){text_(step,500);});
+  if ((d.goal === undefined) === (d.microcycleType === undefined)) fail_('INVALID_DATA');
+  if (d.microcycleType !== undefined) microcycleType_(d.microcycleType);
+  var student = text_(d.studentId, 100), date = text_(d.date, 10), goal = d.goal===undefined?'':text_(d.goal, 500);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail_('INVALID_DATA');
+  if (!linked_(db, user.id, student)) fail_('FORBIDDEN');
+  return {id: id_(), coachId: user.id, studentId: student, date: date, goal: goal, createdAt: new Date().toISOString()};
+}
 function create_(db, user, req) {
   if (user.role !== (req.action === 'submitFeedback' ? 'student' : 'coach')) fail_('FORBIDDEN');
   var d = req.data, entity, record;
   var key = text_(req.requestId, 100);
   if (req.action === 'createWorkout') {
-    fields_(d, ['studentId', 'date', 'goal', 'microcycleType', 'instructions']);
-    if (d.instructions !== undefined && (!Array.isArray(d.instructions) || d.instructions.length>20)) fail_('INVALID_DATA');
-    if (d.instructions) d.instructions.forEach(function(step){text_(step,500);});
-    if ((d.goal === undefined) === (d.microcycleType === undefined)) fail_('INVALID_DATA');
-    if (d.microcycleType !== undefined) { microcycleType_(d.microcycleType); sheet_(db,'WorkoutGuidance'); }
-    var student = text_(d.studentId, 100), date = text_(d.date, 10), goal = d.goal===undefined?'':text_(d.goal, 500);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) fail_('INVALID_DATA');
-    if (!linked_(db, user.id, student)) fail_('FORBIDDEN');
-    entity = 'Workouts'; record = {id: id_(), coachId: user.id, studentId: student, date: date, goal: goal, createdAt: new Date().toISOString()};
+    entity = 'Workouts'; record = workoutCandidate_(db,user,d);
+    if (d.microcycleType !== undefined || d.instructions !== undefined) sheet_(db,'WorkoutGuidance');
   } else if (req.action === 'submitFeedback') {
     fields_(d, ['workoutId', 'status', 'reason', 'fingerPain', 'rpe', 'comment']);
     var target = workout_(db, user, text_(d.workoutId, 100));

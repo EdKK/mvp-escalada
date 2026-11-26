@@ -102,7 +102,7 @@ function libraryApi(request){
   var lock;
   try{
     fields_(request,['action','data','requestId','sessionToken']);
-    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions'];
+    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','listPendingCoachSessions'];
     if(actions.indexOf(request.action)<0)fail_('INVALID_ACTION');
     var identity=sessionIdentity_(request.sessionToken);lock=LockService.getScriptLock();if(!lock.tryLock(5000))fail_('BUSY');
     var db=libraryDb_(),user=userForEmail_(db,identity.email),d=request.data,result;
@@ -120,6 +120,9 @@ function libraryApi(request){
       else if(request.action==='listLibraryPrescriptions')result=coachPrescriptions_(db,user,d);
       else if(request.action==='listPendingCoachSaves')result=coachPendingSaves_(db,user,d);
       else if(request.action==='coachSaveStatus')result=coachSaveStatus_(db,user,d);
+      else if(request.action==='listDraftAssessments')result=coachDraftAssessments_(db,user,d);
+      else if(request.action==='listPendingCoachSessions')result=coachSessionPending_(db,user,d);
+      else if(request.action==='saveCoachSession'||request.action==='resumeCoachSession')result=coachSessionSave_(db,user,request);
       else if(request.action==='saveCoachPrescription')result=coachSavePrescription_(db,user,request);
       else if(request.action==='createExercise')result=libraryCreateExercise_(db,user,request);
       else if(request.action==='linkExerciseMethod')result=libraryAssociate_(db,user,request,'EXERCICIO_METODOS','METODOS','methodId');
@@ -129,6 +132,6 @@ function libraryApi(request){
       else if(request.action==='createLibraryPrescription')result=libraryCreatePrescription_(db,user,request);
     }
     return {ok:true,data:result};
-  }catch(e){var codes=['INVALID_ACTION','INVALID_DATA','IMPOSSIBLE_CAMPUS_PATH','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','CONFLICT','BUSY','CONFIGURATION_ERROR','SCHEMA_ERROR','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT'];return {ok:false,error:{code:codes.indexOf(e.code)>=0?e.code:'INTERNAL_ERROR'}};}
+  }catch(e){var codes=['INVALID_ACTION','INVALID_DATA','IMPOSSIBLE_CAMPUS_PATH','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','CONFLICT','BUSY','CONFIGURATION_ERROR','SCHEMA_ERROR','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT'];return {ok:false,error:{code:codes.indexOf(e.code)>=0?e.code:'INTERNAL_ERROR',...(Number.isInteger(e.itemIndex)?{itemIndex:e.itemIndex}:{})}};}
   finally{if(lock && lock.hasLock())lock.releaseLock();}
 }

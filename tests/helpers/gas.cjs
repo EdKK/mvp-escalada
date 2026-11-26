@@ -1,7 +1,7 @@
 const vm=require('node:vm'); const fs=require('node:fs'); const crypto=require('node:crypto');
 function fixture() {
   let email = 'coach@example.invalid', busy = false, held = false, failTable;
-  const tables = {}, cache = new Map();
+  const tables = {}, rowCapacity = new Map(), cache = new Map();
   const properties = {SPREADSHEET_ID:'test-only', ENVIRONMENT:'homologation', GOOGLE_CLIENT_ID:'test-client.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET:'fake-secret', GOOGLE_REDIRECT_URI:'https://script.google.com/macros/s/test-deployment/exec'};
   let now = Date.now();
   const context = vm.createContext({
@@ -20,11 +20,13 @@ function fixture() {
   });
   function sheet(name) {return {
     getLastRow: () => tables[name].length,
+    getMaxRows: () => rowCapacity.get(name)||1000,
+    insertRowsAfter: (position,count) => rowCapacity.set(name,position+count),
     getLastColumn: () => tables[name][0]?.length || 0,
     getRange: (r,c,n,w) => ({getValues: () => tables[name].slice(r-1,r-1+n).map(row => row.slice(c-1,c-1+w)),
       setValues: values => {
         if (failTable === name) {failTable = null; throw Error('simulated outage')}
-        values.forEach((row, offset) => tables[name][r-1+offset].splice(c-1,w,...row));
+        values.forEach((row, offset) => (tables[name][r-1+offset]??=[]).splice(c-1,w,...row));
       }}),
     appendRow: row => {if (failTable === name) {failTable = null; throw Error('simulated outage')} tables[name].push([...row]); return sheet(name)}
   }}

@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 from playwright.sync_api import sync_playwright, expect
+from helpers.saved_workout import select_saved_workout
 
 root = Path(__file__).resolve().parents[1]
 server = subprocess.Popen(['node', 'tests/helpers/coach-browser-server.cjs'], cwd=root, stdout=subprocess.PIPE, text=True)
@@ -29,7 +30,7 @@ try:
         login_coach()
         coach.locator('#coachAluno').select_option('s1')
         coach.locator('#coachData').fill('2026-11-26')
-        coach.locator('#btnCriarTreino').click()
+        select_saved_workout(coach, base)
         expect(coach.locator('#previewTreinoAluno')).to_contain_text('2026-11-26')
         coach.locator('#libraryClassification').select_option('directed')
         expect(coach.locator('#libraryPanel')).to_be_visible()
@@ -69,6 +70,7 @@ try:
         coach.locator('#btnAddItem').click()
         expect(coach.locator('#librarySaveHint')).to_contain_text('INTERNAL_ERROR')
         login_coach()
+        coach.locator('#findCoachPending').click()
         coach.locator('#pendingCoachSaves button').click()
         expect(coach.locator('#previewTreinoAluno')).to_contain_text('Suspensão isométrica')
         expect(coach.locator('#previewTreinoAluno')).to_contain_text('Entre séries: 2 min')

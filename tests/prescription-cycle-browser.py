@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import shutil
 from playwright.sync_api import sync_playwright, expect
+from helpers.saved_workout import select_saved_workout
 
 ROOT=Path(__file__).resolve().parents[1]
 server=subprocess.Popen(['node','tests/helpers/coach-browser-server.cjs'],cwd=ROOT,stdout=subprocess.PIPE,text=True)
@@ -25,7 +26,7 @@ try:
         expect(coach.locator('#appPanel')).to_be_visible()
         coach.locator('#coachAluno').select_option('s1');coach.locator('#coachData').fill('2026-11-23')
         coach.locator('#coachInstructions').fill('Aquecer com cuidado.\nPreservar as unidades.')
-        coach.locator('#btnCriarTreino').click();expect(coach.locator('#previewTreinoAluno')).to_contain_text('2026-11-23')
+        select_saved_workout(coach, base);expect(coach.locator('#previewTreinoAluno')).to_contain_text('2026-11-23')
         workout_id=coach.locator('#coachTreinoId').input_value()
         def fill_exercise():
             coach.locator('#itemExercicio').select_option('exercise-bench');expect(coach.locator('#libraryMethod')).to_be_enabled()

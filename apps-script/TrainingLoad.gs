@@ -259,9 +259,9 @@ function validateDirectedLoad_(data,workout,item){
   var volume=libraryVolume_({volumeUnitIds:[unitId],isometricUnitId:traction?'unit-seconds':undefined,campus:campus},input,'prescribed');
   return {workout:workout,item:item,exercise:{id:'directed:'+d.subblock,name:names[d.subblock]},method:null,protocol:null,capacity:null,classification:'directed',intensity:{notPrescribed:true},auxiliaryIntensities:[],volume:volume,directed:directed};
 }
-function libraryValidateLoad_(db,user,data,candidateItem){
+function libraryValidateLoad_(db,user,data,candidateItem,candidateWorkout){
   fields_(data,['workoutId','itemId','exerciseId','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','expectedRevision','task','directed']);
-  var w=workout_(db,user,text_(data.workoutId,100));
+  var w=candidateWorkout||workout_(db,user,text_(data.workoutId,100));
   var item=candidateItem?[candidateItem]:rows_(db,'Items').filter(function(i){return i.id===data.itemId && i.workoutId===w.id;});
   if(item.length!==1||item[0].id!==data.itemId||item[0].workoutId!==w.id)fail_('NOT_FOUND');
   if(data.directed!==undefined)return validateDirectedLoad_(data,w,item[0]);
@@ -327,10 +327,14 @@ function libraryCreatePrescription_(db,user,req){
     }
     // Reserve revisions even when an earlier write failed after reserving an ID.
     libraryUnique_(db,'PRESCRICOES',function(r){return r.itemId===d.itemId && r.revision===d.expectedRevision+1;},id,req.action,function(p){return p.itemId===d.itemId && p.expectedRevision===d.expectedRevision;});
-    validated.volume.lines.forEach(function(line){line.id=id_();});
-    var snapshot={exercise:validated.exercise,method:validated.method,protocol:validated.protocol,capacity:validated.capacity,intensity:validated.intensity,auxiliaryIntensities:validated.auxiliaryIntensities,classification:validated.classification,session:{id:validated.workout.id,studentId:validated.workout.studentId,date:validated.workout.date},volumeMode:'prescribed'};
-    if(validated.task)snapshot.task=validated.task;
-    if(validated.directed)snapshot.directed=validated.directed;
-    return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||'',snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
+    return prescriptionRecord_(user,id,d,validated,existing);
   });
+}
+
+function prescriptionRecord_(user,id,d,validated,existing){
+  validated.volume.lines.forEach(function(line){line.id=id_();});
+  var snapshot={exercise:validated.exercise,method:validated.method,protocol:validated.protocol,capacity:validated.capacity,intensity:validated.intensity,auxiliaryIntensities:validated.auxiliaryIntensities,classification:validated.classification,session:{id:validated.workout.id,studentId:validated.workout.studentId,date:validated.workout.date},volumeMode:'prescribed'};
+  if(validated.task)snapshot.task=validated.task;
+  if(validated.directed)snapshot.directed=validated.directed;
+  return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||'',snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
 }

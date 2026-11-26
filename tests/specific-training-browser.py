@@ -2,6 +2,7 @@
 from pathlib import Path
 import subprocess,shutil
 from playwright.sync_api import sync_playwright,expect
+from helpers.saved_workout import select_saved_workout
 ROOT=Path(__file__).resolve().parents[1]
 server=subprocess.Popen(['node','tests/helpers/coach-browser-server.cjs'],cwd=ROOT,stdout=subprocess.PIPE,text=True)
 try:
@@ -16,7 +17,7 @@ try:
         expect(coach.locator('#libraryClassification option')).to_have_text(['Treinamento geral','Treinamento direcionado','Treinamento específico'])
         expect(coach.locator('#coachMicrocycleType option')).to_have_text(['Introdutório','Ordinário','Choque','Estabilizador','Manutenção','Recuperativo','Controle','Pré-competitivo','Competitivo'])
         coach.locator('#coachMicrocycleType').select_option('Choque')
-        coach.locator('#coachAluno').select_option('s1');coach.locator('#coachData').fill('2026-11-24');coach.locator('#btnCriarTreino').click();expect(coach.locator('#previewTreinoAluno')).to_contain_text('2026-11-24');session=coach.locator('#coachTreinoId').input_value()
+        coach.locator('#coachAluno').select_option('s1');coach.locator('#coachData').fill('2026-11-24');select_saved_workout(coach, base);expect(coach.locator('#previewTreinoAluno')).to_contain_text('2026-11-24');session=coach.locator('#coachTreinoId').input_value()
         before=coach.request.post(base+'/test-tables',data={}).json()
         coach.locator('#libraryClassification').select_option('specific');expect(coach.locator('#libraryPanel')).to_be_hidden()
         for sub in ['boulder_short','boulder_long','resistance_short','resistance_long','continuity']:

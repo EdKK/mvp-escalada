@@ -53,6 +53,10 @@ const server=http.createServer(async(req,res)=>{
    f.tables.ItemFeedback.push(f.context.SCHEMA_.ItemFeedback.map(k=>record[k]));
   }
   res.end('{}');return;}
+ if(req.url==='/test-saved-workout'){
+  const result=f.context.api({action:'createWorkout',data:body,requestId:require('node:crypto').randomUUID(),sessionToken:coach});
+  res.end(JSON.stringify(result));return;
+ }
  if(req.url==='/test-tables'){res.end(JSON.stringify(f.tables));return;}
  const {method,request:r,profile}=body;let result;
  if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};

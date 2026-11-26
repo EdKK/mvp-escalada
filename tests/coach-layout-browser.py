@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import shutil
 from playwright.sync_api import sync_playwright, expect
+from helpers.saved_workout import select_saved_workout
 
 ROOT = Path(__file__).resolve().parents[1]
 server = subprocess.Popen(['node', 'tests/helpers/coach-browser-server.cjs'], cwd=ROOT, stdout=subprocess.PIPE, text=True)
@@ -37,11 +38,11 @@ try:
         expect(page.locator('#panelStudent')).to_be_hidden()
         expect(page.locator('#listaRetornos')).to_contain_text('Retorno fictício para consulta')
         print('PASS: coach consultation uses original nodes; student-only panel hidden')
-        # Different student/session selection; creation uses existing RPC handler.
+        # Select a saved session to exercise legacy consultation and item writes.
         page.locator('#coachAluno').select_option('s2')
         page.locator('#coachData').fill('2026-11-19')
         page.locator('#coachInstructions').fill('Aquecer\nRespeitar intervalos')
-        page.locator('#btnCriarTreino').click()
+        select_saved_workout(page, base)
         expect(page.locator('#previewTreinoAluno')).to_contain_text('2026-11-19')
         expect(page.locator('#coachAluno')).to_have_value('s2')
         page.locator('#itemExercicio').select_option('exercise-bench')

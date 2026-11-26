@@ -180,14 +180,23 @@ var StudentModel = (() => {
   function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(p.directed){data.prescriptionId=p.prescriptionId;if(values.actualSeries!==undefined)data.actualSeries=values.actualSeries;return data;}if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}
   return {units,statuses,dates,forDate,ordered,latest,state,formatTime,elapsed,start,pause,zero,remaining,restStart,restPause,quantity,intensity,setCount,seriesDescription,prescriptionDetails,feedbackData};
 })();
-</script><script>function createLoginResume({link, prepareButton, finishButton, finish, onSuccess, onStatus}) {
+</script><script>function createLoginResume({link, prepareButton, finishButton, finish, onSuccess, onStatus, watchForReturn = false}) {
   const maxChecks = 5;
   const checkInterval = 2000;
+  const watchInterval = 4000;
+  const attemptLifetime = 10 * 60 * 1000; // Matches LOGIN_TTL_ in Auth.gs.
   let attempt, timer, finishing = false;
 
   function stopTimer() {
     clearTimeout(timer);
     timer = undefined;
+  }
+
+  function scheduleCheck(delay) {
+    timer = setTimeout(() => {
+      timer = undefined;
+      return check();
+    }, delay);
   }
 
   function reset() {
@@ -203,7 +212,7 @@ var StudentModel = (() => {
     if (url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/v2/auth') {
       throw Error('INVALID_RESPONSE');
     }
-    attempt = {transaction, proof, opened: false, checks: 0};
+    attempt = {transaction, proof, opened: false, checks: 0, paused: false, expiresAt: Date.now() + attemptLifetime};
     link.href = url.href;
     link.hidden = false;
     finishButton.hidden = false;
@@ -212,22 +221,31 @@ var StudentModel = (() => {
   async function check(manual = false) {
     const current = attempt;
     if (!current || finishing) return;
-    if (!manual && (!current.opened || document.hidden || timer !== undefined || current.checks >= maxChecks)) return;
+    if (!manual) {
+      if (!current.opened || current.paused || timer !== undefined) return;
+      if (watchForReturn && Date.now() >= current.expiresAt) {
+        reset();
+        onStatus('A tentativa expirou. Prepare uma nova entrada.');
+        return;
+      }
+      if (document.hidden) {
+        if (watchForReturn) scheduleCheck(watchInterval);
+        return;
+      }
+      if (!watchForReturn && current.checks >= maxChecks) return;
+    }
     stopTimer();
     finishing = true;
     prepareButton.disabled = finishButton.disabled = true;
-    if (!manual) current.checks++;
+    if (manual) current.paused = false;
+    else current.checks++;
     try {
       const result = await finish({transaction: current.transaction, proof: current.proof});
       if (attempt !== current) return;
       if (result.pending) {
-        if (current.opened && current.checks < maxChecks) {
-          timer = setTimeout(() => {
-            timer = undefined;
-            return check();
-          }, checkInterval);
-        }
-        onStatus(current.checks < maxChecks
+        const canRetry = watchForReturn || current.checks < maxChecks;
+        if (current.opened && canRetry) scheduleCheck(watchForReturn ? watchInterval : checkInterval);
+        onStatus(canRetry
           ? 'Ainda aguardamos a autorização do Google.'
           : 'A confirmação automática foi interrompida. Use “Concluir entrada” ou prepare uma nova entrada.');
         return;
@@ -237,6 +255,7 @@ var StudentModel = (() => {
     } catch (error) {
       if (attempt !== current) return;
       current.checks = maxChecks;
+      current.paused = true;
       if (['AUTH_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(error.message)) {
         reset();
         onStatus('Não foi possível autenticar. Prepare uma nova entrada.');
@@ -251,7 +270,11 @@ var StudentModel = (() => {
 
   link.addEventListener('click', event => {
     if (finishing) event.preventDefault();
-    else if (attempt) attempt.opened = true;
+    else if (attempt && !attempt.opened) {
+      attempt.opened = true;
+      // The embedded coach page can miss both return events when the popup closes.
+      if (watchForReturn) scheduleCheck(checkInterval);
+    }
   });
   finishButton.addEventListener('click', () => check(true));
   window.addEventListener('focus', () => check());

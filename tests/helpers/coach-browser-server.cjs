@@ -26,6 +26,21 @@ window.google={script:{run:new TestRunner()}};
 </script>`;
 const server=http.createServer(async(req,res)=>{
  if(req.method==='GET'){
+  if(req.url==='/exec?view=coach'){
+   const src='http://127.0.0.1:'+server.address().port+'/coach-frame';
+   res.setHeader('Content-Type','text/html; charset=utf-8');
+   res.end('<iframe src="'+src+'" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>');
+   return;
+  }
+  if(req.url==='/test-oauth-return'){
+   f.context.HtmlService={
+    createHtmlOutputFromFile:name=>({getContent:()=>fs.readFileSync('apps-script/'+name+'.html','utf8')}),
+    createHtmlOutput:html=>({html,addMetaTag(){return this;},setTitle(){return this;}})
+   };
+   res.setHeader('Content-Type','text/html; charset=utf-8');
+   res.end(f.context.oauthReturnPage_(true).html);
+   return;
+  }
   const original=process.env.COACH_BASELINE==='1'?require('node:child_process').execFileSync('git',['show','737a4af:apps-script/Index.html'],{encoding:'utf8'}):fs.readFileSync(req.url.startsWith('/student')?'apps-script/Student.html':'apps-script/Index.html','utf8');
   res.setHeader('Content-Type','text/html; charset=utf-8');res.end(original.replace('<script>',adapter+'<script>'));return;
  }

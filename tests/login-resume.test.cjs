@@ -15,15 +15,15 @@ function target() {
   };
 }
 
-function setup(finish) {
+function setup(finish, watchForReturn = false) {
   const window = target(), document = target(), link = target();
   const prepareButton = target(), finishButton = target();
   const timers = new Map(), statuses = [], sessions = [];
-  let nextTimer = 0;
+  let nextTimer = 0, now = 0;
   const context = vm.createContext({
-    window, document, URL,
+    window, document, URL, Date: {now: () => now},
     setTimeout(callback, delay) {
-      assert.equal(delay, 2000);
+      assert.ok(delay === 2000 || (watchForReturn && delay === 4000));
       timers.set(++nextTimer, callback);
       return nextTimer;
     },
@@ -31,7 +31,7 @@ function setup(finish) {
   });
   vm.runInContext(source, context);
   const controller = context.createLoginResume({
-    link, prepareButton, finishButton, finish,
+    link, prepareButton, finishButton, finish, watchForReturn,
     onSuccess: token => sessions.push(token),
     onStatus: status => statuses.push(status)
   });
@@ -41,6 +41,7 @@ function setup(finish) {
     prepare(transaction = 'current') {
       controller.prepare({authorizationUrl, transaction, proof: transaction + '-proof'});
     },
+    advance(ms) { now += ms; },
     tick() {
       const [id, callback] = timers.entries().next().value;
       timers.delete(id);
@@ -154,4 +155,35 @@ test('retry waits for another return when the original tab becomes hidden', asyn
   ui.document.hidden = false;
   await ui.document.emit('visibilitychange');
   assert.deepEqual(ui.sessions, ['app-token']);
+});
+
+test('coach watch starts on Google link activation and outlasts the student retry budget', async () => {
+  let calls = 0;
+  const ui = setup(() => ++calls <= 5 ? {pending: true} : {sessionToken: 'coach'}, true);
+  ui.prepare();
+  assert.equal(ui.timers.size, 0);
+  ui.link.emit('click');
+  ui.document.hidden = true;
+  await ui.tick();
+  assert.equal(calls, 0);
+  ui.document.hidden = false;
+  for (let check = 0; check < 6; check++) await ui.tick();
+  assert.deepEqual(ui.sessions, ['coach']);
+  assert.equal(ui.timers.size, 0);
+});
+
+test('coach watch stops at attempt expiry or replacement', async () => {
+  let calls = 0;
+  const ui = setup(() => { calls++; return {pending: true}; }, true);
+  ui.prepare();
+  ui.link.emit('click');
+  ui.reset();
+  assert.equal(ui.timers.size, 0);
+  ui.prepare('new');
+  ui.link.emit('click');
+  ui.advance(10 * 60 * 1000);
+  await ui.tick();
+  assert.equal(calls, 0);
+  assert.equal(ui.timers.size, 0);
+  assert.match(ui.statuses.at(-1), /expirou/);
 });

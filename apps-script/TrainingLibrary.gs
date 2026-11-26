@@ -102,7 +102,7 @@ function libraryApi(request){
   var lock;
   try{
     fields_(request,['action','data','requestId','sessionToken']);
-    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','listPendingCoachSessions'];
+    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','coachSessionStatus','listPendingCoachSessions'];
     if(actions.indexOf(request.action)<0)fail_('INVALID_ACTION');
     var identity=sessionIdentity_(request.sessionToken);lock=LockService.getScriptLock();if(!lock.tryLock(5000))fail_('BUSY');
     var db=libraryDb_(),user=userForEmail_(db,identity.email),d=request.data,result;
@@ -121,6 +121,7 @@ function libraryApi(request){
       else if(request.action==='listPendingCoachSaves')result=coachPendingSaves_(db,user,d);
       else if(request.action==='coachSaveStatus')result=coachSaveStatus_(db,user,d);
       else if(request.action==='listDraftAssessments')result=coachDraftAssessments_(db,user,d);
+      else if(request.action==='coachSessionStatus')result=coachSessionStatus_(db,user,d);
       else if(request.action==='listPendingCoachSessions')result=coachSessionPending_(db,user,d);
       else if(request.action==='saveCoachSession'||request.action==='resumeCoachSession')result=coachSessionSave_(db,user,request);
       else if(request.action==='saveCoachPrescription')result=coachSavePrescription_(db,user,request);

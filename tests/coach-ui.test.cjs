@@ -26,13 +26,15 @@ function dom(source=html){const elements=new Map(),all=[];
 }
 async function boot(options={}){
  const f=options.backend||setupFinance(fixture());if(!options.backend){for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();f.context.libraryApi({action:'recordAssessment',data:{studentId:'s1',exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment',sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})});}
+ const storage=options.storage||new Map();
+ const sessionStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
  const d=dom(options.source);const requests=[];let lose=!!options.loseSaveResponse;
- class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else if(options.catalogBusy&&method==='libraryApi'&&r.action==='catalog')result={ok:false,error:{code:'BUSY'}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&['saveCoachPrescription','saveCoachSession'].includes(r.action)&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}financeApi(r){this.send('financeApi',r);}}
- const context=vm.createContext({document:d.document,window:{addEventListener(){},open(){return null;},confirm(){return true;}},clearTimeout,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
+ class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.loginEmail||(options.student?'one@example.invalid':'coach@example.invalid'),sub:'12345'})}};else if(options.catalogBusy&&method==='libraryApi'&&r.action==='catalog')result={ok:false,error:{code:'BUSY'}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&['saveCoachPrescription','saveCoachSession'].includes(r.action)&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}financeApi(r){this.send('financeApi',r);}}
+ const context=vm.createContext({document:d.document,window:{sessionStorage,addEventListener(){},open(){return null;},confirm(){return true;}},clearTimeout,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
  const click=async id=>{const e=d.elements.get(id);assert.equal(e.disabled,false,'button disabled '+id);await e.events.click();};
  const change=async(id,value)=>{d.elements.get(id).value=value;await d.elements.get(id).events.change();};
  await click('btnLogin');await click('btnFinishLogin');
- return {f,...d,context,requests,click,change,baseline:!!options.source,set(id,value){d.elements.get(id).value=value;}};
+ return {f,...d,storage,context,requests,click,change,baseline:!!options.source,set(id,value){d.elements.get(id).value=value;}};
 }
 async function createSavedSession(ui){
  const data={studentId:'s1',date:'2026-11-18',microcycleType:'Ordinário',instructions:['Aquecer','Respeitar intervalos']};
@@ -262,17 +264,18 @@ for(const count of [1,5,10])test('integral UI: '+count+' exercise(s), local chan
  assert.equal(ui.f.tables.Items.length,count+1);
  assert.equal(ui.f.tables.Items[1][8],'Orientação editada');
  assert.equal(ui.requests.filter(r=>r.request.action==='saveCoachSession').length,1);
- assert.equal(ui.requests.filter(r=>r.request.action.startsWith('listPending')).length,0);
+ assert.equal(ui.requests.filter(r=>r.request.action.startsWith('listPending')||r.request.action==='coachSessionStatus').length,0);
  assert.match(ui.elements.get('coachFinishStatus').textContent,/Sessão gravada/);
 });
-test('integral UI retries a lost response with identical data and request key',async()=>{
+test('integral UI checks a lost confirmation and accepts the existing receipt without a second save',async()=>{
  const ui=await boot({loseSaveResponse:true});await startDraft(ui);await addMixedDraftExercise(ui,0);
  await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
  assert.match(ui.elements.get('coachFinishStatus').textContent,/TRANSPORT_ERROR/);
  assert.equal(ui.elements.get('itemQtd').disabled,true);
  await ui.click('btnConfirmSession');
  const saves=ui.requests.filter(r=>r.request.action==='saveCoachSession');
- assert.equal(saves.length,2);assert.deepEqual(saves[0].request,saves[1].request);
+ assert.equal(saves.length,1);
+ assert.equal(ui.requests.find(r=>r.request.action==='coachSessionStatus').request.data.requestId,saves[0].request.requestId);
  assert.equal(ui.f.tables.Workouts.length,2);assert.equal(ui.f.tables.Items.length,2);
 });
 test('integral UI discovers an interrupted session on demand after a reload',async()=>{
@@ -286,4 +289,120 @@ test('integral UI discovers an interrupted session on demand after a reload',asy
  const row=next.elements.get('pendingCoachSaves').children.find(element=>element.textContent.startsWith('Retomar sessão'));
  assert.ok(row);await row.events.click();
  assert.equal(ui.f.tables.Workouts.length,2);assert.equal(ui.f.tables.Items.length,2);
+});
+
+test('five-exercise draft survives reload and expired login with the same contents and trainer',async()=>{
+ const ui=await boot();
+ await startDraft(ui);
+ for(let i=0;i<5;i++)await addMixedDraftExercise(ui,i);
+ const stored=JSON.parse([...ui.storage.values()][0]);
+ assert.equal(stored.data.items.length,5);
+ assert.equal(stored.requestId,null);
+ assert.deepEqual(Object.keys(stored).sort(),['data','requestId']);
+ const originalToken=ui.requests.find(r=>r.request.sessionToken).request.sessionToken;
+ assert.ok(![...ui.storage.values()][0].includes(originalToken));
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.equal(next.elements.get('coachDraftItems').children.length,5);
+ ui.f.advance(1801*1000);
+ await next.click('btnReviewSession');await next.click('btnConfirmSession');
+ assert.equal(next.elements.get('appPanel').hidden,true);
+ assert.equal(ui.f.tables.Workouts.length,1);
+ const intent=JSON.parse([...ui.storage.values()][0]);
+ assert.deepEqual(intent.data,stored.data);
+ assert.ok(intent.requestId);
+ await next.click('btnLogin');await next.click('btnFinishLogin');
+ assert.equal(next.elements.get('coachDraftItems').children.length,5);
+ assert.equal(next.elements.get('coachData').value,stored.data.session.date);
+ assert.equal(next.elements.get('coachAluno').value,stored.data.session.studentId);
+ assert.equal(next.elements.get('coachInstructions').value,stored.data.session.instructions.join('\n'));
+ assert.equal(next.requests.at(-1).request.action,'coachSessionStatus');
+ assert.equal(ui.f.tables.Workouts.length,1);
+ await next.click('btnConfirmSession');
+ const sends=next.requests.filter(r=>r.request.action==='saveCoachSession');
+ assert.equal(sends.length,2);
+ for(const {request} of sends){assert.equal(request.requestId,intent.requestId);assert.deepEqual(request.data,intent.data);}
+ assert.equal(ui.f.tables.Items.length,6);
+ assert.equal(ui.storage.size,0);
+});
+test('lost save confirmation and reload resolves to the original workout without writing',async()=>{
+ const ui=await boot({loseSaveResponse:true});
+ await startDraft(ui);await addMixedDraftExercise(ui,0);
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ const key=ui.requests.find(r=>r.request.action==='saveCoachSession').request.requestId;
+ const committed=JSON.stringify(ui.f.tables);
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.equal(next.requests.find(r=>r.request.action==='coachSessionStatus').request.data.requestId,key);
+ assert.equal(next.requests.some(r=>['resumeCoachSession','saveCoachSession'].includes(r.request.action)),false);
+ assert.equal(next.elements.get('coachTreinoId').value,ui.f.tables.Workouts[1][0]);
+ assert.equal(JSON.stringify(ui.f.tables),committed);
+ assert.equal(ui.storage.size,0);
+});
+test('recovery isolates trainers and keeps reserved IDs after an interruption',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ ui.f.fail('PRESCRICOES');
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ const item=ui.f.tables.Items[1],key=ui.requests.find(r=>r.request.action==='saveCoachSession').request.requestId;
+ const serialized=[...ui.storage.values()][0];
+ // The library supports one active coach at a time. Switch the authorized identity.
+ ui.f.tables.Users[1][3]=false;
+ ui.f.tables.Users.push(['c2','other-coach@example.invalid','coach',true]);
+ const other=await boot({backend:ui.f,storage:ui.storage,loginEmail:'other-coach@example.invalid'});
+ assert.equal(other.elements.get('coachDraftItems').children.length,0);
+ assert.equal(other.requests.some(r=>r.request.action==='coachSessionStatus'),false);
+ const token=other.requests.find(r=>r.request.sessionToken).request.sessionToken;
+ const status=ui.f.context.libraryApi({action:'coachSessionStatus',data:{requestId:key},sessionToken:token});
+ assert.equal(status.data.state,'not_started');
+ assert.equal([...ui.storage.values()][0],serialized);
+ ui.f.tables.Users.at(-1)[3]=false;
+ ui.f.tables.Users[1][3]=true;
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.match(next.elements.get('coachFinishStatus').textContent,/interrompida/);
+ assert.equal(next.requests.some(r=>r.request.action==='saveCoachSession'||r.request.action==='resumeCoachSession'),false);
+ await next.click('btnConfirmSession');
+ assert.equal(next.requests.find(r=>r.request.action==='resumeCoachSession').request.requestId,key);
+ assert.equal(ui.f.tables.Items.length,2);
+ assert.equal(ui.f.tables.Items[1][0],item[0]);assert.equal(ui.f.tables.Workouts[1][0],item[1]);
+ assert.equal(ui.storage.size,0);
+});
+
+test('a failed status lookup keeps the recovered intent locked until the server answers',async()=>{
+ const ui=await boot({loseSaveResponse:true});await startDraft(ui);await addMixedDraftExercise(ui,0);
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ const before=JSON.stringify(ui.f.tables),status=ui.f.context.coachSessionStatus_;
+ ui.f.context.coachSessionStatus_=()=>ui.f.context.fail_('BUSY');
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.equal(next.elements.get('btnCriarTreino').disabled,true);
+ assert.equal(next.elements.get('btnAddItem').disabled,true);
+ assert.match(next.elements.get('coachFinishStatus').textContent,/BUSY/);
+ await next.click('btnConfirmSession');
+ assert.equal(next.requests.some(r=>['saveCoachSession','resumeCoachSession'].includes(r.request.action)),false);
+ assert.equal(ui.storage.size,1);
+ ui.f.context.coachSessionStatus_=status;
+ await next.click('btnConfirmSession');
+ assert.equal(JSON.stringify(ui.f.tables),before);
+ assert.equal(ui.storage.size,0);
+});
+test('expiration during assembly restores an editable five-item draft without checking the server for attempts',async()=>{
+ const ui=await boot();await startDraft(ui);
+ for(let i=0;i<5;i++)await addMixedDraftExercise(ui,i);
+ const saved=[...ui.storage.values()][0];
+ ui.f.advance(1801*1000);
+ await ui.all.find(e=>e.textContent==='Atualizar treinos').events.click();
+ assert.equal(ui.elements.get('appPanel').hidden,true);
+ await ui.click('btnLogin');await ui.click('btnFinishLogin');
+ assert.equal(ui.elements.get('coachDraftItems').children.length,5);
+ assert.equal(ui.requests.some(r=>r.request.action==='coachSessionStatus'||r.request.action==='saveCoachSession'),false);
+ assert.equal([...ui.storage.values()][0],saved);
+ await ui.elements.get('coachDraftItems').children[1].children[2].events.click();
+ assert.equal(JSON.parse([...ui.storage.values()][0]).data.items.length,4);
+ await ui.click('cancelCoachSession');
+ assert.equal(ui.storage.size,0);
+});
+test('a new save waits if the browser cannot record its idempotency key',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ ui.storage.set=()=>{throw Error('quota exceeded');};
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ assert.equal(ui.requests.some(r=>r.request.action==='saveCoachSession'),false);
+ assert.equal(ui.elements.get('coachDraftItems').children.length,1);
+ assert.match(ui.elements.get('coachFinishStatus').textContent,/recuperação/);
 });

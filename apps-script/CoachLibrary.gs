@@ -125,23 +125,37 @@ function coachSessionPending_(db,user,data){
     return {requestId:r.key,studentId:info.studentId,date:info.date,count:info.count};
   });
 }
+function coachSessionReservation_(requests,user,key){
+  var matches=requests.filter(function(row){return row.userId===user.id&&row.key===key;});
+  if(matches.length>1||(matches.length&&matches[0].entity!=='CoachSession'))fail_('CONFLICT');
+  return matches[0];
+}
+function coachReservedSessionStatus_(db,user,reservation,info){
+  libraryStudent_(db,user,info.studentId);
+  var saved=rows_(db,'Workouts').filter(function(w){return w.id===reservation.entityId;});
+  if(saved.length){
+    if(saved.length!==1||saved[0].coachId!==user.id||saved[0].studentId!==info.studentId)fail_('SCHEMA_ERROR');
+    return {state:'completed',workoutId:reservation.entityId,count:info.count};
+  }
+  return {state:'reserved',workoutId:reservation.entityId};
+}
+function coachSessionStatus_(db,user,data){
+  fields_(data,['requestId']);
+  var reservation=coachSessionReservation_(rows_(db,'Requests'),user,text_(data.requestId,80));
+  if(!reservation)return {state:'not_started'};
+  return coachReservedSessionStatus_(db,user,reservation,JSON.parse(reservation.fingerprint));
+}
 function coachSessionSave_(db,user,request){
   var resume=request.action==='resumeCoachSession',d=request.data;
   fields_(d,resume?[]:['session','items']);
   var key=text_(request.requestId,80),requests=rows_(db,'Requests');
-  var matches=requests.filter(function(row){return row.userId===user.id&&row.key===key;});
-  if(matches.length>1||(matches.length&&matches[0].entity!=='CoachSession'))fail_('CONFLICT');
-  var reservation=matches[0],plan,partStart,partCount;
+  var reservation=coachSessionReservation_(requests,user,key),plan,partStart,partCount;
   var signature=resume?'':hashAuth_(JSON.stringify(libraryCanonical_(d)));
   if(reservation){
     var info=JSON.parse(reservation.fingerprint);
     if(!resume&&info.signature!==signature)fail_('CONFLICT');
-    libraryStudent_(db,user,info.studentId);
-    var saved=rows_(db,'Workouts').filter(function(w){return w.id===reservation.entityId;});
-    if(saved.length){
-      if(saved.length!==1||saved[0].coachId!==user.id||saved[0].studentId!==info.studentId)fail_('SCHEMA_ERROR');
-      return {workoutId:reservation.entityId,count:info.count};
-    }
+    var status=coachReservedSessionStatus_(db,user,reservation,info);
+    if(status.state==='completed')return {workoutId:status.workoutId,count:status.count};
     var chunks=requests.filter(function(row){return row.userId===user.id&&row.entity==='CoachSessionPlan'&&row.entityId===reservation.entityId;});
     var parts=new Map(chunks.map(function(row){return JSON.parse(row.fingerprint);}));
     if(chunks.length!==info.parts||parts.size!==info.parts)fail_('SCHEMA_ERROR');

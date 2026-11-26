@@ -40,5 +40,6 @@ test('RPC attaches in-memory session without mutating caller payload',async()=>{
   await ctx.createRpc(run,()=> 'opaque-test-session')(request);
   assert.equal(sent.sessionToken,'opaque-test-session'); assert.equal(request.sessionToken,undefined);
   assert.match(html,/rel="noopener noreferrer"/); assert.match(html,/id="appPanel" hidden/);
-  assert.doesNotMatch(html,/sessionStorage|localStorage/);
+  assert.doesNotMatch(html,/localStorage/);
+  assert.doesNotMatch(ctx.createRpc.toString(),/sessionStorage/);
 });

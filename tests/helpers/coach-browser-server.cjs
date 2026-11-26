@@ -47,6 +47,7 @@ const server=http.createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw||'{}');res.setHeader('Content-Type','application/json');
  if(req.url==='/test-control'){loseNext=!!body.loseNext;loseNextFeedback=!!body.loseNextFeedback;delayNext=body.delayNext||0;if(body.failTable)f.fail(body.failTable);
+  if(body.expireSession)f.advance(1801*1000);
   // Fictitious pre-fix history for state regression only; never deployed to Apps Script.
   if(body.seedHistoricalFeedback){
    const d=body.seedHistoricalFeedback,record={id:'historical-feedback-test',workoutId:d.workoutId,itemId:d.itemId,studentId:'s1',status:'not_done',actualSets:2,actualQuantity:2,quantityUnit:'repetitions',fingerPain:3,comment:'fadiga',rpe:'',revision:1,supersedesId:'',createdAt:'2026-11-23T12:00:00.000Z'};
@@ -63,7 +64,7 @@ const server=http.createServer(async(req,res)=>{
  else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:profile==='student'?'one@example.invalid':profile==='student-b'?'two@example.invalid':'coach@example.invalid',sub:'12345'})}};
  else result=f.context[method](r);
  if(r.action==='submitItemFeedback'&&result.ok&&loseNextFeedback){loseNextFeedback=false;res.statusCode=503;res.end('{}');return;}
- if(r.action==='saveCoachPrescription'&&result.ok){if(loseNext){loseNext=false;res.statusCode=503;res.end('{}');return;}if(delayNext){const delay=delayNext;delayNext=0;await new Promise(resolve=>setTimeout(resolve,delay));}}
+ if(['saveCoachPrescription','saveCoachSession'].includes(r.action)&&result.ok){if(loseNext){loseNext=false;res.statusCode=503;res.end('{}');return;}if(delayNext){const delay=delayNext;delayNext=0;await new Promise(resolve=>setTimeout(resolve,delay));}}
  res.end(JSON.stringify(result));
 });
 server.listen(0,'127.0.0.1',()=>console.log(server.address().port));

@@ -77,9 +77,50 @@ with subprocess.Popen(['node', 'tests/helpers/coach-browser-server.cjs'], cwd=ro
                 elapsed = (perf_counter() - start) * 1000
                 actions = [request['action'] for request in requests]
                 assert actions.count('saveCoachSession') == 1
+                assert 'coachSessionStatus' not in actions
                 assert not any(action.startswith('listPending') for action in actions)
                 expect(field('previewTreinoAluno').locator('article')).to_have_count(count)
                 print(f'{count} exercício(s): {elapsed:.0f} ms no navegador com backend simulado')
+
+            # Expire the real fixture token before save, reauthenticate, then lose
+            # the confirmation of the same request and reload the actual document.
+            requests.clear()
+            field('coachAluno').select_option('s1')
+            field('coachData').fill('2026-11-18')
+            field('coachInstructions').fill('Orientação da sessão recuperada')
+            field('btnCriarTreino').click()
+            for index in range(5):
+                add_exercise(index)
+            rows = field('coachDraftItems').locator(':scope > div')
+            expected = rows.all_text_contents()
+            assert len(expected) == 5
+            page.request.post(base + '/test-control', data={'expireSession': True})
+            field('btnReviewSession').click()
+            field('btnConfirmSession').click()
+            expect(field('loginPanel')).to_be_visible()
+            field('btnLogin').click()
+            field('btnFinishLogin').click()
+            expect(field('appPanel')).to_be_visible()
+            expect(rows).to_have_text(expected)
+            expect(field('coachInstructions')).to_have_value('Orientação da sessão recuperada')
+            expect(field('coachFinishStatus')).to_contain_text('ainda não foi gravada')
+            page.request.post(base + '/test-control', data={'loseNext': True})
+            field('btnConfirmSession').click()
+            expect(field('coachFinishStatus')).to_contain_text('TRANSPORT_ERROR')
+            before_reload = page.request.post(base + '/test-tables', data={}).json()
+            attempts = [r for r in requests if r['action'] == 'saveCoachSession']
+            assert len(attempts) == 2
+            assert attempts[0]['requestId'] == attempts[1]['requestId']
+            requests.clear()
+            page.reload()
+            field('btnLogin').click()
+            field('btnFinishLogin').click()
+            expect(field('coachFinishStatus')).to_have_text('Sessão gravada com 5 exercício(s).')
+            expect(field('coachTreinoId')).to_have_value(before_reload['Workouts'][-1][0])
+            assert page.request.post(base + '/test-tables', data={}).json() == before_reload
+            assert [r['data']['requestId'] for r in requests if r['action'] == 'coachSessionStatus'] == [attempts[0]['requestId']]
+            assert all(r['action'] not in ('saveCoachSession', 'resumeCoachSession') for r in requests)
+            print('PASS: cinco exercícios após expiração; confirmação perdida e recarga recuperam o mesmo ID.')
             assert not errors, errors
             browser.close()
     finally:

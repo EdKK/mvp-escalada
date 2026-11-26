@@ -517,7 +517,7 @@ select.native-hidden {
   <button id="btnLogin">Preparar entrada com Google</button>
   <a id="googleLoginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google (nova aba)</a>
   <button id="btnFinishLogin" hidden>Concluir entrada</button>
-  <p>Depois de autenticar na nova aba, volte aqui e conclua a entrada. Não feche esta aba.</p>
+  <p>Depois de autenticar no Google, volte a esta aba. A entrada será concluída automaticamente. Se precisar, use “Concluir entrada”.</p>
 </section>
 <button id="btnLogout" hidden>Sair do MVP</button>
 <div id="appPanel" hidden><header>
@@ -956,6 +956,86 @@ var SpecificTaskModel=(()=>{
 })();
 
 // UI integration
+/* BEGIN GENERATED LOGIN RESUME */
+function createLoginResume({link, prepareButton, finishButton, finish, onSuccess, onStatus}) {
+  const maxChecks = 5;
+  const checkInterval = 2000;
+  let attempt, timer, finishing = false;
+
+  function stopTimer() {
+    clearTimeout(timer);
+    timer = undefined;
+  }
+
+  function reset() {
+    stopTimer();
+    attempt = undefined;
+    link.hidden = true;
+    link.removeAttribute('href');
+    finishButton.hidden = true;
+  }
+
+  function prepare({authorizationUrl, transaction, proof}) {
+    const url = new URL(authorizationUrl);
+    if (url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/v2/auth') {
+      throw Error('INVALID_RESPONSE');
+    }
+    attempt = {transaction, proof, opened: false, checks: 0};
+    link.href = url.href;
+    link.hidden = false;
+    finishButton.hidden = false;
+  }
+
+  async function check(manual = false) {
+    const current = attempt;
+    if (!current || finishing) return;
+    if (!manual && (!current.opened || document.hidden || timer !== undefined || current.checks >= maxChecks)) return;
+    stopTimer();
+    finishing = true;
+    prepareButton.disabled = finishButton.disabled = true;
+    if (!manual) current.checks++;
+    try {
+      const result = await finish({transaction: current.transaction, proof: current.proof});
+      if (attempt !== current) return;
+      if (result.pending) {
+        if (current.opened && current.checks < maxChecks) {
+          timer = setTimeout(() => {
+            timer = undefined;
+            return check();
+          }, checkInterval);
+        }
+        onStatus(current.checks < maxChecks
+          ? 'Ainda aguardamos a autorização do Google.'
+          : 'A confirmação automática foi interrompida. Use “Concluir entrada” ou prepare uma nova entrada.');
+        return;
+      }
+      await onSuccess(result.sessionToken);
+      if (attempt === current) reset();
+    } catch (error) {
+      if (attempt !== current) return;
+      current.checks = maxChecks;
+      if (['AUTH_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(error.message)) {
+        reset();
+        onStatus('Não foi possível autenticar. Prepare uma nova entrada.');
+      } else {
+        onStatus('Não foi possível concluir: ' + error.message + '. Tente “Concluir entrada” ou prepare uma nova entrada.');
+      }
+    } finally {
+      finishing = false;
+      prepareButton.disabled = finishButton.disabled = false;
+    }
+  }
+
+  link.addEventListener('click', event => {
+    if (finishing) event.preventDefault();
+    else if (attempt) attempt.opened = true;
+  });
+  finishButton.addEventListener('click', () => check(true));
+  window.addEventListener('focus', () => check());
+  document.addEventListener('visibilitychange', () => check());
+  return {prepare, reset};
+}
+/* END GENERATED LOGIN RESUME */
 (async function() {
   const $ = id => document.getElementById(id);
   const notice = message => { $('notice').textContent = message; };
@@ -975,7 +1055,7 @@ var SpecificTaskModel=(()=>{
     return id.startsWith('specific')===specific?$(id).value:'';
   }).concat(hasDirectedSubblock()?[$('directedSubblock').value,editingDirected?.itemId,...fingerboardDraftFields.map(id=>$(id).value)]:[]));
   const coachDraftDirty=()=>coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
-  let selected = '', session, sessionToken = '', loginAttempt, busy = false, generation = 0;
+  let selected = '', session, sessionToken = '', busy = false, generation = 0;
   const pending = new Map();
   const key = () => crypto.randomUUID();
   function write(action, data) {
@@ -1477,13 +1557,12 @@ var SpecificTaskModel=(()=>{
   }));
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
   function clearSession() {
-    sessionToken=''; session=null; selected=''; selectedWorkout=null; loginAttempt=null; generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
+    sessionToken=''; session=null; selected=''; selectedWorkout=null; loginResume.reset(); generation++; pending.clear(); pendingCoachSave=null; exerciseSelection=null; libraryReady=false;
     pendingCoachEntries=[];coachDraftBaseline='';coachReview=null;
     editingDirected=null;clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
     $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;
     placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;
-    $('googleLoginLink').hidden=true; $('googleLoginLink').removeAttribute('href'); $('btnFinishLogin').hidden=true;
     ['listaTreinos','alunoTreinoId','previewTreinoAluno','listaRetornos','coachAluno'].forEach(id=>$(id).replaceChildren());
     document.querySelectorAll('#appPanel input, #appPanel textarea').forEach(el=>{el.value='';});
   }
@@ -1544,20 +1623,19 @@ var SpecificTaskModel=(()=>{
     await refresh();
     $('appPanel').hidden=false; $('loginPanel').hidden=true; $('btnLogout').hidden=false;
   }
+  const loginResume = createLoginResume({
+    link: $('googleLoginLink'), prepareButton: $('btnLogin'), finishButton: $('btnFinishLogin'),
+    finish: data => rpc({action:'finishLogin',data}),
+    onSuccess: async token => {
+      sessionToken = token;
+      await loadApp();
+      notice('Entrada concluída.');
+    },
+    onStatus: notice
+  });
   $('btnLogin').addEventListener('click',()=>perform(async()=>{
     clearSession();
-    loginAttempt=await rpc({action:'beginLogin',data:{}});
-    // The URL comes from our server; never accept an arbitrary destination.
-    const url=new URL(loginAttempt.authorizationUrl);
-    if(url.origin!=='https://accounts.google.com' || url.pathname!=='/o/oauth2/v2/auth') throw Error('INVALID_RESPONSE');
-    $('googleLoginLink').href=url.href; $('googleLoginLink').hidden=false; $('btnFinishLogin').hidden=false;
-  }));
-  $('btnFinishLogin').addEventListener('click',()=>perform(async()=>{
-    if(!loginAttempt) throw Error('Prepare a entrada novamente');
-    const result=await rpc({action:'finishLogin',data:{transaction:loginAttempt.transaction,proof:loginAttempt.proof}});
-    if(result.pending) throw Error('Conclua a autenticação na aba do Google primeiro');
-    sessionToken=result.sessionToken;
-    await loadApp(); loginAttempt=null;
+    loginResume.prepare(await rpc({action:'beginLogin',data:{}}));
   }));
   $('btnLogout').addEventListener('click',()=>perform(async()=>{
     try { await rpc({action:'logout',data:{}}); } finally { clearSession(); }

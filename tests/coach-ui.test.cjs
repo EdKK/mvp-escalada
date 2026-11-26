@@ -20,14 +20,14 @@ function dom(source=html){const elements=new Map(),all=[];
  }
  for(const m of source.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const first=m[2].match(/<option([^>]*)>([^<]*)<\/option>/);if(first)elements.get(m[1]).value=first[1].match(/value="([^"]*)"/)?.[1]??first[2];}
  const descendant=(e,id)=>{for(let p=e.parentNode;p;p=p.parentNode)if(p.id===id)return true;return false;};
- const document={getElementById:id=>{assert.ok(elements.has(id),'missing DOM id '+id);return elements.get(id);},createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text}),createComment:text=>({textContent:text}),querySelectorAll:selector=>all.filter(e=>selector.split(',').some(part=>{const scope=part.match(/#([\w-]+)/)?.[1],tag=part.trim().match(/([a-z]+)$/)?.[1];return e.tagName===tag?.toUpperCase()&&(!scope||descendant(e,scope));}))};
+ const document={addEventListener(){},getElementById:id=>{assert.ok(elements.has(id),'missing DOM id '+id);return elements.get(id);},createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text}),createComment:text=>({textContent:text}),querySelectorAll:selector=>all.filter(e=>selector.split(',').some(part=>{const scope=part.match(/#([\w-]+)/)?.[1],tag=part.trim().match(/([a-z]+)$/)?.[1];return e.tagName===tag?.toUpperCase()&&(!scope||descendant(e,scope));}))};
  return {document,elements,all,descendant};
 }
 async function boot(options={}){
  const f=options.backend||fixture();if(!options.backend){for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();f.context.libraryApi({action:'recordAssessment',data:{studentId:'s1',exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment',sessionToken:f.context.issueSession_({email:'coach@example.invalid',sub:'12345'})});}
  const d=dom(options.source);const requests=[];let lose=!!options.loseSaveResponse;
  class Runner{constructor(success,failure){this.success=success;this.failure=failure;}withSuccessHandler(fn){return new Runner(fn,this.failure);}withFailureHandler(fn){return new Runner(this.success,fn);}send(method,r){requests.push(JSON.parse(JSON.stringify({method,request:r})));let result;if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:options.student?'one@example.invalid':'coach@example.invalid',sub:'12345'})}};else if(options.catalogBusy&&method==='libraryApi'&&r.action==='catalog')result={ok:false,error:{code:'BUSY'}};else result=f.context[method](r);if(lose&&method==='libraryApi'&&r.action==='saveCoachPrescription'&&result.ok){lose=false;this.failure();}else this.success(result);}api(r){this.send('api',r);}libraryApi(r){this.send('libraryApi',r);}}
- const context=vm.createContext({document:d.document,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
+ const context=vm.createContext({document:d.document,window:{addEventListener(){}},clearTimeout,google:{script:{run:new Runner()}},crypto:{randomUUID:()=>crypto.randomUUID()},URL});await vm.runInContext(options.source?options.source.match(/<script>([\s\S]*?)<\/script>/)[1]:script,context);
  const click=async id=>{const e=d.elements.get(id);assert.equal(e.disabled,false,'button disabled '+id);await e.events.click();};
  const change=async(id,value)=>{d.elements.get(id).value=value;await d.elements.get(id).events.change();};
  await click('btnLogin');await click('btnFinishLogin');
@@ -51,7 +51,12 @@ const withoutExecutedFields=source=>source.replace(/function coachExecutedFeedba
 const baselineHtml=require('node:child_process').execFileSync('git',['show','737a4afda80702fe15dcc377c36ef6ca438e30eb:apps-script/Index.html'],{encoding:'utf8'});
 test('layout preserves original field IDs, labels, handlers and request payloads',async()=>{
  const before=await boot({source:baselineHtml}),after=await boot();
- for(const [id,element] of before.elements){if(id==='coachObjetivoDia')continue;assert.ok(after.elements.has(id),id);assert.deepEqual(Object.keys(after.elements.get(id).events),id==='libraryClassification'?['change']:Object.keys(element.events),'events '+id);}
+ for(const [id,element] of before.elements){
+  if(id==='coachObjetivoDia')continue;
+  assert.ok(after.elements.has(id),id);
+  const changedHandlers={libraryClassification:['change'],googleLoginLink:['click']};
+  assert.deepEqual(Object.keys(after.elements.get(id).events),changedHandlers[id]??Object.keys(element.events),'events '+id);
+ }
  const labels=source=>[...source.matchAll(/<label\b[^>]*\bfor="([^"]+)"/g)].map(m=>m[1]).sort();assert.deepEqual(labels(html).filter(id=>labels(baselineHtml).includes(id)),labels(baselineHtml).filter(id=>id!=='coachObjetivoDia'));
  for(const ui of [before,after]){await fill(ui);await ui.click('btnAddItem');}
  const saves=ui=>ui.requests.filter(r=>['createWorkout','saveCoachPrescription'].includes(r.request.action)).map(r=>({method:r.method,action:r.request.action,data:{...r.request.data,...(r.request.action==='saveCoachPrescription'?{workoutId:'SESSION',intensity:{...r.request.data.intensity,assessmentId:'ASSESSMENT'}}:{})}}));

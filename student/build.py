@@ -15,6 +15,13 @@ demo=base.replace('/*STYLES*/',fonts+css).replace('<!--DEMO_CONTROLS-->',control
 # Apps Script HtmlService has no static asset directory: embed the hero, use sans-serif fallback.
 photo=base64.b64encode((root/'student/assets/climbing.jpg').read_bytes()).decode()
 google_css=css.replace('assets/climbing.jpg','data:image/jpeg;base64,'+photo)
-google=base.replace('/*STYLES*/',google_css).replace('<!--DEMO_CONTROLS-->','').replace('/*ADAPTER*/',(root/'student/google-adapter.js').read_text())
+login_resume=(root/'student/login-resume.js').read_text().rstrip()
+coach_path=root/'apps-script/Index.html'
+coach=coach_path.read_text()
+coach, count=re.subn(r'(?<=/\* BEGIN GENERATED LOGIN RESUME \*/\n).*?(?=/\* END GENERATED LOGIN RESUME \*/)', lambda _: login_resume+'\n', coach, flags=re.S)
+if count != 1:
+    raise ValueError('Expected one generated login block in Index.html')
+coach_path.write_text(coach)
+google=base.replace('/*STYLES*/',google_css).replace('<!--DEMO_CONTROLS-->','').replace('/*ADAPTER*/',login_resume+'\n'+(root/'student/google-adapter.js').read_text())
 (root/'apps-script/Student.html').write_text(google)
 print('demo/student.html and apps-script/Student.html generated')

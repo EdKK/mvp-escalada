@@ -8,7 +8,7 @@ function page(ok,redirect){
 test('OAuth success and failure use responsive presentation without exposing callback data',()=>{
  const success=page(true),failure=page(false);
  assert.match(success.html,/<h1[^>]*>Autenticação concluída<\/h1>/);
- assert.match(success.html,/Volte ao MVP Escalada e toque em 'Concluir entrada'\./);
+ assert.match(success.html,/Volte à aba original do MVP Escalada para entrar automaticamente/);
  assert.match(success.html,/font-size: 30px/);assert.match(success.html,/font-size: 19px/);assert.match(success.html,/Voltar ao MVP/);
  assert.equal(success.meta[0].name,'viewport');assert.match(success.html,/max-width: 500px/);
  assert.match(failure.html,/data-result="failure"/);assert.match(failure.html,/Não foi possível autenticar/);

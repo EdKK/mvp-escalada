@@ -105,7 +105,7 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
 
 <div class="app-shell">
 <header class="hero"><div class="brand-row"><svg class="mountain" viewBox="0 0 50 38" aria-hidden="true"><path d="M0 35 14 13l8 12 10-23 18 33H38L31 21l-7 14H15l-3-6-4 6z"/></svg><h1 class="brand-name">MVP Escalada</h1><button id="profileButton" class="profile-icon" aria-label="Informações do perfil"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2z"/></svg></button></div><h2>Treino do aluno</h2><p class="eyebrow">FOCO NO MOVIMENTO. EVOLUA A CADA TREINO.</p></header>
-<section id="authPanel" class="auth-box" hidden><h2>Seu próximo movimento começa aqui.</h2><p>Entre com a conta Google autorizada para acompanhar seus treinos.</p><button id="prepareLogin">Preparar entrada</button><a id="loginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google</a><button id="finishLogin" hidden>Concluir entrada</button><p id="authMessage" role="status">Após autenticar na nova aba, volte aqui e conclua a entrada.</p><a id="coachLink" href="@@COACH_URL@@" target="_top">Sou treinador</a></section>
+<section id="authPanel" class="auth-box" hidden><h2>Seu próximo movimento começa aqui.</h2><p>Entre com a conta Google autorizada para acompanhar seus treinos.</p><button id="prepareLogin">Preparar entrada</button><a id="loginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google</a><button id="finishLogin" hidden>Concluir entrada</button><p id="authMessage" role="status">Depois de autenticar no Google, volte a esta aba. A entrada será concluída automaticamente. Se precisar, use “Concluir entrada”.</p><a id="coachLink" href="@@COACH_URL@@" target="_top">Sou treinador</a></section>
 <main id="trainingPanel" hidden><nav class="day-navigation" aria-label="Dias de treino"><button class="icon-only" id="previousDays" aria-label="Datas anteriores"><svg viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></svg></button><div class="days" id="days"></div><button class="icon-only" id="nextDays" aria-label="Próximas datas"><svg viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></svg></button></nav>
 <div class="content"><div class="session-topline"><span id="sessionDate"></span><button id="refreshWorkouts">Atualizar treinos ↻</button></div><label for="sessionSelect" id="sessionLabel" hidden>Sessão do dia</label><select id="sessionSelect" hidden></select>
 <div id="emptyState" class="empty-state" hidden><h3>Nenhum treino por aqui.</h3><p>Quando seu treinador disponibilizar uma sessão, ela aparecerá nesta tela.</p></div>
@@ -180,22 +180,126 @@ var StudentModel = (() => {
   function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(p.directed){data.prescriptionId=p.prescriptionId;if(values.actualSeries!==undefined)data.actualSeries=values.actualSeries;return data;}if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}
   return {units,statuses,dates,forDate,ordered,latest,state,formatTime,elapsed,start,pause,zero,remaining,restStart,restPause,quantity,intensity,setCount,seriesDescription,prescriptionDetails,feedbackData};
 })();
-</script><script>/* Same authenticated API and OAuth flow as Index; no mock identity in this build. */
+</script><script>function createLoginResume({link, prepareButton, finishButton, finish, onSuccess, onStatus}) {
+  const maxChecks = 5;
+  const checkInterval = 2000;
+  let attempt, timer, finishing = false;
+
+  function stopTimer() {
+    clearTimeout(timer);
+    timer = undefined;
+  }
+
+  function reset() {
+    stopTimer();
+    attempt = undefined;
+    link.hidden = true;
+    link.removeAttribute('href');
+    finishButton.hidden = true;
+  }
+
+  function prepare({authorizationUrl, transaction, proof}) {
+    const url = new URL(authorizationUrl);
+    if (url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/v2/auth') {
+      throw Error('INVALID_RESPONSE');
+    }
+    attempt = {transaction, proof, opened: false, checks: 0};
+    link.href = url.href;
+    link.hidden = false;
+    finishButton.hidden = false;
+  }
+
+  async function check(manual = false) {
+    const current = attempt;
+    if (!current || finishing) return;
+    if (!manual && (!current.opened || document.hidden || timer !== undefined || current.checks >= maxChecks)) return;
+    stopTimer();
+    finishing = true;
+    prepareButton.disabled = finishButton.disabled = true;
+    if (!manual) current.checks++;
+    try {
+      const result = await finish({transaction: current.transaction, proof: current.proof});
+      if (attempt !== current) return;
+      if (result.pending) {
+        if (current.opened && current.checks < maxChecks) {
+          timer = setTimeout(() => {
+            timer = undefined;
+            return check();
+          }, checkInterval);
+        }
+        onStatus(current.checks < maxChecks
+          ? 'Ainda aguardamos a autorização do Google.'
+          : 'A confirmação automática foi interrompida. Use “Concluir entrada” ou prepare uma nova entrada.');
+        return;
+      }
+      await onSuccess(result.sessionToken);
+      if (attempt === current) reset();
+    } catch (error) {
+      if (attempt !== current) return;
+      current.checks = maxChecks;
+      if (['AUTH_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN'].includes(error.message)) {
+        reset();
+        onStatus('Não foi possível autenticar. Prepare uma nova entrada.');
+      } else {
+        onStatus('Não foi possível concluir: ' + error.message + '. Tente “Concluir entrada” ou prepare uma nova entrada.');
+      }
+    } finally {
+      finishing = false;
+      prepareButton.disabled = finishButton.disabled = false;
+    }
+  }
+
+  link.addEventListener('click', event => {
+    if (finishing) event.preventDefault();
+    else if (attempt) attempt.opened = true;
+  });
+  finishButton.addEventListener('click', () => check(true));
+  window.addEventListener('focus', () => check());
+  document.addEventListener('visibilitychange', () => check());
+  return {prepare, reset};
+}
+/* Same authenticated API and OAuth flow as Index; no mock identity in this build. */
 window.StudentAPI=(()=>{
-  let token='',attempt;
+  let token='';
   const $=id=>document.getElementById(id);
   const call=(action,data,requestId)=>new Promise((resolve,reject)=>{
     const request={action,data};if(requestId)request.requestId=requestId;if(token)request.sessionToken=token;
-    google.script.run.withSuccessHandler(r=>{if(r&&r.ok){resolve(r.data);return;}const code=r?.error?.code||'INVALID_RESPONSE';if(code==='UNAUTHENTICATED'){token='';$('trainingPanel').hidden=true;$('authPanel').hidden=false;$('authMessage').textContent='Sua sessão expirou. Prepare uma nova entrada.';}reject(Error(code));}).withFailureHandler(()=>reject(Error('TRANSPORT_ERROR'))).api(request);
+    google.script.run.withSuccessHandler(r=>{if(r&&r.ok){resolve(r.data);return;}const code=r?.error?.code||'INVALID_RESPONSE';if(code==='UNAUTHENTICATED' && token){token='';$('trainingPanel').hidden=true;$('authPanel').hidden=false;$('authMessage').textContent='Sua sessão expirou. Prepare uma nova entrada.';}reject(Error(code));}).withFailureHandler(()=>reject(Error('TRANSPORT_ERROR'))).api(request);
   });
-  async function setupLogin(start,notify){
+  async function setupLogin(start){
     $('authPanel').hidden=false;
     if(typeof google==='undefined'||!google.script?.run){$('authMessage').textContent='Abra esta interface pelo Apps Script.';return;}
-    const message=e=>{if(e.message==='STUDENT_ONLY')return 'Esta tela é para alunos. Use “Sou treinador” para acessar a outra interface.';return 'Não foi possível entrar: '+e.message+'. Prepare uma nova entrada se necessário.';};
-    let busy=false;
-    async function run(fn){if(busy)return;busy=true;$('prepareLogin').disabled=true;$('finishLogin').disabled=true;try{await fn();}catch(e){$('authMessage').textContent=message(e);}finally{busy=false;$('prepareLogin').disabled=false;$('finishLogin').disabled=false;}}
-    $('prepareLogin').addEventListener('click',()=>run(async()=>{token='';attempt=await call('beginLogin',{});const url=new URL(attempt.authorizationUrl);if(url.origin!=='https://accounts.google.com'||url.pathname!=='/o/oauth2/v2/auth')throw Error('INVALID_RESPONSE');$('loginLink').href=url.href;$('loginLink').hidden=false;$('finishLogin').hidden=false;$('authMessage').textContent='Abra o Google na nova aba e volte aqui para concluir.';}));
-    $('finishLogin').addEventListener('click',()=>run(async()=>{if(!attempt)throw Error('UNAUTHENTICATED');const result=await call('finishLogin',{transaction:attempt.transaction,proof:attempt.proof});if(result.pending){$('authMessage').textContent='Conclua a autorização na aba do Google primeiro.';return;}token=result.sessionToken;await start();attempt=null;$('loginLink').removeAttribute('href');}));
+    const status = text => { $('authMessage').textContent = text; };
+    const loginResume = createLoginResume({
+      link: $('loginLink'), prepareButton: $('prepareLogin'), finishButton: $('finishLogin'),
+      finish: data => call('finishLogin', data),
+      onSuccess: async sessionToken => {
+        token = sessionToken;
+        try {
+          await start();
+        } catch (error) {
+          if (error.message !== 'STUDENT_ONLY') throw error;
+          loginResume.reset();
+          status('Esta tela é para alunos. Use “Sou treinador” para acessar a outra interface.');
+        }
+      },
+      onStatus: status
+    });
+    $('prepareLogin').addEventListener('click', async () => {
+      const button = $('prepareLogin');
+      if (button.disabled) return;
+      button.disabled = true;
+      token = '';
+      loginResume.reset();
+      try {
+        loginResume.prepare(await call('beginLogin', {}));
+        status('Abra o Google e volte a esta aba para entrar automaticamente.');
+      } catch (error) {
+        status('Não foi possível preparar a entrada: ' + error.message + '. Tente novamente.');
+      } finally {
+        button.disabled = false;
+      }
+    });
     const signout=document.createElement('button');signout.textContent='Sair';signout.className='student-signout';signout.addEventListener('click',async()=>{try{await call('logout',{});}finally{token='';location.reload();}});document.querySelector('.app-footer').append(signout);
   }
   return {isDemo:false,call,setupLogin};

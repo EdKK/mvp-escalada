@@ -205,7 +205,7 @@ function oauthReturnPage_(ok) {
     RESULT:ok?'success':'failure',
     ICON:ok?'<path d="m12 24 8 8 16-18"/>':'<path d="m15 15 18 18m0-18L15 33"/>',
     TITLE:ok?'Autenticação concluída':'Não foi possível autenticar',
-    INSTRUCTION:ok?"Volte ao MVP Escalada e toque em 'Concluir entrada'.":'Volte à aba original do MVP Escalada e prepare uma nova entrada.',
+    INSTRUCTION:ok?"Volte à aba original do MVP Escalada para entrar automaticamente. Se precisar, use “Concluir entrada”.":'Volte à aba original do MVP Escalada e prepare uma nova entrada.',
     FALLBACK:'Tentaremos fechar esta aba para voltar ao MVP. Se isso não funcionar, abra o seletor de abas do Safari ou do seu navegador e volte à aba original. Não recarregue a aba original.',
     RECOVERY_HIDDEN:validUrl?'':'hidden',
     APP_URL:validUrl?redirect:'#'

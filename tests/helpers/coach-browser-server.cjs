@@ -48,6 +48,7 @@ const server=http.createServer(async(req,res)=>{
  const body=JSON.parse(raw||'{}');res.setHeader('Content-Type','application/json');
  if(req.url==='/test-control'){loseNext=!!body.loseNext;loseNextFeedback=!!body.loseNextFeedback;delayNext=body.delayNext||0;if(body.failTable)f.fail(body.failTable);
   if(body.expireSession)f.advance(1801*1000);
+  if(body.revokeStudent)f.tables.Links.find(row=>row[1]==='c1'&&row[2]===body.revokeStudent)[3]=false;
   // Fictitious pre-fix history for state regression only; never deployed to Apps Script.
   if(body.seedHistoricalFeedback){
    const d=body.seedHistoricalFeedback,record={id:'historical-feedback-test',workoutId:d.workoutId,itemId:d.itemId,studentId:'s1',status:'not_done',actualSets:2,actualQuantity:2,quantityUnit:'repetitions',fingerPain:3,comment:'fadiga',rpe:'',revision:1,supersedesId:'',createdAt:'2026-11-23T12:00:00.000Z'};

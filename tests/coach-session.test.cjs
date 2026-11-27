@@ -108,3 +108,57 @@ test('resumes the same frozen snapshots after a middle-item outage and rechecks 
   assert.equal(f.tables.Items.length,11);
   assert.equal(f.tables.PRESCRICAO_SERIES.length,21);
 });
+test('an exception after the parent write recovers the same saved workout and never writes twice',()=>{
+  const f=setup();
+  let flushes=0;
+  f.context.SpreadsheetApp.flush=()=>{if(++flushes===3)throw Error('interrupted after parent write');};
+  const data=f.data(5);
+  assert.equal(f.call('saveCoachSession',data).error.code,'INTERNAL_ERROR');
+  const id=f.tables.Workouts[1][0],before=JSON.stringify(f.tables);
+  const status=ok(f.call('coachSessionStatus',{requestId:'session'}));
+  assert.equal(status.state,'completed');
+  assert.equal(status.workoutId,id);
+  assert.equal(ok(f.call('resumeCoachSession')).workoutId,id);
+  assert.equal(JSON.stringify(f.tables),before);
+});
+test('only the owning coach can abandon a revoked reservation, which stays closed after relinking',()=>{
+  const f=setup(),data=f.data(5),query={requestId:'session'};
+  f.fail('PRESCRICOES');
+  assert.equal(f.call('saveCoachSession',data).error.code,'INTERNAL_ERROR');
+  const id=ok(f.call('coachSessionStatus',query)).workoutId;
+  const before=JSON.stringify(f.tables);
+  assert.equal(f.call('abandonCoachSession',query).error.code,'CONFLICT');
+  assert.equal(JSON.stringify(f.tables),before);
+  f.tables.Links[1][3]=false;
+  assert.equal(JSON.stringify(ok(f.call('coachSessionStatus',query))),JSON.stringify({state:'link_revoked'}));
+  assert.equal(f.call('abandonCoachSession',query,'session',f.student).error.code,'FORBIDDEN');
+  f.tables.Users[1][3]=false;
+  f.tables.Users.push(['c2','other-coach@example.invalid','coach',true]);
+  const other=f.context.issueSession_({email:'other-coach@example.invalid',sub:'other'});
+  assert.equal(f.call('abandonCoachSession',query,'session',other).error.code,'NOT_FOUND');
+  f.tables.Users.at(-1)[3]=false;
+  f.tables.Users[1][3]=true;
+
+  assert.equal(ok(f.call('abandonCoachSession',query)).state,'abandoned');
+  f.tables.Links[1][3]=true;
+  const abandoned=JSON.stringify(f.tables);
+  assert.equal(JSON.stringify(ok(f.call('coachSessionStatus',query))),JSON.stringify({state:'abandoned'}));
+  assert.equal(ok(f.call('abandonCoachSession',query)).state,'abandoned');
+  assert.equal(f.call('resumeCoachSession').error.code,'NOT_FOUND');
+  const replay=f.call('saveCoachSession',data);
+  assert.equal(replay.error.code,'NOT_FOUND');
+  assert.equal(replay.error.sessionNotStarted,undefined);
+  assert.equal(ok(f.call('listPendingCoachSessions')).length,0);
+  assert.equal(f.context.api({action:'getWorkout',data:{workoutId:id},sessionToken:f.student}).error.code,'NOT_FOUND');
+  assert.equal(JSON.stringify(f.tables),abandoned);
+  assert.notEqual(ok(f.call('saveCoachSession',data,'new-session')).workoutId,id);
+});
+test('abandoning a revoked receipt leaves its committed workout and exercises intact',()=>{
+  const f=setup(),data=f.data(5),query={requestId:'session'};
+  const id=ok(f.call('saveCoachSession',data)).workoutId;
+  f.tables.Links[1][3]=false;
+  const before=JSON.stringify(f.read(id));
+  assert.equal(JSON.stringify(ok(f.call('coachSessionStatus',query))),JSON.stringify({state:'link_revoked'}));
+  assert.equal(ok(f.call('abandonCoachSession',query)).state,'abandoned');
+  assert.equal(JSON.stringify(f.read(id)),before);
+});

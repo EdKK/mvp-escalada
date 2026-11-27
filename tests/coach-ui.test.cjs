@@ -266,6 +266,12 @@ for(const count of [1,5,10])test('integral UI: '+count+' exercise(s), local chan
  assert.equal(ui.requests.filter(r=>r.request.action==='saveCoachSession').length,1);
  assert.equal(ui.requests.filter(r=>r.request.action.startsWith('listPending')||r.request.action==='coachSessionStatus').length,0);
  assert.match(ui.elements.get('coachFinishStatus').textContent,/Sessão gravada/);
+ assert.equal(ui.elements.get('btnCriarTreino').disabled,true);
+ assert.equal(ui.storage.size,1);
+ const calls=ui.requests.length;
+ await ui.click('btnConfirmSession');
+ assert.equal(ui.storage.size,0);
+ assert.equal(ui.requests.length,calls);
 });
 test('integral UI checks a lost confirmation and accepts the existing receipt without a second save',async()=>{
  const ui=await boot({loseSaveResponse:true});await startDraft(ui);await addMixedDraftExercise(ui,0);
@@ -322,6 +328,7 @@ test('five-exercise draft survives reload and expired login with the same conten
  assert.equal(sends.length,2);
  for(const {request} of sends){assert.equal(request.requestId,intent.requestId);assert.deepEqual(request.data,intent.data);}
  assert.equal(ui.f.tables.Items.length,6);
+ await next.click('btnConfirmSession');
  assert.equal(ui.storage.size,0);
 });
 test('lost save confirmation and reload resolves to the original workout without writing',async()=>{
@@ -335,6 +342,8 @@ test('lost save confirmation and reload resolves to the original workout without
  assert.equal(next.requests.some(r=>['resumeCoachSession','saveCoachSession'].includes(r.request.action)),false);
  assert.equal(next.elements.get('coachTreinoId').value,ui.f.tables.Workouts[1][0]);
  assert.equal(JSON.stringify(ui.f.tables),committed);
+ assert.equal(JSON.parse([...ui.storage.values()][0]).requestId,key);
+ await next.click('btnConfirmSession');
  assert.equal(ui.storage.size,0);
 });
 test('recovery isolates trainers and keeps reserved IDs after an interruption',async()=>{
@@ -362,6 +371,8 @@ test('recovery isolates trainers and keeps reserved IDs after an interruption',a
  assert.equal(next.requests.find(r=>r.request.action==='resumeCoachSession').request.requestId,key);
  assert.equal(ui.f.tables.Items.length,2);
  assert.equal(ui.f.tables.Items[1][0],item[0]);assert.equal(ui.f.tables.Workouts[1][0],item[1]);
+ assert.equal(JSON.parse([...ui.storage.values()][0]).requestId,key);
+ await next.click('btnConfirmSession');
  assert.equal(ui.storage.size,0);
 });
 
@@ -380,6 +391,8 @@ test('a failed status lookup keeps the recovered intent locked until the server 
  ui.f.context.coachSessionStatus_=status;
  await next.click('btnConfirmSession');
  assert.equal(JSON.stringify(ui.f.tables),before);
+ assert.equal(ui.storage.size,1);
+ await next.click('btnConfirmSession');
  assert.equal(ui.storage.size,0);
 });
 test('expiration during assembly restores an editable five-item draft without checking the server for attempts',async()=>{
@@ -405,4 +418,115 @@ test('a new save waits if the browser cannot record its idempotency key',async()
  assert.equal(ui.requests.some(r=>r.request.action==='saveCoachSession'),false);
  assert.equal(ui.elements.get('coachDraftItems').children.length,1);
  assert.match(ui.elements.get('coachFinishStatus').textContent,/recuperação/);
+});
+test('received save survives reload until acknowledgment, after which an identical session is intentional',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ const original=ui.requests.find(r=>r.request.action==='saveCoachSession').request;
+ const id=ui.f.tables.Workouts[1][0],tables=JSON.stringify(ui.f.tables);
+ assert.equal(ui.elements.get('btnConfirmSession').textContent,'Confirmar recebimento');
+ assert.equal(JSON.parse([...ui.storage.values()][0]).requestId,original.requestId);
+
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.equal(next.elements.get('coachTreinoId').value,id);
+ assert.equal(next.elements.get('btnCriarTreino').disabled,true);
+ assert.equal(next.requests.filter(r=>r.request.action==='coachSessionStatus').length,1);
+ assert.equal(next.requests.some(r=>['saveCoachSession','resumeCoachSession'].includes(r.request.action)),false);
+ assert.equal(JSON.stringify(ui.f.tables),tables);
+ await next.click('btnConfirmSession');
+ assert.equal(next.storage.size,0);
+
+ const after=await boot({backend:ui.f,storage:ui.storage});
+ assert.equal(after.requests.some(r=>r.request.action==='coachSessionStatus'),false);
+ await startDraft(after);await addMixedDraftExercise(after,0);
+ await after.click('btnReviewSession');await after.click('btnConfirmSession');
+ const repeated=after.requests.find(r=>r.request.action==='saveCoachSession').request;
+ assert.deepEqual(repeated.data,original.data);
+ assert.notEqual(repeated.requestId,original.requestId);
+ assert.notEqual(ui.f.tables.Workouts[2][0],id);
+});
+test('a revoked attempt can be abandoned after reload and a new student can be prescribed',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,2);
+ ui.f.fail('PRESCRICOES');
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ ui.f.tables.Links[1][3]=false;
+ ui.f.tables.Links.push(['l2','c1','s2',true]);
+
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.match(next.elements.get('coachFinishStatus').textContent,/vínculo.*revogado/);
+ assert.equal(next.elements.get('abandonCoachSession').hidden,false);
+ assert.equal(next.elements.get('btnCriarTreino').disabled,true);
+ await next.click('btnConfirmSession');
+ assert.equal(next.requests.some(r=>['saveCoachSession','resumeCoachSession'].includes(r.request.action)),false);
+ await next.click('abandonCoachSession');
+ assert.equal(next.storage.size,0);
+ assert.match(next.elements.get('coachFinishStatus').textContent,/Tentativa abandonada/);
+ assert.equal(ui.f.tables.Workouts.length,1);
+
+ await startDraft(next);
+ next.set('coachAluno','s2');
+ await addMixedDraftExercise(next,2);
+ await next.click('btnReviewSession');await next.click('btnConfirmSession');
+ assert.equal(ui.f.tables.Workouts.length,2);
+ assert.equal(ui.f.tables.Workouts[1][2],'s2');
+});
+test('a failed local acknowledgment preserves the original key and permits retry',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ const stored=[...ui.storage.values()][0],calls=ui.requests.length;
+ ui.storage.delete=()=>{throw Error('storage unavailable');};
+ await ui.click('btnConfirmSession');
+ assert.equal(ui.elements.get('btnCriarTreino').disabled,true);
+ assert.equal([...ui.storage.values()][0],stored);
+ assert.match(ui.elements.get('coachFinishStatus').textContent,/recuperação/);
+ ui.storage.delete=Map.prototype.delete;
+ await ui.click('btnConfirmSession');
+ assert.equal(ui.storage.size,0);
+ assert.equal(ui.requests.length,calls);
+});
+test('a save rejected before reservation returns to the editable draft',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ const before=JSON.stringify(ui.f.tables);
+ ui.set('coachData','invalid date');
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ assert.equal(JSON.stringify(ui.f.tables),before);
+ assert.equal(ui.elements.get('coachData').disabled,false);
+ assert.equal(JSON.parse([...ui.storage.values()][0]).requestId,null);
+ assert.match(ui.elements.get('coachFinishStatus').textContent,/INVALID_DATA/);
+});
+test('a failed checkpoint read blocks overwriting an existing attempt without blocking trainer login',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ ui.f.fail('PRESCRICOES');
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ const stored=[...ui.storage.values()][0];
+ ui.storage.get=()=>{throw Error('storage unavailable');};
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.equal(next.elements.get('appPanel').hidden,false);
+ assert.equal(next.elements.get('btnCriarTreino').disabled,true);
+ await next.click('findCoachPending');
+ const row=next.elements.get('pendingCoachSaves').children.find(e=>e.textContent.startsWith('Retomar sessão'));
+ assert.ok(row);
+ await row.events.click();
+ assert.equal(next.requests.some(r=>['saveCoachSession','resumeCoachSession'].includes(r.request.action)),false);
+ assert.equal([...ui.storage.values()][0],stored);
+});
+test('a committed abandon can be recovered after local storage fails to close the attempt',async()=>{
+ const ui=await boot();await startDraft(ui);await addMixedDraftExercise(ui,0);
+ ui.f.fail('PRESCRICOES');
+ await ui.click('btnReviewSession');await ui.click('btnConfirmSession');
+ ui.f.tables.Links[1][3]=false;
+ await ui.click('btnConfirmSession');
+ ui.storage.delete=()=>{throw Error('storage unavailable');};
+ await ui.click('abandonCoachSession');
+ assert.equal(ui.storage.size,1);
+ assert.equal(ui.elements.get('btnCriarTreino').disabled,true);
+ assert.match(ui.elements.get('coachFinishStatus').textContent,/recuperação/);
+ ui.storage.delete=Map.prototype.delete;
+ ui.f.tables.Links[1][3]=true;
+ const next=await boot({backend:ui.f,storage:ui.storage});
+ assert.match(next.elements.get('coachFinishStatus').textContent,/tentativa foi abandonada/);
+ await next.click('abandonCoachSession');
+ assert.equal(ui.storage.size,0);
+ assert.equal(ui.f.tables.Workouts.length,1);
+ assert.equal(next.elements.get('btnCriarTreino').disabled,false);
 });

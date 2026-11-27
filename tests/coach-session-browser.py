@@ -80,7 +80,35 @@ with subprocess.Popen(['node', 'tests/helpers/coach-browser-server.cjs'], cwd=ro
                 assert 'coachSessionStatus' not in actions
                 assert not any(action.startswith('listPending') for action in actions)
                 expect(field('previewTreinoAluno').locator('article')).to_have_count(count)
+                expect(field('btnCriarTreino')).to_be_disabled()
+                field('btnConfirmSession').click()
+                expect(field('coachFinishStatus')).to_have_text('Recebimento confirmado.')
+                assert [request['action'] for request in requests] == actions
                 print(f'{count} exercício(s): {elapsed:.0f} ms no navegador com backend simulado')
+
+            # The response reached the page, but the coach has yet to confirm it.
+            requests.clear()
+            field('coachAluno').select_option('s1')
+            field('coachData').fill('2026-11-18')
+            field('btnCriarTreino').click()
+            add_exercise(0)
+            field('btnReviewSession').click()
+            field('btnConfirmSession').click()
+            expect(field('btnConfirmSession')).to_have_text('Confirmar recebimento')
+            saved = page.request.post(base + '/test-tables', data={}).json()
+            original = next(r for r in requests if r['action'] == 'saveCoachSession')
+            requests.clear()
+            page.reload()
+            field('btnLogin').click()
+            field('btnFinishLogin').click()
+            expect(field('btnConfirmSession')).to_have_text('Confirmar recebimento')
+            expect(field('coachTreinoId')).to_have_value(saved['Workouts'][-1][0])
+            assert [r['data']['requestId'] for r in requests if r['action'] == 'coachSessionStatus'] == [original['requestId']]
+            assert all(r['action'] not in ('saveCoachSession', 'resumeCoachSession') for r in requests)
+            assert page.request.post(base + '/test-tables', data={}).json() == saved
+            field('btnConfirmSession').click()
+            expect(field('coachFinishStatus')).to_have_text('Recebimento confirmado.')
+            print('PASS: resposta recebida e recarga antes da confirmação preservam o TreinoID.')
 
             # Expire the real fixture token before save, reauthenticate, then lose
             # the confirmation of the same request and reload the actual document.
@@ -120,7 +148,35 @@ with subprocess.Popen(['node', 'tests/helpers/coach-browser-server.cjs'], cwd=ro
             assert page.request.post(base + '/test-tables', data={}).json() == before_reload
             assert [r['data']['requestId'] for r in requests if r['action'] == 'coachSessionStatus'] == [attempts[0]['requestId']]
             assert all(r['action'] not in ('saveCoachSession', 'resumeCoachSession') for r in requests)
+            field('btnConfirmSession').click()
+            expect(field('coachFinishStatus')).to_have_text('Recebimento confirmado.')
             print('PASS: cinco exercícios após expiração; confirmação perdida e recarga recuperam o mesmo ID.')
+
+            field('coachAluno').select_option('s1')
+            field('coachData').fill('2026-11-18')
+            field('btnCriarTreino').click()
+            add_exercise(2)
+            page.request.post(base + '/test-control', data={'failTable': 'PRESCRICOES'})
+            field('btnReviewSession').click()
+            field('btnConfirmSession').click()
+            expect(field('coachFinishStatus')).to_contain_text('INTERNAL_ERROR')
+            page.request.post(base + '/test-control', data={'revokeStudent': 's1'})
+            requests.clear()
+            page.reload()
+            field('btnLogin').click()
+            field('btnFinishLogin').click()
+            expect(field('abandonCoachSession')).to_be_visible()
+            page.once('dialog', lambda dialog: dialog.accept())
+            field('abandonCoachSession').click()
+            expect(field('coachFinishStatus')).to_contain_text('Tentativa abandonada')
+            assert all(r['action'] not in ('saveCoachSession', 'resumeCoachSession') for r in requests)
+            field('coachAluno').select_option('s2')
+            field('btnCriarTreino').click()
+            add_exercise(2)
+            field('btnReviewSession').click()
+            field('btnConfirmSession').click()
+            expect(field('coachFinishStatus')).to_have_text('Sessão gravada com 1 exercício(s).')
+            print('PASS: vínculo revogado permite abandonar e salvar uma montagem para outro aluno.')
             assert not errors, errors
             browser.close()
     finally:

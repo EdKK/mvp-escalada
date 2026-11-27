@@ -863,6 +863,7 @@ select.native-hidden {
           <button id="btnReviewSession" type="button">Finalizar sessão</button>
           <p id="coachFinishStatus" role="status" aria-live="polite"></p>
           <button id="btnConfirmSession" type="button" hidden>Confirmar encerramento visual</button>
+          <button id="abandonCoachSession" type="button" hidden>Abandonar tentativa</button>
         </section>
       </aside>
     </div>
@@ -959,6 +960,7 @@ function createRpc(run, getSessionToken, method = 'api') {
         else {
           const error=new Error(response?.error?.code||'INVALID_RESPONSE');
           error.itemIndex=response?.error?.itemIndex;
+          error.sessionNotStarted=response?.error?.sessionNotStarted===true;
           reject(error);
         }
       }).withFailureHandler(function() { reject(new Error('TRANSPORT_ERROR')); })[method](request);
@@ -1131,7 +1133,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   let pendingCoachSave=null, libraryReady=false;
   let coachRefreshButton,coachInvalidField=null,coachExercises=[];
   let pendingCoachEntries=[], coachDraftBaseline='', coachReview=null;
-  let sessionDraft=null, draftEdit=null, pendingSessionSave=null;
+  let sessionDraft=null, draftEdit=null, pendingSessionSave=null, draftStorageReadable=true;
   const coachRenderedItems=new Map();
   let fingerboardDefs,editingDirected=null;
   const fingerboardInputs={modality:'fbModality',grip:'fbGrip',gripOption:'fbGripOption',prehension:'fbPrehension',side:'fbSide',sets:'fbSets',repetitionsPerSet:'fbRepetitions',durationSeconds:'fbDuration',restBetweenRepetitionsSeconds:'fbRepetitionRest',restBetweenSetsSeconds:'fbSeriesRest',feet:'campusFeet',sequenceId:'campusSequence',interval:'campusInterval',direction:'campusDirection',bouts:'campusBouts'};
@@ -1195,7 +1197,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
     if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(!sessionDraft&&libraryReady&&!isSpecificTask()&&!hasDirectedSubblock())await refreshAssessments();}
   }
-  async function refresh(id) {
+  async function refresh(id, requireMatch=false) {
     const workouts=await rpc({action:'listWorkouts',data:{}});
     $('listaTreinos').replaceChildren(); $('alunoTreinoId').replaceChildren();
     workouts.forEach(w => {
@@ -1203,8 +1205,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       const option=document.createElement('option'); option.value=w.id; option.textContent=w.date+' • '+(w.microcycleType||w.goal); $('alunoTreinoId').appendChild(option);
     });
     $('coachStorageInfo').textContent=workouts.length+' treinos'; $('studentStorageInfo').textContent=workouts.length+' treinos';
-    if(workouts.length) await detail(workouts.some(w=>w.id===id)?id:workouts[0].id);
+    const match=workouts.some(w=>w.id===id);
+    if(workouts.length&&(!requireMatch||match)) await detail(match?id:workouts[0].id);
     else { selected=''; selectedWorkout=null; $('coachTreinoId').value=''; $('previewTreinoAluno').replaceChildren(); $('listaRetornos').replaceChildren(); }
+    if(requireMatch&&!match)throw Error('NOT_FOUND');
   }
   function readSessionIdentification(){
     const instructions=$('coachInstructions').value.split('\n').map(step=>step.trim()).filter(Boolean);
@@ -1213,14 +1217,14 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   function draftStorageKey(){
     return 'mvp-escalada.session-draft.v1.'+encodeURIComponent(session.id);
   }
-  function checkpointDraft(){
+  function checkpointDraft(draft=sessionDraft,intent=pendingSessionSave){
     if(session?.role!=='coach')return;
     try{
-      if(!sessionDraft&&!pendingSessionSave){
+      if(!draft&&!intent){
         window.sessionStorage.removeItem(draftStorageKey());
       }else{
-        const data=pendingSessionSave?.data||(sessionDraft?{session:readSessionIdentification(),items:sessionDraft.items}:null);
-        window.sessionStorage.setItem(draftStorageKey(),JSON.stringify({data,requestId:pendingSessionSave?.requestId||null}));
+        const data=intent?intent.data??null:{session:readSessionIdentification(),items:draft.items};
+        window.sessionStorage.setItem(draftStorageKey(),JSON.stringify({data,requestId:intent?.requestId||null}));
       }
       return true;
     }catch(error){
@@ -1229,11 +1233,16 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     }
   }
   async function restoreSessionDraft(){
-    let serialized;
-    try{serialized=window.sessionStorage.getItem(draftStorageKey());}
-    catch(error){return;}
-    if(!serialized)return;
-    const {data,requestId}=JSON.parse(serialized);
+    let draft;
+    try{draft=JSON.parse(window.sessionStorage.getItem(draftStorageKey()));}
+    catch(error){
+      draftStorageReadable=false;
+      $('coachFinishStatus').textContent='Não foi possível ler a recuperação desta aba. Recarregue o painel antes de iniciar uma montagem.';
+      updateCoachControls();
+      return;
+    }
+    if(!draft)return;
+    const {data,requestId}=draft;
     if(data){
       resetCoachDraft();
       sessionDraft={items:data.items};
@@ -1263,7 +1272,8 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   $('btnCriarTreino').addEventListener('click',()=>perform(startSessionDraft));
   $('cancelCoachSession').addEventListener('click',()=>perform(async()=>{
     if(!window.confirm('Descartar os exercícios desta montagem?'))return;
-    sessionDraft=null;draftEdit=null;resetCoachDraft();renderSessionDraft();checkpointDraft();
+    if(!checkpointDraft(null,null))return;
+    sessionDraft=null;resetCoachDraft();renderSessionDraft();
     if(selected)await detail(selected);
   }));
   const library = (action,data={})=>libraryRpc({action,data});
@@ -1283,7 +1293,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('btnAddItem').disabled=busy||(!pendingCoachSave&&((!sessionDraft&&!selected)||(!isSpecificTask()&&(hasDirectedSubblock()?!fingerboardDefs:(!libraryReady||!exerciseSelection)))));
     coachTabs.forEach(tab=>$(tab.button).disabled=busy);
     $('btnAddItem').disabled ||= !!pendingSessionSave;
-    $('btnCriarTreino').disabled=locked||!!sessionDraft;
+    $('btnCriarTreino').disabled=locked||!!sessionDraft||!draftStorageReadable;
     $('cancelCoachSession').disabled=locked;
     $('cancelDraftExercise').hidden=!sessionDraft;
     $('cancelDraftExercise').disabled=locked;
@@ -1292,10 +1302,11 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('btnReviewSession').textContent=sessionDraft?'Revisar sessão':'Finalizar sessão';
     $('btnConfirmSession').disabled=busy||!!pendingCoachSave||!coachReview||!coachReview.ready||coachDraftDirty();
     if(pendingSessionSave){
-      document.querySelectorAll('#panelCoach button, #coachDraftItems button').forEach(n=>{if(n.id!=='btnConfirmSession')n.disabled=true;});
+      document.querySelectorAll('#panelCoach button, #coachDraftItems button').forEach(n=>{if(!['btnConfirmSession','abandonCoachSession'].includes(n.id))n.disabled=true;});
       $('alunoTreinoId').disabled=true;
       $('btnConfirmSession').disabled=busy;
     }
+    $('abandonCoachSession').disabled=busy||!pendingSessionSave?.canAbandon;
     $('btnAddItem').textContent=pendingCoachSave?'Retomar gravação pendente':sessionDraft?(draftEdit===null?'Adicionar exercício':'Aplicar alterações'):editingDirected?'Salvar revisão':'Salvar e adicionar próximo exercício';
   }
   async function loadLibrary(){
@@ -1528,8 +1539,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('pendingCoachPanel').hidden=false;
     sessions.forEach(row=>button($('pendingCoachSaves'),'Retomar sessão de '+row.date+' ('+row.count+' exercícios)',async()=>{
       if(sessionDraft)throw Error('Salve ou descarte a montagem em andamento antes de retomar outra sessão.');
-      pendingSessionSave={requestId:row.requestId};
-      checkpointDraft();
+      if(!draftStorageReadable)throw Error('Recarregue o painel para ler a recuperação desta aba.');
+      const intent={requestId:row.requestId};
+      if(!checkpointDraft(null,intent))return;
+      pendingSessionSave=intent;
       await recoverSessionDraft(true);
     }));
     if(!sessions.length&&!pendingCoachEntries.length)text($('pendingCoachSaves'),'Nenhuma gravação interrompida.');
@@ -1737,6 +1750,8 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('coachPrescriptionTitle').focus();
   }
   async function recoverSessionDraft(allowWrite){
+    pendingSessionSave.canAbandon=false;
+    $('abandonCoachSession').hidden=true;
     $('btnConfirmSession').hidden=false;
     $('btnConfirmSession').textContent='Verificar e retomar gravação';
     let status;
@@ -1747,7 +1762,15 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       if(error.message==='UNAUTHENTICATED'||allowWrite)throw error;
       return;
     }
-    if(status.state==='completed')return finishSessionSave(status);
+    if(status.state==='completed')return showSessionReceipt(status);
+    if(status.state==='link_revoked'||status.state==='abandoned'){
+      pendingSessionSave.canAbandon=true;
+      $('abandonCoachSession').hidden=false;
+      $('btnConfirmSession').textContent='Verificar estado da tentativa';
+      $('coachFinishStatus').textContent=status.state==='link_revoked'?
+        'O vínculo com o aluno foi revogado. Você pode abandonar esta tentativa.':'A tentativa foi abandonada. Encerre a recuperação nesta aba.';
+      return;
+    }
     const reserved=status.state==='reserved';
     if(!reserved&&(status.state!=='not_started'||!pendingSessionSave.data))throw Error('Estado de gravação incompatível.');
     $('coachFinishStatus').textContent=reserved?'Gravação interrompida. Retome a sessão reservada.':'A tentativa ainda não foi gravada. Retome o salvamento.';
@@ -1761,24 +1784,50 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     try{
       result=await libraryRpc({action:reserved?'resumeCoachSession':'saveCoachSession',data:reserved?{}:intent.data,requestId:intent.requestId});
     }catch(error){
-      // Only a definitive pre-write rejection releases the frozen payload.
-      if(!reserved&&['INVALID_DATA','FORBIDDEN','CONFIGURATION_ERROR','IMPOSSIBLE_CAMPUS_PATH','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT','NOT_FOUND'].includes(error.message)){
-        pendingSessionSave=null;coachReview=null;$('btnConfirmSession').hidden=true;checkpointDraft();
+      if(error.sessionNotStarted&&checkpointDraft(sessionDraft,null)){
+        pendingSessionSave=null;coachReview=null;$('btnConfirmSession').hidden=true;
       }
       $('coachFinishStatus').textContent=(Number.isInteger(error.itemIndex)?'Exercício '+(error.itemIndex+1)+': ':'')+error.message+
         (pendingSessionSave?'. Retome a mesma gravação.':'. Confira os dados e volte a revisar.');
       throw error;
     }
-    return finishSessionSave(result);
+    return showSessionReceipt(result);
   }
-  async function finishSessionSave(result){
-    pendingSessionSave=null;sessionDraft=null;draftEdit=null;
-    checkpointDraft();resetCoachDraft();renderSessionDraft();
+  async function showSessionReceipt(result){
+    pendingSessionSave.receipt=result;
+    sessionDraft=null;
+    resetCoachDraft();renderSessionDraft();
     $('pendingCoachPanel').hidden=true;$('pendingCoachSaves').replaceChildren();
-    try{await refresh(result.workoutId);}
-    catch(error){coachHint('warning','Sessão gravada. Atualize a lista de treinos para consultá-la.');}
+    try{await refresh(result.workoutId,true);}
+    catch(error){
+      if(error.message==='UNAUTHENTICATED')throw error;
+      if(selected!==result.workoutId){selected='';selectedWorkout=null;}
+      coachHint('warning','A sessão foi gravada. A consulta aos detalhes está indisponível.');
+    }
+    $('coachTreinoId').value=result.workoutId;
     $('coachFinishStatus').textContent='Sessão gravada com '+result.count+' exercício(s).';
+    $('btnConfirmSession').textContent='Confirmar recebimento';
+    $('btnConfirmSession').hidden=false;
   }
+  function closeSessionAttempt(message){
+    if(!checkpointDraft(null,null))return false;
+    pendingSessionSave=null;sessionDraft=null;
+    resetCoachDraft();renderSessionDraft();
+    $('abandonCoachSession').hidden=true;
+    $('pendingCoachPanel').hidden=true;$('pendingCoachSaves').replaceChildren();
+    $('coachFinishStatus').textContent=message;
+    return true;
+  }
+  $('abandonCoachSession').addEventListener('click',()=>perform(async()=>{
+    if(!pendingSessionSave?.canAbandon||!window.confirm('Abandonar esta tentativa de salvamento?'))return;
+    const result=await library('abandonCoachSession',{requestId:pendingSessionSave.requestId});
+    if(result.state!=='abandoned')throw Error('Estado de gravação incompatível.');
+    const message='Tentativa abandonada. Você pode iniciar uma nova montagem.';
+    if(closeSessionAttempt(message)){
+      await refresh(selected);
+      $('coachFinishStatus').textContent=message;
+    }
+  }));
   for(const id of ['coachAluno','coachData','coachMicrocycleType','coachInstructions']){
     $(id).addEventListener('input',()=>{if(sessionDraft){invalidateCoachReview();checkpointDraft();}});
     if(id==='coachAluno'||id==='coachData')$(id).addEventListener('change',()=>perform(async()=>{
@@ -1813,15 +1862,19 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   }
   $('btnReviewSession').addEventListener('click',()=>perform(reviewCoachSession));
   $('btnConfirmSession').addEventListener('click',()=>perform(async()=>{
+    if(pendingSessionSave?.receipt){
+      if(closeSessionAttempt('Recebimento confirmado.')&&!selected)$('coachTreinoId').value='';
+      return;
+    }
     if(pendingSessionSave)return recoverSessionDraft(true);
     if(sessionDraft){
       await reviewCoachSession();
       if(!coachReview.ready)return;
-      pendingSessionSave={requestId:key(),data:{session:readSessionIdentification(),items:JSON.parse(JSON.stringify(sessionDraft.items))}};
-      if(!checkpointDraft()){
-        pendingSessionSave=null;
+      const intent={requestId:key(),data:{session:readSessionIdentification(),items:JSON.parse(JSON.stringify(sessionDraft.items))}};
+      if(!checkpointDraft(sessionDraft,intent)){
         throw Error('Ative o armazenamento temporário desta aba para salvar a sessão com recuperação.');
       }
+      pendingSessionSave=intent;
       return sendSessionDraft();
     }
     const reviewed=coachReview?.id;
@@ -2133,10 +2186,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       resetCoachDraft();
       $('coachNextExercise').textContent='';
     }
-    sessionDraft=null;draftEdit=null;pendingSessionSave=null;renderSessionDraft();
+    sessionDraft=null;draftEdit=null;pendingSessionSave=null;draftStorageReadable=true;renderSessionDraft();
     $('pendingCoachPanel').hidden=true;$('pendingCoachSaves').replaceChildren();
     editingDirected=null;clearCoachValidation();$('librarySaveHint').removeAttribute('data-kind');
-    $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;
+    $('coachFinishStatus').textContent='';$('btnConfirmSession').hidden=true;$('abandonCoachSession').hidden=true;
     placeCoachConsultation(false);
     $('appPanel').hidden=true; $('loginPanel').hidden=false; $('btnLogout').hidden=true;
     ['listaTreinos','alunoTreinoId','previewTreinoAluno','listaRetornos','coachAluno'].forEach(id=>$(id).replaceChildren());

@@ -118,12 +118,15 @@ function coachSessionIndex_(requests,user){
 function coachSessionPending_(db,user,data){
   fields_(data,[]);
   var saved=new Set(rows_(db,'Workouts').map(function(w){return w.id;}));
-  return coachSessionIndex_(rows_(db,'Requests'),user).filter(function(r){
-    return !saved.has(r.entityId)&&linked_(db,user.id,JSON.parse(r.fingerprint).studentId);
-  }).map(function(r){
+  var pending=[];
+  coachSessionIndex_(rows_(db,'Requests'),user).forEach(function(r){
+    if(saved.has(r.entityId))return;
     var info=JSON.parse(r.fingerprint);
-    return {requestId:r.key,studentId:info.studentId,date:info.date,count:info.count};
+    if(!info.abandoned&&linked_(db,user.id,info.studentId)){
+      pending.push({requestId:r.key,studentId:info.studentId,date:info.date,count:info.count});
+    }
   });
+  return pending;
 }
 function coachSessionReservation_(requests,user,key){
   var matches=requests.filter(function(row){return row.userId===user.id&&row.key===key;});
@@ -131,7 +134,8 @@ function coachSessionReservation_(requests,user,key){
   return matches[0];
 }
 function coachReservedSessionStatus_(db,user,reservation,info){
-  libraryStudent_(db,user,info.studentId);
+  if(info.abandoned)return {state:'abandoned'};
+  if(!linked_(db,user.id,info.studentId))return {state:'link_revoked'};
   var saved=rows_(db,'Workouts').filter(function(w){return w.id===reservation.entityId;});
   if(saved.length){
     if(saved.length!==1||saved[0].coachId!==user.id||saved[0].studentId!==info.studentId)fail_('SCHEMA_ERROR');
@@ -145,6 +149,21 @@ function coachSessionStatus_(db,user,data){
   if(!reservation)return {state:'not_started'};
   return coachReservedSessionStatus_(db,user,reservation,JSON.parse(reservation.fingerprint));
 }
+function coachSessionAbandon_(db,user,data){
+  fields_(data,['requestId']);
+  var requests=rows_(db,'Requests');
+  var reservation=coachSessionReservation_(requests,user,text_(data.requestId,80));
+  if(!reservation)fail_('NOT_FOUND');
+  var info=JSON.parse(reservation.fingerprint);
+  if(!info.abandoned){
+    if(linked_(db,user.id,info.studentId))fail_('CONFLICT');
+    info.abandoned=true;
+    sheet_(db,'Requests').getRange(requests.indexOf(reservation)+2,SCHEMA_.Requests.indexOf('fingerprint')+1,1,1)
+      .setValues([[JSON.stringify(info)]]);
+    SpreadsheetApp.flush();
+  }
+  return {state:'abandoned'};
+}
 function coachSessionSave_(db,user,request){
   var resume=request.action==='resumeCoachSession',d=request.data;
   fields_(d,resume?[]:['session','items']);
@@ -156,6 +175,7 @@ function coachSessionSave_(db,user,request){
     if(!resume&&info.signature!==signature)fail_('CONFLICT');
     var status=coachReservedSessionStatus_(db,user,reservation,info);
     if(status.state==='completed')return {workoutId:status.workoutId,count:status.count};
+    if(status.state!=='reserved')fail_('NOT_FOUND');
     var chunks=requests.filter(function(row){return row.userId===user.id&&row.entity==='CoachSessionPlan'&&row.entityId===reservation.entityId;});
     var parts=new Map(chunks.map(function(row){return JSON.parse(row.fingerprint);}));
     if(chunks.length!==info.parts||parts.size!==info.parts)fail_('SCHEMA_ERROR');
@@ -166,28 +186,18 @@ function coachSessionSave_(db,user,request){
     if(chunks.every(function(row,i){return requests[partStart+i-2]===row;}))partCount=chunks.length;
   }else{
     if(resume)fail_('NOT_FOUND');
-    if(!Array.isArray(d.items)||!d.items.length)fail_('INVALID_DATA');
-    var workout=workoutCandidate_(db,user,d.session);
-    sheet_(db,'WorkoutGuidance');
-    var items=d.items.map(function(input,index){
-      try{
-        fields_(input,['exerciseId','block','category','metric','quantity','minutes','notes','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','task','directed']);
-        var itemPlan=coachPlan_(workout,id_(),input);
-        var prepared=coachItemCandidate_(db,user,workout,Object.assign({workoutId:workout.id},input),itemPlan);
-        return {item:prepared.item,prescription:prescriptionRecord_(user,id_(),itemPlan,prepared.validated,null)};
-      }catch(error){error.itemIndex=index;throw error;}
-    });
-    plan={workout:workout,guidance:{id:workout.id,workoutId:workout.id,steps:JSON.stringify(
-      d.session.microcycleType===undefined?(d.session.instructions||[]):{version:1,microcycleType:d.session.microcycleType,instructions:d.session.instructions||[]}
-    )},items:items};
-    // Verify the target sheets before preparing the durable recovery plan.
-    sheet_(db,'Items');librarySheet_(db,'PRESCRICOES');librarySheet_(db,'PRESCRICAO_SERIES');
+    try{plan=coachSessionPlan_(db,user,d);}
+    catch(error){
+      if(['INVALID_DATA','FORBIDDEN','IMPOSSIBLE_CAMPUS_PATH','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT','NOT_FOUND'].indexOf(error.code)>=0)error.sessionNotStarted=true;
+      throw error;
+    }
+    var workout=plan.workout;
     var payload=JSON.stringify(plan),records=[];
     for(var offset=0;offset<payload.length;offset+=12000){
       records.push({id:id_(),userId:user.id,key:'',fingerprint:JSON.stringify([records.length,payload.slice(offset,offset+12000)]),entity:'CoachSessionPlan',entityId:workout.id});
     }
     records.unshift({id:id_(),userId:user.id,key:key,entity:'CoachSession',entityId:workout.id,fingerprint:JSON.stringify({
-      studentId:workout.studentId,date:workout.date,count:items.length,signature:signature,parts:records.length,planHash:hashAuth_(payload)
+      studentId:workout.studentId,date:workout.date,count:plan.items.length,signature:signature,parts:records.length,planHash:hashAuth_(payload)
     })});
     var sheet=sheet_(db,'Requests');
     partStart=sheet.getLastRow()+2;
@@ -206,6 +216,24 @@ function coachSessionSave_(db,user,request){
       .setValues(Array.from({length:partCount},function(){return [''];}));
   }catch(error){console.warn('Could not compact completed coach session request');}
   return result;
+}
+function coachSessionPlan_(db,user,d){
+  if(!Array.isArray(d.items)||!d.items.length)fail_('INVALID_DATA');
+  var workout=workoutCandidate_(db,user,d.session);
+  sheet_(db,'WorkoutGuidance');
+  var items=d.items.map(function(input,index){
+    try{
+      fields_(input,['exerciseId','block','category','metric','quantity','minutes','notes','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','task','directed']);
+      var itemPlan=coachPlan_(workout,id_(),input);
+      var prepared=coachItemCandidate_(db,user,workout,Object.assign({workoutId:workout.id},input),itemPlan);
+      return {item:prepared.item,prescription:prescriptionRecord_(user,id_(),itemPlan,prepared.validated,null)};
+    }catch(error){error.itemIndex=index;throw error;}
+  });
+  // Verify the target sheets before reserving any IDs.
+  sheet_(db,'Items');librarySheet_(db,'PRESCRICOES');librarySheet_(db,'PRESCRICAO_SERIES');
+  return {workout:workout,guidance:{id:workout.id,workoutId:workout.id,steps:JSON.stringify(
+    d.session.microcycleType===undefined?(d.session.instructions||[]):{version:1,microcycleType:d.session.microcycleType,instructions:d.session.instructions||[]}
+  )},items:items};
 }
 function coachSessionPersist_(db,plan,recovering){
   var workout=plan.workout;

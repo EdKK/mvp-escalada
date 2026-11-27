@@ -3,8 +3,9 @@
 const http=require('node:http'),fs=require('node:fs'),vm=require('node:vm');
 const {fixture,setupFinance}=require('./gas.cjs');
 const f=setupFinance(fixture());
-for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);
+for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary','GeneralCatalog'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);
 f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();
+f.context.prepararCatalogoGeralHomologacao_();
 f.tables.Links.push(['l2','c1','s2',true]);
 const coach=f.context.issueSession_({email:'coach@example.invalid',sub:'12345'});
 for(const studentId of ['s1','s2'])f.context.libraryApi({action:'recordAssessment',data:{studentId,exerciseId:'exercise-bench',indicatorId:'int-1rm',value:100,unitId:'unit-kg',protocol:'Teste fictício',referenceDefinition:'Referência fictícia',assessedOn:'2026-11-01',validUntil:'2026-12-31'},requestId:'assessment-'+studentId,sessionToken:coach});

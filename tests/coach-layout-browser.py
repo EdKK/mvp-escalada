@@ -106,7 +106,7 @@ try:
             expect(page.locator('#coachBuildPanel')).to_be_hidden()
             expect(page.locator('#'+button)).to_have_attribute('aria-selected','true')
             is_library=panel=='coachLibraryPanel'
-            card_selector='.library-overview-card' if is_library else '.students-card'
+            card_selector='#libraryOverview .library-overview-card' if is_library else '.students-card'
             prefix='#'+panel
             cards=page.locator(prefix+' '+card_selector)
             expect(cards).to_have_count(6 if is_library else 4)
@@ -131,6 +131,10 @@ try:
                     if title=='Modelos de sessões':
                         expect(page.locator('#sessionModelSearch')).to_be_visible()
                         assert page.locator('#sessionModelsBrowser').bounding_box()['width']>0.9*library_width
+                    elif title=='Treinamento geral':
+                        expect(page.locator('#generalTrainingAreas button')).to_have_count(6)
+                        expect(page.locator('#sessionModelsBrowser')).to_be_hidden()
+                        expect(page.locator('#libraryPageFuture')).to_be_hidden()
                     else:
                         expect(page.locator('#libraryPageFuture')).to_be_visible()
                         expect(page.locator('#sessionModelsBrowser')).to_be_hidden()

@@ -178,7 +178,8 @@ test('library shows six navigation buttons in order and houses session controls 
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
- const cards=[...library.matchAll(/<button\b[^>]*\bclass="card library-overview-card"[^>]*>([\s\S]*?)<\/button>/g)];
+ const overview=library.slice(0,library.indexOf('<section id="libraryPage"'));
+ const cards=[...overview.matchAll(/<button\b[^>]*\bclass="card library-overview-card"[^>]*>([\s\S]*?)<\/button>/g)];
  assert.deepEqual(cards.map(([,card])=>card.match(/<span class="library-overview-card-title"[^>]*>([^<]+)<\/span>/)?.[1]),[
   'Treinamento geral','Treinamento direcionado','Treinamento específico',
   'Modelos de sessões','Mídias e orientações','Modelos de planejamento'

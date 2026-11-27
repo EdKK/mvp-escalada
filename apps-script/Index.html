@@ -488,6 +488,14 @@ select.native-hidden {
     #coachLibraryPanel .library-page{padding:20px;margin-top:16px}
     #coachLibraryPanel .library-page .library-overview-card-heading{margin-bottom:16px}
     #coachLibraryPanel #libraryPageFuture{margin:0}
+    #generalCatalogPath ol{display:flex;flex-wrap:wrap;gap:4px 8px;list-style:none;padding:0;margin:0 0 16px;color:var(--muted);font-size:14px}
+    #generalCatalogPath li+li::before{content:'›';margin-right:8px}
+    #generalCatalogPath [aria-current="page"]{color:var(--txt)}
+    #generalCatalogTitle{margin:0 0 12px}
+    #generalCatalogChoices .library-overview-card{min-height:92px;padding:16px}
+    #generalExerciseSearch{max-width:480px}
+    #generalExerciseList{margin:12px 0 0;padding:0;list-style:none}
+    #generalExerciseList li{padding:10px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
     #coachLibraryPanel .library-overview-icon{display:grid;place-items:center;flex:0 0 48px;height:48px;border:1px solid var(--line);border-radius:12px;background:rgba(110,231,255,.08);color:var(--accent)}
     #coachLibraryPanel .library-overview-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     #coachLibraryPanel h4{font-size:14px;line-height:1.5;margin:0 0 8px}
@@ -715,6 +723,28 @@ select.native-hidden {
             <h2 id="libraryPageTitle" tabindex="-1"></h2>
           </div>
           <p id="libraryPageFuture" class="muted">Conteúdo em preparação.</p>
+          <div id="generalTraining" hidden>
+            <div id="generalTrainingAreas" class="library-overview-grid" role="group" aria-label="Áreas de treinamento geral">
+              <button id="generalStrength" class="card library-overview-card" type="button"><span class="library-overview-card-title">Musculação</span></button>
+              <button id="generalFlexibility" class="card library-overview-card" type="button"><span class="library-overview-card-title">Flexibilidade</span></button>
+              <button id="generalAerobic" class="card library-overview-card" type="button"><span class="library-overview-card-title">Aeróbico</span></button>
+              <button id="generalSpeed" class="card library-overview-card" type="button"><span class="library-overview-card-title">Velocidade</span></button>
+              <button id="generalBalance" class="card library-overview-card" type="button"><span class="library-overview-card-title">Equilíbrio e coordenação</span></button>
+              <button id="generalPrevention" class="card library-overview-card" type="button"><span class="library-overview-card-title">Exercícios preventivos</span></button>
+            </div>
+            <section id="generalCatalogPage" aria-labelledby="generalCatalogTitle" hidden>
+              <nav id="generalCatalogPath" aria-label="Caminho do catálogo"><ol id="generalCatalogBreadcrumb"></ol></nav>
+              <h3 id="generalCatalogTitle" tabindex="-1"></h3>
+              <div id="generalCatalogChoices" class="library-overview-grid"></div>
+              <div id="generalExerciseFilter" hidden>
+                <label for="generalExerciseSearch">Buscar exercício pelo nome</label>
+                <input id="generalExerciseSearch" type="search" maxlength="150">
+              </div>
+              <p id="generalCatalogStatus" role="status"></p>
+              <button id="retryGeneralCatalog" type="button" hidden>Tentar novamente</button>
+              <ul id="generalExerciseList" aria-label="Exercícios da categoria" hidden></ul>
+            </section>
+          </div>
           <div id="sessionModelsHome" hidden>
             <div id="sessionModelsBrowser">
               <div class="row">
@@ -1376,14 +1406,14 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=caption(r);$(id).appendChild(o);});
   }
   let sessionModels=[], sessionModelRequest=null, sessionModelLoad=0;
-  const modelSearchKey=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  const librarySearchKey=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
   function clearModelPreview(){
     $('sessionModelPreview').replaceChildren();
     $('sessionModelPreview').hidden=true;
   }
   function renderSessionModels(){
-    const search=modelSearchKey($('sessionModelSearch').value),microcycle=$('sessionModelMicrocycle').value;
-    const matches=sessionModels.filter(model=>modelSearchKey(model.name).includes(search)&&(!microcycle||model.microcycleType===microcycle));
+    const search=librarySearchKey($('sessionModelSearch').value),microcycle=$('sessionModelMicrocycle').value;
+    const matches=sessionModels.filter(model=>librarySearchKey(model.name).includes(search)&&(!microcycle||model.microcycleType===microcycle));
     const parent=$('sessionModelList');
     parent.replaceChildren();
     $('sessionModelsStatus').textContent=matches.length?'':sessionModels.length?'Nenhum modelo encontrado.':'Nenhum modelo salvo.';
@@ -2487,6 +2517,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   function clearSession() {
     resetFinance();
     closeLibraryPage();
+    generalCatalog=null;generalCatalogLoading=false;generalCatalogError=false;
     for(const id of ['sessionModelEditor','sessionModelsPicker'])if($(id).open)$(id).close();
     sessionModels=[];sessionModelRequest=null;$('sessionModelList').replaceChildren();clearModelPreview();
     $('sessionModelMicrocycle').value='';$('sessionModelsStatus').textContent='';$('reloadSessionModels').hidden=true;
@@ -2535,26 +2566,137 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   function closeLibraryPage(restoreFocus=false){
     const previous=activeLibraryCard;
     activeLibraryCard=null;
+    if(previous==='General'){generalArea='';generalAreaButton=null;setGeneralPath();}
+    $('libraryBack').textContent='Voltar à Biblioteca';
     $('libraryPage').hidden=true;
     $('libraryOverview').hidden=false;
     if(restoreFocus&&previous)$('library'+previous+'Card').focus();
   }
   for(const name of libraryCards){
     $('library'+name+'Card').addEventListener('click',()=>{
-      const models=name==='Models';
+      const models=name==='Models',general=name==='General';
       const title=$(models?'sessionModelsTitle':'library'+name+'Title');
       activeLibraryCard=name;
       $('libraryPageTitle').textContent=title.textContent;
       $('libraryPageIcon').setAttribute('href','#library'+name+'Icon');
       $('sessionModelsHome').hidden=!models;
-      $('libraryPageFuture').hidden=models;
+      $('generalTraining').hidden=!general;
+      $('libraryPageFuture').hidden=models||general;
+      if(general)renderGeneralCatalog();
       $('libraryOverview').hidden=true;
       $('libraryPage').hidden=false;
       $('libraryPageTitle').focus();
       if(models)return loadSessionModels();
     });
   }
-  $('libraryBack').addEventListener('click',()=>closeLibraryPage(true));
+  let generalArea='',generalAreaButton=null,generalRegion='',generalCategory='';
+  let generalCatalog=null,generalCatalogLoading=false,generalCatalogError=false;
+  function exerciseCount(count){return count+' '+(count===1?'exercício':'exercícios');}
+  function generalChoice(parent,label,count,select){
+    const card=document.createElement('button'),title=document.createElement('span');
+    card.type='button';card.className='card library-overview-card';card.disabled=busy;
+    title.className='library-overview-card-title';title.textContent=label;card.appendChild(title);
+    if(count!==undefined){
+      const description=document.createElement('span');
+      description.className='library-overview-description';description.textContent=exerciseCount(count);
+      card.appendChild(description);
+    }
+    card.addEventListener('click',select);parent.appendChild(card);
+  }
+  function renderGeneralExercises(){
+    const exercises=generalCatalog.filter(row=>row.area===generalArea&&row.region===generalRegion&&row.category===generalCategory);
+    const query=librarySearchKey($('generalExerciseSearch').value);
+    const results=exercises.filter(row=>librarySearchKey(row.name).includes(query));
+    const list=$('generalExerciseList');
+    list.replaceChildren();
+    results.forEach(row=>{
+      const item=document.createElement('li');item.textContent=row.name;list.appendChild(item);
+    });
+    $('generalCatalogStatus').textContent=results.length===0?'Nenhum exercício encontrado.':
+      query?results.length+' de '+exerciseCount(exercises.length):exerciseCount(exercises.length);
+  }
+  function renderGeneralCatalog(){
+    $('generalTrainingAreas').hidden=!!generalArea;
+    $('generalCatalogPage').hidden=!generalArea;
+    const parent=generalCategory?generalRegion:generalRegion?generalArea:generalArea?'Treinamento geral':'';
+    $('libraryBack').textContent=parent?'Voltar para '+parent:'Voltar à Biblioteca';
+    if(!generalArea)return;
+    const path=['Treinamento geral',generalArea,generalRegion,generalCategory].filter(Boolean);
+    const breadcrumb=$('generalCatalogBreadcrumb');
+    breadcrumb.replaceChildren();
+    path.forEach((part,index)=>{
+      const item=document.createElement('li');item.textContent=part;
+      if(index===path.length-1)item.setAttribute('aria-current','page');
+      breadcrumb.appendChild(item);
+    });
+    $('generalCatalogTitle').textContent=path[path.length-1];
+    const choices=$('generalCatalogChoices'),status=$('generalCatalogStatus');
+    choices.replaceChildren();
+    $('retryGeneralCatalog').hidden=!generalCatalogError||generalArea!=='Musculação';
+    $('generalExerciseFilter').hidden=!generalCategory;
+    $('generalExerciseList').hidden=!generalCategory;
+    status.textContent='';
+    if(generalArea!=='Musculação'){status.textContent='Conteúdo em preparação.';return;}
+    if(generalCatalogError){status.textContent='Não foi possível carregar o catálogo de musculação.';return;}
+    if(generalCatalogLoading){status.textContent='Carregando exercícios…';return;}
+    if(!generalCatalog)return;
+    if(generalCategory){renderGeneralExercises();return;}
+    const exercises=generalCatalog.filter(row=>row.area===generalArea);
+    if(!generalRegion){
+      for(const region of new Set(exercises.map(row=>row.region))){
+        generalChoice(choices,region,undefined,()=>setGeneralPath(region));
+      }
+      return;
+    }
+    const regionExercises=exercises.filter(row=>row.region===generalRegion);
+    for(const category of new Set(regionExercises.map(row=>row.category))){
+      const count=regionExercises.filter(row=>row.category===category).length;
+      generalChoice(choices,category,count,()=>setGeneralPath(generalRegion,category));
+    }
+  }
+  function setGeneralPath(region='',category=''){
+    generalRegion=region;generalCategory=category;
+    $('generalExerciseSearch').value='';
+    renderGeneralCatalog();
+    if(activeLibraryCard==='General'&&generalArea)$('generalCatalogTitle').focus();
+  }
+  async function loadGeneralCatalog(){
+    if(generalCatalog||generalCatalogLoading)return;
+    const token=sessionToken;
+    generalCatalogLoading=true;generalCatalogError=false;renderGeneralCatalog();
+    try{
+      const result=await library('listGeneralCatalog',{});
+      if(token!==sessionToken)return;
+      generalCatalog=result.exercises;
+    }catch(error){
+      if(token!==sessionToken)return;
+      if(error.message==='UNAUTHENTICATED'){clearSession();return;}
+      generalCatalogError=true;
+    }finally{
+      if(token===sessionToken){
+        generalCatalogLoading=false;
+        if(activeLibraryCard==='General')renderGeneralCatalog();
+      }
+    }
+  }
+  for(const name of ['Strength','Flexibility','Aerobic','Speed','Balance','Prevention']){
+    const area=$('general'+name);
+    area.addEventListener('click',()=>{
+      generalArea=area.textContent.trim();generalAreaButton=area;
+      setGeneralPath();
+      if(generalArea==='Musculação')return loadGeneralCatalog();
+    });
+  }
+  $('generalExerciseSearch').addEventListener('input',renderGeneralExercises);
+  $('retryGeneralCatalog').addEventListener('click',loadGeneralCatalog);
+  $('libraryBack').addEventListener('click',()=>{
+    if(activeLibraryCard!=='General'||!generalArea){closeLibraryPage(true);return;}
+    if(generalCategory){setGeneralPath(generalRegion);return;}
+    if(generalRegion){setGeneralPath();return;}
+    const area=generalAreaButton;
+    generalArea='';generalAreaButton=null;setGeneralPath();
+    area.focus();
+  });
   const coachLayoutHomes = new Map();
   function placeCoachConsultation(isCoach) {
     $('appPanel').classList.toggle('coach-layout-active', isCoach);

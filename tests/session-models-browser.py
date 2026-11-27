@@ -69,6 +69,9 @@ try:
         create_model('Resistência técnica')
 
         page.locator('#coachTabLibrary').click()
+        expect(page.locator('#sessionModelsBrowser')).to_be_hidden()
+        page.locator('#libraryModelsCard').click()
+        expect(page.locator('#libraryPageTitle')).to_have_text('Modelos de sessões')
         expect(page.locator('#sessionModelList article')).to_have_count(2)
         page.locator('#sessionModelSearch').fill('forca')
         expect(page.locator('#sessionModelList article')).to_have_count(1)
@@ -89,6 +92,18 @@ try:
         expect(page.locator('#coachData')).to_have_value('')
         expect(page.locator('#coachTreinoId')).to_have_value('')
         expect(page.locator('#coachMicrocycleType')).to_have_value('Ordinário')
+        expect(page.locator('#coachInstructions')).to_have_value('Aquecer\nRespeitar os intervalos')
+        assert tables() == before_copy
+
+        # Sidebar navigation preserves the active subpage, filters, and the unsaved copy.
+        page.locator('#coachTabLibrary').click()
+        expect(page.locator('#sessionModelSearch')).to_have_value('forca')
+        page.get_by_role('button', name='Utilizar', exact=True).click()
+        expect(page.locator('#notice')).to_contain_text('Salve ou descarte a montagem em andamento')
+        page.locator('#libraryBack').click()
+        expect(page.locator('#libraryModelsCard')).to_be_focused()
+        page.locator('#coachTabBuild').click()
+        expect(page.get_by_role('button', name='Editar exercício 1', exact=True)).to_be_visible()
         expect(page.locator('#coachInstructions')).to_have_value('Aquecer\nRespeitar os intervalos')
         assert tables() == before_copy
 

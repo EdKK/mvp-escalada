@@ -108,31 +108,64 @@ try:
             is_library=panel=='coachLibraryPanel'
             card_selector='.library-overview-card' if is_library else '.students-card'
             prefix='#'+panel
-            expect(page.locator(prefix+' '+card_selector)).to_have_count(5 if is_library else 4)
-            static_cards = prefix+' '+card_selector
+            cards=page.locator(prefix+' '+card_selector)
+            expect(cards).to_have_count(6 if is_library else 4)
             if is_library:
-                static_cards += ':not(#sessionModelsCard)'
-                expect(page.locator('#sessionModelSearch')).to_be_visible()
+                titles=['Treinamento geral','Treinamento direcionado','Treinamento específico',
+                        'Modelos de sessões','Mídias e orientações','Modelos de planejamento']
+                expect(cards.locator('.library-overview-card-title')).to_have_text(titles)
+                before_navigation=page.request.post(base+'/test-tables',data={}).json()
+                library_width=page.locator('#libraryOverview').bounding_box()['width']
+                expect(page.locator('#sessionModelsBrowser')).to_be_hidden()
+                for index,title in enumerate(titles):
+                    card=page.get_by_role('button',name=title,exact=True)
+                    icon_id=card.locator('svg > g').get_attribute('id')
+                    card.focus()
+                    card.press('Enter' if index%2==0 else 'Space')
+                    expect(page.locator('#libraryOverview')).to_be_hidden()
+                    expect(page.locator('#libraryPageTitle')).to_have_text(title)
+                    expect(page.locator('#libraryPageTitle')).to_be_focused()
+                    expect(page.locator('#libraryPageIcon')).to_have_attribute('href','#'+icon_id)
+                    assert page.locator('#libraryPageIcon').evaluate('icon=>icon.getBBox().width')>0
+                    expect(page.locator('#coachTabLibrary')).to_be_visible()
+                    if title=='Modelos de sessões':
+                        expect(page.locator('#sessionModelSearch')).to_be_visible()
+                        assert page.locator('#sessionModelsBrowser').bounding_box()['width']>0.9*library_width
+                    else:
+                        expect(page.locator('#libraryPageFuture')).to_be_visible()
+                        expect(page.locator('#sessionModelsBrowser')).to_be_hidden()
+                        expect(page.locator('#libraryPage button:visible')).to_have_count(1)
+                    page.get_by_role('button',name='Voltar à Biblioteca').click()
+                    expect(card).to_be_focused()
+                # A click near the bottom edge hits the same native button.
+                cards.first.click(position={'x':20,'y':130})
+                expect(page.locator('#libraryPageTitle')).to_have_text(titles[0])
+                page.locator('#libraryBack').click()
+                assert page.request.post(base+'/test-tables',data={}).json()==before_navigation
             else:
-                static_cards += ':not([aria-labelledby="studentsRegistrationTitle"])'
+                static_cards=prefix+' '+card_selector+':not([aria-labelledby="studentsRegistrationTitle"])'
                 expect(page.locator('#financeStudent option')).to_have_count(3)
-            expect(page.locator(', '.join(static_cards+' '+tag for tag in ('input','select','button','textarea','a')))).to_have_count(0)
-            if is_library:
-                expect(page.locator(prefix+' .library-search-placeholder')).to_have_attribute('aria-label','Campo de busca ilustrativo, sem interação')
-                expect(page.locator('#libraryIntensityTitle')).to_have_text('Intensidade')
-                expect(page.locator('#libraryVolumeTitle')).to_have_text('Volume')
-            else:
+                expect(page.locator(', '.join(static_cards+' '+tag for tag in ('input','select','button','textarea','a')))).to_have_count(0)
                 expect(page.locator(prefix+' table tbody tr')).to_have_count(4)
-            boxes=[c.bounding_box() for c in page.locator(prefix+' '+card_selector).all()]
-            assert boxes[0]['x']<boxes[1]['x'] and abs(boxes[0]['y']-boxes[1]['y'])<1
-            assert boxes[2]['x']<boxes[3]['x'] and abs(boxes[2]['y']-boxes[3]['y'])<1
-            assert boxes[2]['y']>boxes[0]['y']
+            boxes=[c.bounding_box() for c in cards.all()]
+            columns=3 if is_library else 2
+            for index in [0,columns]:
+                row=boxes[index:index+columns]
+                assert all(abs(box['y']-row[0]['y'])<1 for box in row)
+                assert all(a['x']<b['x'] for a,b in zip(row,row[1:]))
+            assert boxes[columns]['y']>boxes[0]['y']
+            if is_library:
+                assert len({box['height'] for box in boxes})==1
+                assert max(box['width'] for box in boxes)-min(box['width'] for box in boxes)<1
             page.evaluate('window.scrollTo(0,0)')
             screenshot='biblioteca' if is_library else 'alunos'
             page.screenshot(path='/tmp/mvp-layout-'+screenshot+'.png',full_page=True)
-            for width in [1366,1024,390]:
+            for width in [1366,1024,900,390]:
                 page.set_viewport_size({'width':width,'height':1000})
                 assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'), f'{screenshot} overflow {width}'
+                if is_library:
+                    columns=cards.evaluate_all("""cards=>cards.filter(card=>card.offsetTop===cards[0].offsetTop).length""")
+                    assert columns==(3 if width>=1024 else 2 if width>=640 else 1)
             page.screenshot(path='/tmp/mvp-layout-'+screenshot+'-estreito.png',full_page=True)
             page.set_viewport_size({'width':1600,'height':1100})
             assert page.url==initial_url
@@ -147,7 +180,7 @@ try:
         expect(page.locator('#coachBuildPanel')).to_be_visible()
         page.evaluate('window.scrollTo(0,0)')
         page.screenshot(path='/tmp/mvp-navegacao-treinador.png',full_page=True)
-        print('PASS: original 2x2 grids and new session models card, responsive widths, and unchanged unsaved build draft/DOM/URL')
+        print('PASS: Library card navigation and focus, responsive equal-size cards, and preserved unsaved draft, tables and URL')
         def contrast(colors):
             import re
             def lum(value):

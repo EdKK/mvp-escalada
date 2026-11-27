@@ -478,15 +478,20 @@ select.native-hidden {
 
     #coachLibraryPanel .library-overview-heading h2{margin:0 0 8px;font-size:22px}
     #coachLibraryPanel .library-overview-heading p{margin:0 0 20px}
-    #coachLibraryPanel .library-overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start}
-    #coachLibraryPanel .library-overview-card{display:grid;align-content:start;gap:12px;min-width:0;min-height:144px;padding:20px}
+    #coachLibraryPanel .library-overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:20px}
+    #coachLibraryPanel .library-overview-card{display:grid;align-content:start;gap:12px;min-width:0;min-height:144px;padding:20px;text-align:left;border-radius:var(--radius);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.02))}
+    #coachLibraryPanel .library-overview-card:hover:not(:disabled){border-color:var(--accent);background:rgba(110,231,255,.08)}
     #coachLibraryPanel .library-overview-card-heading{display:flex;align-items:center;gap:12px}
-    #coachLibraryPanel .library-overview-card-heading h3{margin:0;font-size:18px;line-height:1.3;overflow-wrap:anywhere}
-    #coachLibraryPanel .library-overview-card > p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+    #coachLibraryPanel .library-overview-card-title,#coachLibraryPanel #libraryPageTitle{margin:0;font-size:18px;line-height:1.3;overflow-wrap:anywhere}
+    #coachLibraryPanel .library-overview-card-title{font-weight:700}
+    #coachLibraryPanel .library-overview-description{color:var(--muted);font-size:14px;font-weight:400;line-height:1.5}
+    #coachLibraryPanel .library-page{padding:20px;margin-top:16px}
+    #coachLibraryPanel .library-page .library-overview-card-heading{margin-bottom:16px}
+    #coachLibraryPanel #libraryPageFuture{margin:0}
     #coachLibraryPanel .library-overview-icon{display:grid;place-items:center;flex:0 0 48px;height:48px;border:1px solid var(--line);border-radius:12px;background:rgba(110,231,255,.08);color:var(--accent)}
     #coachLibraryPanel .library-overview-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     #coachLibraryPanel h4{font-size:14px;line-height:1.5;margin:0 0 8px}
-    #sessionModelsHome .row{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+    #sessionModelsHome .row{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
     #sessionModelList article,#sessionModelPreview article{overflow-wrap:anywhere}
     #sessionModelPreview{margin-top:16px}
     .session-model-dialog{width:min(680px,calc(100% - 32px));max-height:85vh;overflow:auto;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:20px}
@@ -627,46 +632,90 @@ select.native-hidden {
       </div>
     </section>
     <section id="coachLibraryPanel" role="tabpanel" aria-labelledby="coachTabLibrary" hidden>
-      <div class="library-overview-heading">
-        <h2>Biblioteca</h2>
-        <p class="muted">Os cartões de treinamento, mídias e planejamento são ilustrativos.</p>
+      <div id="libraryOverview">
+        <div class="library-overview-heading">
+          <h2>Biblioteca</h2>
+          <p class="muted">Os cartões de treinamento, mídias e planejamento são ilustrativos.</p>
+        </div>
+        <div class="library-overview-grid">
+          <button id="libraryGeneralCard" class="card library-overview-card" type="button" aria-labelledby="libraryGeneralTitle" aria-controls="libraryPage" aria-describedby="libraryGeneralDescription">
+            <span class="library-overview-card-heading">
+              <span class="library-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" focusable="false"><g id="libraryGeneralIcon"><rect x="6" y="8" width="5" height="16" rx="1.4"/><rect x="21" y="8" width="5" height="16" rx="1.4"/><path d="M6 12H3v8h3m20-8h3v8h-3m-15-4h10"/></g></svg>
+              </span>
+              <span class="library-overview-card-title" id="libraryGeneralTitle">Treinamento geral</span>
+            </span>
+            <span class="library-overview-description" id="libraryGeneralDescription">Exercícios de força, resistência e mobilidade.</span>
+          </button>
+          <button id="libraryDirectedCard" class="card library-overview-card" type="button" aria-labelledby="libraryDirectedTitle" aria-controls="libraryPage" aria-describedby="libraryDirectedDescription">
+            <span class="library-overview-card-heading">
+              <span class="library-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" focusable="false"><g id="libraryDirectedIcon"><rect x="2.5" y="7.5" width="27" height="17" rx="3"/><path d="M7 12h6v2.5H7zm12 0h6v2.5h-6zM7 19h2.5m13 0H25"/><path d="M12.5 19h7l-.8 2.5h-5.4z"/></g></svg>
+              </span>
+              <span class="library-overview-card-title" id="libraryDirectedTitle">Treinamento direcionado</span>
+            </span>
+            <span class="library-overview-description" id="libraryDirectedDescription">Fingerboard, blocos de tração e Campus Board.</span>
+          </button>
+          <button id="librarySpecificCard" class="card library-overview-card" type="button" aria-labelledby="librarySpecificTitle" aria-controls="libraryPage" aria-describedby="librarySpecificDescription">
+            <span class="library-overview-card-heading">
+              <span class="library-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" focusable="false">
+                  <g id="librarySpecificIcon" transform="translate(0 1.65) scale(.368)">
+                    <rect width="87" height="78" fill="#222" stroke="none"/>
+                    <path d="M16.5 66.5 45.3 18.3h28.2L45.4 66.5Z" stroke="#438e98" stroke-width="2.3"/>
+                    <g stroke="#67edfc" stroke-width="2.3">
+                      <path d="m52.8 25.6 5.7-2 2 5-5.3 2.1-2.5-2.5Z"/>
+                      <path d="m63.3 40.4 4.3-2.4 1.6 4.7-4.9 1.3Z"/>
+                      <path d="m44.9 59.3 5.3-2.2 2.3 4.7-6.4 1.4Z"/>
+                      <path d="M35.3 49.7 41.4 40.1 49 36.1l6.4-6.1M38.7 41.4l-7.4 2.7-2.7-7.7M35.3 49.7l-11 3.6-4 9M35.3 49.7l7.2 4.9 6.8-8.6"/>
+                    </g>
+                    <path d="M35.9 33.2c1.9-3.6 5.8-4.9 9.2-3.7l3.1 2.8-.5 3.4-5.2 3.5-3.7-.4 1-2.1-3.3.3-2.6-1.5Z" fill="#67edfc" stroke="none"/>
+                  </g>
+                </svg>
+              </span>
+              <span class="library-overview-card-title" id="librarySpecificTitle">Treinamento específico</span>
+            </span>
+            <span class="library-overview-description" id="librarySpecificDescription">Sequências de escalada para boulder, resistência e continuidade.</span>
+          </button>
+          <button id="libraryModelsCard" class="card library-overview-card" type="button" aria-labelledby="sessionModelsTitle" aria-controls="libraryPage">
+            <span class="library-overview-card-heading">
+              <span class="library-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" focusable="false"><g id="libraryModelsIcon"><path d="M12 6H8a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4"/><rect x="12" y="3" width="8" height="6" rx="2"/><path d="m11 15 1.5 1.5 2.5-3M18 15h3m-10 7 1.5 1.5 2.5-3M18 22h3"/></g></svg>
+              </span>
+              <span class="library-overview-card-title" id="sessionModelsTitle">Modelos de sessões</span>
+            </span>
+          </button>
+          <button id="libraryMediaCard" class="card library-overview-card" type="button" aria-labelledby="libraryMediaTitle" aria-controls="libraryPage" aria-describedby="libraryMediaDescription">
+            <span class="library-overview-card-heading">
+              <span class="library-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" focusable="false"><g id="libraryMediaIcon"><rect x="3" y="9" width="17" height="14" rx="2.5"/><path d="m20 13 8-4v14l-8-4"/><path d="M7 13h4"/></g></svg>
+              </span>
+              <span class="library-overview-card-title" id="libraryMediaTitle">Mídias e orientações</span>
+            </span>
+            <span class="library-overview-description" id="libraryMediaDescription">Vídeos demonstrativos e orientações para os exercícios.</span>
+          </button>
+          <button id="libraryPlanningCard" class="card library-overview-card" type="button" aria-labelledby="libraryPlanningTitle" aria-controls="libraryPage" aria-describedby="libraryPlanningDescription">
+            <span class="library-overview-card-heading">
+              <span class="library-overview-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" focusable="false"><g id="libraryPlanningIcon"><rect x="4" y="6" width="24" height="22" rx="2.5"/><path d="M4 12h24M11 3v6m10-6v6M10 17h2m3 0h2m3 0h2m-12 6h2m3 0h2m3 0h2"/></g></svg>
+              </span>
+              <span class="library-overview-card-title" id="libraryPlanningTitle">Modelos de planejamento</span>
+            </span>
+            <span class="library-overview-description" id="libraryPlanningDescription">Estruturas reutilizáveis para organizar ciclos de treino.</span>
+          </button>
+        </div>
       </div>
-      <div class="library-overview-grid">
-        <section class="card library-overview-card" aria-labelledby="libraryGeneralTitle">
+      <section id="libraryPage" aria-labelledby="libraryPageTitle" hidden>
+        <button id="libraryBack" type="button">Voltar à Biblioteca</button>
+        <div class="card library-page">
           <div class="library-overview-card-heading">
             <span class="library-overview-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" focusable="false"><rect x="6" y="8" width="5" height="16" rx="1.4"/><rect x="21" y="8" width="5" height="16" rx="1.4"/><path d="M6 12H3v8h3m20-8h3v8h-3m-15-4h10"/></svg>
+              <svg viewBox="0 0 32 32" focusable="false"><use id="libraryPageIcon"></use></svg>
             </span>
-            <h3 id="libraryGeneralTitle">Treinamento geral</h3>
+            <h2 id="libraryPageTitle" tabindex="-1"></h2>
           </div>
-          <p>Exercícios de força, resistência e mobilidade.</p>
-        </section>
-        <section class="card library-overview-card" aria-labelledby="libraryDirectedTitle">
-          <div class="library-overview-card-heading">
-            <span class="library-overview-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" focusable="false"><rect x="2.5" y="7.5" width="27" height="17" rx="3"/><path d="M7 12h6v2.5H7zm12 0h6v2.5h-6zM7 19h2.5m13 0H25"/><path d="M12.5 19h7l-.8 2.5h-5.4z"/></svg>
-            </span>
-            <h3 id="libraryDirectedTitle">Treinamento direcionado</h3>
-          </div>
-          <p>Fingerboard, blocos de tração e Campus Board.</p>
-        </section>
-        <section class="card library-overview-card" aria-labelledby="librarySpecificTitle">
-          <div class="library-overview-card-heading">
-            <span class="library-overview-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" focusable="false"><path d="M29 3 19 24h10M24 8h2.6m-6.1 7h2.6"/><circle cx="9" cy="13" r="2.4"/><path d="m6.5 24 5-6 5.5-3 2-5 5-2m-13 10 2 3.5 7.5-6.5M8 22l5.5 4.5 5.5-2.5M8 22l-4 5 3.5 2"/></svg>
-            </span>
-            <h3 id="librarySpecificTitle">Treinamento específico</h3>
-          </div>
-          <p>Sequências de escalada para boulder, resistência e continuidade.</p>
-        </section>
-        <section id="sessionModelsCard" class="card library-overview-card" aria-labelledby="sessionModelsTitle">
-          <div class="library-overview-card-heading">
-            <span class="library-overview-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" focusable="false"><path d="M12 6H8a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4"/><rect x="12" y="3" width="8" height="6" rx="2"/><path d="m11 15 1.5 1.5 2.5-3M18 15h3m-10 7 1.5 1.5 2.5-3M18 22h3"/></svg>
-            </span>
-            <h3 id="sessionModelsTitle" tabindex="-1">Modelos de sessões</h3>
-          </div>
-          <div id="sessionModelsHome">
+          <p id="libraryPageFuture" class="muted">Conteúdo em preparação.</p>
+          <div id="sessionModelsHome" hidden>
             <div id="sessionModelsBrowser">
               <div class="row">
                 <div><label for="sessionModelSearch">Buscar pelo nome</label><input id="sessionModelSearch" type="search" maxlength="150"></div>
@@ -678,26 +727,8 @@ select.native-hidden {
               <section id="sessionModelPreview" aria-label="Prescrição do modelo" hidden></section>
             </div>
           </div>
-        </section>
-        <section class="card library-overview-card" aria-labelledby="libraryMediaTitle">
-          <div class="library-overview-card-heading">
-            <span class="library-overview-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" focusable="false"><rect x="3" y="9" width="17" height="14" rx="2.5"/><path d="m20 13 8-4v14l-8-4"/><path d="M7 13h4"/></svg>
-            </span>
-            <h3 id="libraryMediaTitle">Mídias e orientações</h3>
-          </div>
-          <p>Vídeos demonstrativos e orientações para os exercícios.</p>
-        </section>
-        <section class="card library-overview-card" aria-labelledby="libraryPlanningTitle">
-          <div class="library-overview-card-heading">
-            <span class="library-overview-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" focusable="false"><rect x="4" y="6" width="24" height="22" rx="2.5"/><path d="M4 12h24M11 3v6m10-6v6M10 17h2m3 0h2m3 0h2m-12 6h2m3 0h2m3 0h2"/></svg>
-            </span>
-            <h3 id="libraryPlanningTitle">Modelos de planejamento</h3>
-          </div>
-          <p>Estruturas reutilizáveis para organizar ciclos de treino.</p>
-        </section>
-      </div>
+        </div>
+      </section>
     </section>
     <section id="coachBuildPanel" role="tabpanel" aria-labelledby="coachTabBuild">
     <section id="coachSession" class="card coach-session" aria-label="Identificação da sessão">
@@ -1344,7 +1375,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $(id).replaceChildren();if(placeholder!==null){const o=document.createElement('option');o.value='';o.textContent=placeholder;$(id).appendChild(o);}
     rows.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=caption(r);$(id).appendChild(o);});
   }
-  let sessionModels=[], sessionModelRequest=null;
+  let sessionModels=[], sessionModelRequest=null, sessionModelLoad=0;
   const modelSearchKey=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
   function clearModelPreview(){
     $('sessionModelPreview').replaceChildren();
@@ -1373,15 +1404,15 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     });
   }
   async function loadSessionModels(){
-    const token=sessionToken;
+    const token=sessionToken,load=++sessionModelLoad;
     $('sessionModelsStatus').textContent='Carregando modelos…';
     $('reloadSessionModels').hidden=true;
     try{
       const models=await library('listSessionModels');
-      if(token!==sessionToken)return;
-      sessionModels=models;renderSessionModels();
+      if(token!==sessionToken||load!==sessionModelLoad)return;
+      sessionModels=models;renderSessionModels();updateCoachControls();
     }catch(error){
-      if(token!==sessionToken)return;
+      if(token!==sessionToken||load!==sessionModelLoad)return;
       if(error.message==='UNAUTHENTICATED'){clearSession();return;}
       $('sessionModelsStatus').textContent='Não foi possível carregar os modelos ('+error.message+').';
       $('reloadSessionModels').hidden=false;
@@ -1519,6 +1550,8 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       $('alunoTreinoId').disabled=true;
       $('btnConfirmSession').disabled=busy;
     }
+    for(const name of libraryCards)$('library'+name+'Card').disabled=busy;
+    $('libraryBack').disabled=busy;
     $('abandonCoachSession').disabled=busy||!pendingSessionSave?.canAbandon;
     const canModel=!!pendingSessionSave?.receipt||!!selectedWorkout?.canSaveSessionModel;
     $('saveSessionModel').hidden=!canModel||!!sessionDraft;
@@ -2453,6 +2486,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
 
   function clearSession() {
     resetFinance();
+    closeLibraryPage();
     for(const id of ['sessionModelEditor','sessionModelsPicker'])if($(id).open)$(id).close();
     sessionModels=[];sessionModelRequest=null;$('sessionModelList').replaceChildren();clearModelPreview();
     $('sessionModelMicrocycle').value='';$('sessionModelsStatus').textContent='';$('reloadSessionModels').hidden=true;
@@ -2485,7 +2519,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       $(tab.button).setAttribute('tabindex',active?'0':'-1');
     });
     if (key === 'students' && !financeLoaded) return financeRun(() => financeList());
-    if (key === 'library')return loadSessionModels();
+    if (key === 'library' && activeLibraryCard==='Models')return loadSessionModels();
   }
   coachTabs.forEach((tab,index)=>{
     $(tab.button).addEventListener('click',()=>selectCoachTab(tab.key));
@@ -2496,6 +2530,31 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       event.preventDefault();selectCoachTab(coachTabs[next].key);$(coachTabs[next].button).focus();
     });
   });
+  const libraryCards=['General','Directed','Specific','Models','Media','Planning'];
+  let activeLibraryCard=null;
+  function closeLibraryPage(restoreFocus=false){
+    const previous=activeLibraryCard;
+    activeLibraryCard=null;
+    $('libraryPage').hidden=true;
+    $('libraryOverview').hidden=false;
+    if(restoreFocus&&previous)$('library'+previous+'Card').focus();
+  }
+  for(const name of libraryCards){
+    $('library'+name+'Card').addEventListener('click',()=>{
+      const models=name==='Models';
+      const title=$(models?'sessionModelsTitle':'library'+name+'Title');
+      activeLibraryCard=name;
+      $('libraryPageTitle').textContent=title.textContent;
+      $('libraryPageIcon').setAttribute('href','#library'+name+'Icon');
+      $('sessionModelsHome').hidden=!models;
+      $('libraryPageFuture').hidden=models;
+      $('libraryOverview').hidden=true;
+      $('libraryPage').hidden=false;
+      $('libraryPageTitle').focus();
+      if(models)return loadSessionModels();
+    });
+  }
+  $('libraryBack').addEventListener('click',()=>closeLibraryPage(true));
   const coachLayoutHomes = new Map();
   function placeCoachConsultation(isCoach) {
     $('appPanel').classList.toggle('coach-layout-active', isCoach);

@@ -127,6 +127,21 @@ test('coach tabs default to build and preserve the same unsaved prescription nod
  for(const [button,panel,title] of [['coachTabStudents','coachStudentsPanel','Alunos'],['coachTabLibrary','coachLibraryPanel','Biblioteca']]){
   await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.ok(ui.descendant(ui.elements.get(panel==='coachLibraryPanel'?'libraryGeneralTitle':'studentsRegistrationTitle'),panel));
  }
+ assert.equal(ui.requests.length,calls+1);
+ await ui.click('librarySpecificCard');
+ assert.equal(ui.elements.get('libraryOverview').hidden,true);
+ assert.equal(ui.elements.get('libraryPage').hidden,false);
+ assert.equal(ui.elements.get('libraryPageIcon').href,'#librarySpecificIcon');
+ assert.equal(ui.elements.get('libraryPageTitle').focused,true);
+ assert.equal(ui.elements.get('libraryPageFuture').hidden,false);
+ assert.equal(ui.elements.get('sessionModelsHome').hidden,true);
+ assert.equal(ui.requests.length,calls+1);
+ await ui.click('libraryBack');
+ assert.equal(ui.elements.get('libraryOverview').hidden,false);
+ assert.equal(ui.elements.get('librarySpecificCard').focused,true);
+ await ui.click('libraryModelsCard');
+ assert.equal(ui.elements.get('sessionModelsHome').hidden,false);
+ assert.equal(ui.elements.get('libraryPageFuture').hidden,true);
  await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
  assert.deepEqual(ui.requests.slice(calls).filter(r=>r.method!=='financeApi').map(r=>r.request.action),['listSessionModels']);
  assert.deepEqual(ui.requests.filter(r=>r.method==='financeApi').map(r=>r.request.action),['listStudents']);
@@ -156,26 +171,27 @@ test('only the finance card is interactive; prescription RPC/model retain their 
 });
 
 
-test('library shows six cards in order with controls only in session models',()=>{
+test('library shows six navigation buttons in order and houses session controls in the subpage',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const students=source=>source.slice(source.indexOf('aria-labelledby="studentsAssessmentTitle"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
- const cards=library.split(/<section\b(?=[^>]*\bclass="card library-overview-card")/).slice(1);
- assert.deepEqual(cards.map(card=>card.match(/<h3\b[^>]*>([^<]+)<\/h3>/)?.[1]),[
+ const cards=[...library.matchAll(/<button\b[^>]*\bclass="card library-overview-card"[^>]*>([\s\S]*?)<\/button>/g)];
+ assert.deepEqual(cards.map(([,card])=>card.match(/<span class="library-overview-card-title"[^>]*>([^<]+)<\/span>/)?.[1]),[
   'Treinamento geral','Treinamento direcionado','Treinamento específico',
   'Modelos de sessões','Mídias e orientações','Modelos de planejamento'
  ]);
- const modelCard=cards[3];
- assert.match(modelCard,/id="sessionModelsCard"/);
- assert.match(modelCard,/<input\b[^>]*\bid="sessionModelSearch"/);
- assert.match(modelCard,/<select\b[^>]*\bid="sessionModelMicrocycle"/);
- for(const card of cards){
+ for(const [markup,card] of cards){
+  assert.match(markup,/type="button"[^>]*aria-controls="libraryPage"/);
   assert.match(card,/<svg\b/);
-  if(card!==modelCard)assert.doesNotMatch(card,/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
+  assert.doesNotMatch(card,/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
  }
+ const subpage=library.slice(library.indexOf('<section id="libraryPage"'));
+ assert.match(subpage,/<button\b[^>]*\bid="libraryBack"[^>]*>Voltar à Biblioteca<\/button>/);
+ assert.match(subpage,/<input\b[^>]*\bid="sessionModelSearch"/);
+ assert.match(subpage,/<select\b[^>]*\bid="sessionModelMicrocycle"/);
  assert.match(library,/Os cartões de treinamento, mídias e planejamento são ilustrativos\./);
 });
 

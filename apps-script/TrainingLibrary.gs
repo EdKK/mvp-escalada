@@ -9,6 +9,7 @@ var LIBRARY_SCHEMA_ = {
   EXERCICIO_METODOS:['id','exerciseId','methodId','createdAt'],
   AVALIACOES:['id','studentId','exerciseId','indicatorId','referenceType','value','unitId','protocol','referenceDefinition','assessedOn','validUntil','supersedesId','status','createdBy','createdAt'],
   PRESCRICOES:['id','workoutId','itemId','studentId','exerciseId','methodId','protocolId','capacityId','classification','intensityJson','volumeJson','totalVolume','volumeUnitId','assessmentId','snapshotJson','revision','supersedesId','status','createdBy','createdAt'],
+  MODELOS_SESSAO:['id','coachId','fingerprint','name','description','microcycleType','payloadJson','status'],
   PRESCRICAO_SERIES:['id','prescriptionId','blockOrder','setOrder','quantity','occurrences','durationSeconds','volumeUnitId','total']
 };
 function libraryDb_() {
@@ -102,7 +103,7 @@ function libraryApi(request){
   var lock;
   try{
     fields_(request,['action','data','requestId','sessionToken']);
-    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','coachSessionStatus','abandonCoachSession','listPendingCoachSessions'];
+    var actions=['catalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','coachSessionStatus','abandonCoachSession','listPendingCoachSessions','listSessionModels','getSessionModel','createSessionModel','deleteSessionModel'];
     if(actions.indexOf(request.action)<0)fail_('INVALID_ACTION');
     var identity=sessionIdentity_(request.sessionToken);lock=LockService.getScriptLock();if(!lock.tryLock(5000))fail_('BUSY');
     var db=libraryDb_(),user=userForEmail_(db,identity.email),d=request.data,result;
@@ -125,6 +126,9 @@ function libraryApi(request){
       else if(request.action==='abandonCoachSession')result=coachSessionAbandon_(db,user,d);
       else if(request.action==='listPendingCoachSessions')result=coachSessionPending_(db,user,d);
       else if(request.action==='saveCoachSession'||request.action==='resumeCoachSession')result=coachSessionSave_(db,user,request);
+      else if(request.action==='listSessionModels')result=listSessionModels_(db,user,d);
+      else if(request.action==='getSessionModel'||request.action==='deleteSessionModel')result=accessSessionModel_(db,user,request);
+      else if(request.action==='createSessionModel')result=createSessionModel_(db,user,request);
       else if(request.action==='saveCoachPrescription')result=coachSavePrescription_(db,user,request);
       else if(request.action==='createExercise')result=libraryCreateExercise_(db,user,request);
       else if(request.action==='linkExerciseMethod')result=libraryAssociate_(db,user,request,'EXERCICIO_METODOS','METODOS','methodId');
@@ -134,6 +138,6 @@ function libraryApi(request){
       else if(request.action==='createLibraryPrescription')result=libraryCreatePrescription_(db,user,request);
     }
     return {ok:true,data:result};
-  }catch(e){var codes=['INVALID_ACTION','INVALID_DATA','IMPOSSIBLE_CAMPUS_PATH','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','CONFLICT','BUSY','CONFIGURATION_ERROR','SCHEMA_ERROR','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT'];return {ok:false,error:{code:codes.indexOf(e.code)>=0?e.code:'INTERNAL_ERROR',...(Number.isInteger(e.itemIndex)?{itemIndex:e.itemIndex}:{}),...(e.sessionNotStarted?{sessionNotStarted:true}:{})}};}
+  }catch(e){var codes=['INVALID_ACTION','INVALID_DATA','IMPOSSIBLE_CAMPUS_PATH','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','CONFLICT','BUSY','CONFIGURATION_ERROR','SCHEMA_ERROR','ASSESSMENT_NOT_FOUND','ASSESSMENT_OUTDATED','INCOMPATIBLE_INDICATOR','INCOMPATIBLE_UNIT','INCOMPATIBLE_SESSION','MODEL_TOO_LARGE'];return {ok:false,error:{code:codes.indexOf(e.code)>=0?e.code:'INTERNAL_ERROR',...(Number.isInteger(e.itemIndex)?{itemIndex:e.itemIndex}:{}),...(e.sessionNotStarted?{sessionNotStarted:true}:{})}};}
   finally{if(lock && lock.hasLock())lock.releaseLock();}
 }

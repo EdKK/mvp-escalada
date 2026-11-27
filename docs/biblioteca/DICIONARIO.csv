@@ -87,3 +87,11 @@ PRESCRICAO_SERIES,occurrences,integer,contagem de suspensões ou 1,sim,,Suspens�
 PRESCRICAO_SERIES,durationSeconds,number finito,segundos,condicional; vazio quando não aplicável,,Duração de cada suspensão; vazio para não isométricos.
 PRESCRICAO_SERIES,volumeUnitId,string,não aplicável,sim,UNIDADES.id,Validado no backend; cabeçalho exato conforme LIBRARY_SCHEMA_.
 PRESCRICAO_SERIES,total,number finito,"volumeUnitId, conforme kind do plano",sim,,"Volume calculado da linha, sem unidade universal."
+MODELOS_SESSAO,id,string,não aplicável,sim,,Identificador estável derivado do treinador e da chave da intenção de criação.
+MODELOS_SESSAO,coachId,string,não aplicável,sim,Users.id,Treinador proprietário.
+MODELOS_SESSAO,fingerprint,string,não aplicável,sim,,Resumo SHA-256 da intenção de criação para repetição idempotente.
+MODELOS_SESSAO,name,string,não aplicável,sim quando ativo,,Nome de exibição com até 150 caracteres.
+MODELOS_SESSAO,description,string,não aplicável,opcional,,Descrição com até 2000 caracteres.
+MODELOS_SESSAO,microcycleType,string,não aplicável,condicional,,Tipo de microciclo ou vazio para sessões integrais identificadas por objetivo.
+MODELOS_SESSAO,payloadJson,JSON,não aplicável,sim quando ativo,,Versão e dados da prescrição portátil limitados a 45000 caracteres por célula.
+MODELOS_SESSAO,status,string,não aplicável,sim,,active ou deleted. A exclusão limpa metadados e conteúdo da prescrição.

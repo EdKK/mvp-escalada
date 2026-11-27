@@ -108,9 +108,12 @@ try:
             is_library=panel=='coachLibraryPanel'
             card_selector='.library-overview-card' if is_library else '.students-card'
             prefix='#'+panel
-            expect(page.locator(prefix+' '+card_selector)).to_have_count(4)
+            expect(page.locator(prefix+' '+card_selector)).to_have_count(5 if is_library else 4)
             static_cards = prefix+' '+card_selector
-            if not is_library:
+            if is_library:
+                static_cards += ':not(#sessionModelsCard)'
+                expect(page.locator('#sessionModelSearch')).to_be_visible()
+            else:
                 static_cards += ':not([aria-labelledby="studentsRegistrationTitle"])'
                 expect(page.locator('#financeStudent option')).to_have_count(3)
             expect(page.locator(', '.join(static_cards+' '+tag for tag in ('input','select','button','textarea','a')))).to_have_count(0)
@@ -144,7 +147,7 @@ try:
         expect(page.locator('#coachBuildPanel')).to_be_visible()
         page.evaluate('window.scrollTo(0,0)')
         page.screenshot(path='/tmp/mvp-navegacao-treinador.png',full_page=True)
-        print('PASS: four student/library cards with controls only in the finance card in 2x2 grids, responsive widths, illustrative noninteractive search and unchanged unsaved build draft/DOM/URL')
+        print('PASS: original 2x2 grids and new session models card, responsive widths, and unchanged unsaved build draft/DOM/URL')
         def contrast(colors):
             import re
             def lum(value):

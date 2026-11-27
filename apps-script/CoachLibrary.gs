@@ -104,11 +104,11 @@ function coachSaveStatus_(db,user,data){
 }
 
 function coachDraftAssessments_(db,user,d){
-  fields_(d,['studentId','date','exerciseId']);
+  fields_(d,['studentId','date','exerciseId','indicatorId']);
   var studentId=text_(d.studentId,100),date=libraryDate_(d.date);
   libraryStudent_(db,user,studentId);
   var exercise=libraryExercise_(db,d.exerciseId);
-  return assessmentsForCandidate_(db,{studentId:studentId,date:date},exercise,libraryOne_(db,'INDICADORES',exercise.primaryIndicatorId,true));
+  return assessmentsForCandidate_(db,{studentId:studentId,date:date},exercise,libraryOne_(db,'INDICADORES',d.indicatorId===undefined?exercise.primaryIndicatorId:text_(d.indicatorId,100),true));
 }
 
 // Requests stores the immutable write plan only after the whole session validates.
@@ -270,4 +270,147 @@ function coachSessionPersist_(db,plan,recovering){
   append_(db,'Workouts',workout);
   SpreadsheetApp.flush();
   return {workoutId:workout.id,count:plan.items.length};
+}
+
+// Models are built exclusively from completed integral sessions and their current prescriptions.
+function coachSessionModelEligible_(user,workout,items,requests){
+  return items.length>0&&coachSessionIndex_(requests,user).some(function(row){
+    if(row.entityId!==workout.id)return false;
+    var receipt=JSON.parse(row.fingerprint);
+    return !receipt.abandoned&&receipt.studentId===workout.studentId&&receipt.date===workout.date;
+  })&&items.every(function(item){
+    var p=item.prescription;
+    return p&&p.source==='library'&&(p.task?p.task.version===3:p.snapshot.classification!=='specific');
+  });
+}
+function sessionModelMetadata_(row){
+  return {id:row.id,name:row.name,description:row.description,microcycleType:row.microcycleType};
+}
+function listSessionModels_(db,user,data){
+  fields_(data,[]);
+  return libraryRows_(db,'MODELOS_SESSAO').filter(function(row){
+    return row.coachId===user.id&&row.status==='active';
+  }).map(sessionModelMetadata_);
+}
+function accessSessionModel_(db,user,request){
+  fields_(request.data,['modelId']);
+  var id=text_(request.data.modelId,100),rows=libraryRows_(db,'MODELOS_SESSAO');
+  var matches=rows.filter(function(row){return row.id===id&&row.coachId===user.id;});
+  if(matches.length!==1)fail_(matches.length?'SCHEMA_ERROR':'NOT_FOUND');
+  var row=matches[0];
+  if(request.action==='deleteSessionModel'){
+    // Keep the idempotency receipt after erasing the model so a retried create cannot restore it.
+    if(row.status!=='deleted'){
+      var columns=LIBRARY_SCHEMA_.MODELOS_SESSAO;
+      sheet_(db,'MODELOS_SESSAO',LIBRARY_SCHEMA_).getRange(rows.indexOf(row)+2,1,1,columns.length)
+        .setValues([[row.id,row.coachId,row.fingerprint,'','','','','deleted']]);
+      SpreadsheetApp.flush();
+    }
+    return {id:id};
+  }
+  if(row.status!=='active')fail_('NOT_FOUND');
+  var payload=studentJson_(row.payloadJson);
+  if(!payload||payload.version!==1)fail_('SCHEMA_ERROR');
+  return Object.assign(sessionModelMetadata_(row),{payload:payload});
+}
+function createSessionModel_(db,user,request){
+  var d=request.data;
+  fields_(d,['workoutId','name','description']);
+  var workoutId=text_(d.workoutId,100),name=text_(d.name,150);
+  var description=d.description===undefined||d.description===''?'':text_(d.description,2000);
+  var key=text_(request.requestId,100);
+  var id='model-'+hashAuth_(JSON.stringify([user.id,key]));
+  var fingerprint='sha256:'+hashAuth_(JSON.stringify([workoutId,name,description]));
+  var existing=libraryRows_(db,'MODELOS_SESSAO').filter(function(row){return row.id===id;});
+  if(existing.length){
+    if(existing.length!==1||existing[0].coachId!==user.id)fail_('SCHEMA_ERROR');
+    if(existing[0].fingerprint!==fingerprint)fail_('CONFLICT');
+    if(existing[0].status!=='active')fail_('NOT_FOUND');
+    return sessionModelMetadata_(existing[0]);
+  }
+  var workout=workout_(db,user,workoutId),context=studentPrescriptionContext_(db);
+  var items=rows_(db,'Items').filter(function(item){return item.workoutId===workoutId;});
+  items.forEach(function(item,index){item.prescription=effectiveItemPrescription_(workout,item,index,context);});
+  if(!coachSessionModelEligible_(user,workout,items,context.requests))fail_('INCOMPATIBLE_SESSION');
+  items.sort(function(a,b){return a.prescription.position-b.prescription.position;});
+  var guidance=workoutGuidance_(optionalRows_(db,'WorkoutGuidance'),workoutId);
+  var session={instructions:guidance.instructions};
+  if(guidance.microcycleType===undefined)session.goal=workout.goal;
+  else session.microcycleType=guidance.microcycleType;
+  var indicators=new Map(libraryRows_(db,'INDICADORES').map(function(indicator){return [indicator.id,indicator.name];}));
+  var payload={version:1,session:session,items:items.map(function(item){return sessionModelItem_(item,indicators);})};
+  var payloadJson;
+  try{payloadJson=libraryJson_(payload);}
+  catch(error){if(error.code==='INVALID_DATA')fail_('MODEL_TOO_LARGE');throw error;}
+  var row={id:id,coachId:user.id,fingerprint:fingerprint,name:name,description:description,
+    microcycleType:session.microcycleType||'',payloadJson:payloadJson,status:'active'};
+  libraryAppend_(db,'MODELOS_SESSAO',row);
+  SpreadsheetApp.flush();
+  return sessionModelMetadata_(row);
+}
+function sessionModelIntensity_(intensity){
+  var input={indicatorId:intensity.indicatorId};
+  if(intensity.kind==='relative')input.percent=intensity.percent;
+  else if(!intensity.notPrescribed)['value','scale','description'].forEach(function(key){
+    if(intensity[key]!==undefined)input[key]=intensity[key];
+  });
+  return input;
+}
+function sessionModelVolume_(volume,series){
+  var input={kind:volume.kind,unitId:volume.unitId};
+  if(volume.kind==='hand_moves'){
+    var blocks=new Map();
+    series.forEach(function(line){
+      if(!blocks.has(line.blockOrder))blocks.set(line.blockOrder,{moves:[]});
+      blocks.get(line.blockOrder).moves.push(line.quantity);
+    });
+    input.blocks=Array.from(blocks.values());
+  }else input.sets=series.map(function(line){
+    if(volume.kind==='isometric')return {suspensions:line.occurrences,seconds:line.durationSeconds};
+    var field={repetitions:'repetitions',time:'seconds',distance:'meters'}[volume.kind];
+    return {[field]:line.quantity};
+  });
+  return input;
+}
+function sessionModelItem_(item,indicators){
+  var p=item.prescription,snapshot=p.snapshot;
+  var input={block:item.block,classification:snapshot.classification};
+  var display={name:snapshot.exercise.name,total:p.volume.total,unitId:p.volume.unitId};
+  if(p.directed){
+    // The snapshot adds display labels and a computed path to the original directed parameters.
+    var directed=Object.assign({},p.directed);
+    display.labels=directed.labels;
+    if(directed.path){
+      display.pathName=directed.path.name;
+      display.pathStart=directed.path.start;
+      display.pathSteps=directed.path.steps;
+    }
+    delete directed.labels;
+    delete directed.path;
+    input.directed=directed;
+    return {input:input,display:display};
+  }
+  if(item.notes)input.notes=item.notes;
+  input.intensity=sessionModelIntensity_(p.intensity.primary);
+  var auxiliary=(p.intensity.auxiliary||[]).map(sessionModelIntensity_);
+  if(auxiliary.length)input.auxiliaryIntensities=auxiliary;
+  display.indicators={};
+  [input.intensity].concat(auxiliary).forEach(function(intensity){
+    var name=indicators.get(intensity.indicatorId);
+    if(name)display.indicators[intensity.indicatorId]=name;
+  });
+  if(p.task){
+    var task=p.task;
+    input.task={version:task.version,subblock:task.subblock,sets:task.sets,repetitionsPerSet:task.repetitionsPerSet};
+    ['orientation','wallInclination','restBetweenRepetitionsSeconds','restBetweenSetsSeconds'].forEach(function(key){
+      if(task[key]!==undefined)input.task[key]=task[key];
+    });
+  }else{
+    Object.assign(input,{exerciseId:snapshot.exercise.id,category:item.category,metric:item.metric,
+      quantity:item.quantity,minutes:item.minutes,methodId:snapshot.method.id,volume:sessionModelVolume_(p.volume,p.series)});
+    display.method=snapshot.method.name;
+    if(snapshot.protocol){input.protocolId=snapshot.protocol.id;display.protocol=snapshot.protocol.name;}
+    if(snapshot.capacity){input.capacityId=snapshot.capacity.id;display.capacity=snapshot.capacity.name;}
+  }
+  return {input:input,display:display};
 }

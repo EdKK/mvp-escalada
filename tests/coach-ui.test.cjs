@@ -120,7 +120,7 @@ test('review confirmation rechecks draft changes and selector contrast is coach 
  assert.match(html,/#panelCoach select option,#panelCoach select optgroup\{background:#101a33;color:#eaf0ff\}/);assert.match(html,/#panelCoach select option:checked\{background:#123e78;color:#ffffff\}/);assert.match(html,/#panelCoach select:disabled,#panelCoach select option:disabled\{background:#182438;color:#b7c5df;opacity:1\}/);
 });
 
-test('coach tabs default to build and preserve the same unsaved prescription nodes and RPC state',async()=>{
+test('coach tabs default to build and preserve the same unsaved prescription nodes while loading the session models',async()=>{
  const ui=await boot();assert.equal(ui.elements.get('coachBuildPanel').hidden,false);assert.equal(ui.elements.get('coachTabBuild')['aria-selected'],'true');
  await fill(ui);const draft=['coachAluno','coachTreinoId','itemExercicio','libraryMethod','libraryAssessment','itemIntensVal','librarySets','itemQtd','itemMin','itemNotas'].map(id=>({id,node:ui.elements.get(id),value:ui.elements.get(id).value}));
  const calls=ui.requests.length,tables=JSON.stringify(ui.f.tables);
@@ -128,7 +128,7 @@ test('coach tabs default to build and preserve the same unsaved prescription nod
   await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.ok(ui.descendant(ui.elements.get(panel==='coachLibraryPanel'?'libraryExercisesTitle':'studentsRegistrationTitle'),panel));
  }
  await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
- assert.equal(ui.requests.filter(r=>r.method!=='financeApi').length,calls);
+ assert.deepEqual(ui.requests.slice(calls).filter(r=>r.method!=='financeApi').map(r=>r.request.action),['listSessionModels']);
  assert.deepEqual(ui.requests.filter(r=>r.method==='financeApi').map(r=>r.request.action),['listStudents']);
  assert.equal(JSON.stringify(ui.f.tables),tables);await ui.click('btnAddItem');assert.equal(ui.f.tables.Items.length,2);
  assert.doesNotMatch(html,/Atalhos para os controles desta página|href="#coach(?:Session|LibrarySection|Prescription)"/);
@@ -156,17 +156,19 @@ test('only the finance card is interactive; prescription RPC/model retain their 
 });
 
 
-test('library overview adds four presentation-only cards while student markup and prescription RPC/model retain their contracts',()=>{
+test('library keeps four presentation-only cards and adds the interactive session-models card',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const students=source=>source.slice(source.indexOf('aria-labelledby="studentsAssessmentTitle"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
- assert.equal((library.match(/class="card library-overview-card"/g)||[]).length,4);
- assert.doesNotMatch(library,/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
+ assert.equal((library.match(/class="card library-overview-card"/g)||[]).length,5);
+ const modelCard=library.indexOf('<section id="sessionModelsCard"');
+ assert.match(library.slice(modelCard),/Modelos de sessões/);
+ assert.doesNotMatch(library.slice(0,modelCard),/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
  for(const text of ['Exercícios','Escalada em via','Boulder','Campus board','Fingerboard','Exercícios complementares','Capacidades físicas','Força máxima','Força explosiva','Resistência muscular','Flexibilidade','Coordenação','Métodos de treinamento','Protocolos de treinamento','Vinculação entre exercícios e métodos','Indicadores e unidades','Intensidade','Volume','Grau de dificuldade','Carga absoluta','Carga relativa','Percepção subjetiva de esforço','Movimentos efetivos de mão','Repetições','Tempo acumulado de suspensão','EXERCICIOS','CAPACIDADES','EXERCICIO_CAPACIDADES','METODOS','EXERCICIO_METODOS','INDICADORES','UNIDADES'])assert.ok(library.includes(text),text);
- assert.match(library,/Campo de busca ilustrativo, sem interação/);assert.match(library,/Nenhum dado é consultado ou alterado/);
+ assert.match(library,/Campo de busca ilustrativo, sem interação/);assert.match(library,/são apresentados de forma ilustrativa/);
 });
 
 

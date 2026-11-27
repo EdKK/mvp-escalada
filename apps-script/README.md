@@ -71,3 +71,9 @@ Testes usam serviços Google substitutos e não comprovam assinatura/tokeninfo r
 ## Nova tela do aluno
 
 Ver [INTERFACE-ALUNO.md](../docs/INTERFACE-ALUNO.md). Copiar também Student.gs e Student.html ao projeto Google. O /exec abre a nova tela; /exec?view=coach mantém o treinador. Três abas complementares preservam as tabelas anteriores; executar initializeSchema_ apenas na planilha de homologação antes de gravar prescrições/feedback por item. A API ganhou submitItemFeedback e suplementos opcionais de prescrição/orientação.
+
+## Modelos de sessões
+
+O cartão usa `MODELOS_SESSAO` e as ações `listSessionModels`, `getSessionModel`, `createSessionModel` e `deleteSessionModel` em `libraryApi`. Para uma validação futura em cópia isolada, o inicializador existente `prepararBibliotecaTeste_` cria a aba ausente com os cabeçalhos de `LIBRARY_SCHEMA_`. O acesso segue a autorização da Biblioteca e o ID do treinador proprietário.
+
+A criação usa uma sessão integral concluída com prescrições compatíveis, inclusive a revisão vigente de cada exercício. O JSON v1 tem o limite de 45.000 caracteres por modelo. A intensidade relativa preserva o percentual e requer a seleção de uma avaliação válida para o novo aluno e a nova data. O modelo usa a identificação da sessão de origem, que na v25 é objetivo ou microciclo. A exclusão limpa o conteúdo e conserva um recibo mínimo para impedir que uma repetição da criação recupere o registro excluído.

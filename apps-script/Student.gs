@@ -148,6 +148,9 @@ function hydrateStudentWorkout_(db, workout, user) {
     item.prescription=p;return true;
   });
   workout.items.sort(function(a,b){return (a.prescription?a.prescription.position:100000)-(b.prescription?b.prescription.position:100000);});
+  if(user&&user.role==='coach'&&typeof coachSessionModelEligible_==='function'){
+    workout.canSaveSessionModel=coachSessionModelEligible_(user,workout,workout.items,context.requests);
+  }
   var visibleIds=new Set(workout.items.map(function(item){return item.id;}));
   var feedbackRequests=new Map(context.requests.filter(function(r){return r.entity==='ItemFeedback';}).map(function(r){return [r.entityId,r];}));
   var prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===workout.id;}).map(function(p){return [p.id,p];}));

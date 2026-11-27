@@ -57,8 +57,9 @@
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics'),directed=p.directed;
       const restLabel=p.strength?'Entre séries':directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
-      metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
-      if(!directed)metrics.append(metric(p.strength?'Carga':'Intensidade',M.intensity(p),'intensity'));
+      metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'));
+      if(!p.preventive)metrics.append(metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
+      if(!directed)metrics.append(metric(p.strength?'Carga':p.preventive&&p.snapshot.exercise.band?'Resistência do elástico':'Intensidade',M.intensity(p),'intensity'));
       body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
@@ -68,7 +69,7 @@
       }
       const note=el('div','technical-note'),noteText=el('div');const guidance=directed?directed.guidance:item.notes;
       if(!directed||guidance){
-        noteText.append(el('strong','',directed?'Orientações do treinador':'Observações'),el('p','',guidance||'Nenhuma observação técnica adicional.'));
+        noteText.append(el('strong','',directed||p.preventive?'Orientações do treinador':'Observações'),el('p','',guidance||'Nenhuma observação técnica adicional.'));
         note.append(icon('chat'),noteText);body.append(note);
       }
       const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);

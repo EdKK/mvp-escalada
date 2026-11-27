@@ -221,7 +221,7 @@ function coachSessionPlan_(db,user,d){
   if(!Array.isArray(d.items)||!d.items.length)fail_('INVALID_DATA');
   var workout=workoutCandidate_(db,user,d.session);
   sheet_(db,'WorkoutGuidance');
-  var strengthContext;
+  var strengthContext,preventiveExercises;
   var items=d.items.map(function(input,index){
     try{
       if(input&&input.strength!==undefined){
@@ -229,6 +229,12 @@ function coachSessionPlan_(db,user,d){
         var preparedStrength=strengthCandidate_(workout,id_(),input,strengthContext);
         var strengthPlan={workoutId:workout.id,itemId:preparedStrength.item.id,classification:'general',expectedRevision:0};
         return {item:preparedStrength.item,prescription:prescriptionRecord_(user,id_(),strengthPlan,preparedStrength.validated,null)};
+      }
+      if(input&&input.preventive!==undefined){
+        if(!preventiveExercises)preventiveExercises=new Map(preventiveCatalog_().map(function(row){return [row.id,row];}));
+        var preparedPreventive=preventiveCandidate_(workout,id_(),input,preventiveExercises);
+        var preventivePlan={workoutId:workout.id,itemId:preparedPreventive.item.id,classification:'general',expectedRevision:0};
+        return {item:preparedPreventive.item,prescription:prescriptionRecord_(user,id_(),preventivePlan,preparedPreventive.validated,null)};
       }
       fields_(input,['exerciseId','block','category','metric','quantity','minutes','notes','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','task','directed']);
       var itemPlan=coachPlan_(workout,id_(),input);
@@ -317,7 +323,7 @@ function accessSessionModel_(db,user,request){
   }
   if(row.status!=='active')fail_('NOT_FOUND');
   var payload=studentJson_(row.payloadJson);
-  if(!payload||[1,2].indexOf(payload.version)<0)fail_('SCHEMA_ERROR');
+  if(!payload||[1,2,3].indexOf(payload.version)<0)fail_('SCHEMA_ERROR');
   return Object.assign(sessionModelMetadata_(row),{payload:payload});
 }
 function createSessionModel_(db,user,request){
@@ -345,7 +351,9 @@ function createSessionModel_(db,user,request){
   if(guidance.microcycleType===undefined)session.goal=workout.goal;
   else session.microcycleType=guidance.microcycleType;
   var indicators=new Map(libraryRows_(db,'INDICADORES').map(function(indicator){return [indicator.id,indicator.name];}));
-  var payload={version:items.some(function(item){return !!item.prescription.strength;})?2:1,session:session,items:items.map(function(item){return sessionModelItem_(item,indicators);})};
+  var version=items.some(function(item){return !!item.prescription.preventive;})?3:
+    items.some(function(item){return !!item.prescription.strength;})?2:1;
+  var payload={version:version,session:session,items:items.map(function(item){return sessionModelItem_(item,indicators);})};
   var payloadJson;
   try{payloadJson=libraryJson_(payload);}
   catch(error){if(error.code==='INVALID_DATA')fail_('MODEL_TOO_LARGE');throw error;}
@@ -383,6 +391,11 @@ function sessionModelItem_(item,indicators){
   var p=item.prescription,snapshot=p.snapshot;
   var input={block:item.block,classification:snapshot.classification};
   var display={name:snapshot.exercise.name,total:p.volume.total,unitId:p.volume.unitId};
+  if(p.preventive){
+    input.preventive=Object.assign({},p.preventive);
+    display.band=snapshot.exercise.band;
+    return {input:input,display:display};
+  }
   if(p.strength){
     input.strength=Object.assign({},p.strength);
     delete input.strength.oneRm;

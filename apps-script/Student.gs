@@ -138,6 +138,16 @@ function effectiveItemPrescription_(workout,item,index,context){
     p.restSeconds=strength.restBetweenSetsSeconds;
     p.rpeApplicable=true;
   }
+  if(snapshot.preventive){
+    var preventive=snapshot.preventive;
+    if(record.classification!=='general'||snapshot.classification!=='general'||preventive.version!==1||
+      preventive.exerciseId!==record.exerciseId||unit!=='repetitions'||preventive.sets!==p.sets||p.directed||p.task||p.strength||
+      volume.total!==preventive.sets*preventive.repetitionsPerSet||
+      lines.some(function(line){return line.total!==preventive.repetitionsPerSet;})||
+      typeof snapshot.exercise.band!=='boolean'||record.assessmentId)fail_('SCHEMA_ERROR');
+    p.preventive=preventive;
+    p.rpeApplicable=true;
+  }
   return p;
 }
 function workoutGuidance_(rows,workoutId) {

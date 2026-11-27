@@ -744,6 +744,7 @@ select.native-hidden {
             <section id="generalCatalogPage" aria-labelledby="generalCatalogTitle" hidden>
               <nav id="generalCatalogPath" aria-label="Caminho do catálogo"><ol id="generalCatalogBreadcrumb"></ol></nav>
               <h3 id="generalCatalogTitle" tabindex="-1"></h3>
+              <p id="generalPreventiveNote" class="muted" hidden></p>
               <div id="generalCatalogChoices" class="library-overview-grid"></div>
               <div id="generalExerciseFilter" hidden>
                 <label for="generalExerciseSearch">Buscar exercício pelo nome</label>
@@ -825,12 +826,14 @@ select.native-hidden {
         <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
 <section class="coach-field-group"><h3>Bloco principal</h3><label for="libraryClassification">Bloco de treinamento</label><select id="libraryClassification"><option value="general">Treinamento geral</option><option value="directed">Treinamento direcionado</option><option value="specific">Treinamento específico</option></select></section>
 <button id="openStrength" type="button">Musculação</button>
+<button id="openPreventive" type="button">Exercícios preventivos</button>
 <section id="strengthPanel" class="coach-field-group" aria-labelledby="strengthTitle" hidden>
   <h3 id="strengthTitle">Musculação</h3>
   <button type="button" id="strengthBack">Voltar aos exercícios da biblioteca</button>
+  <p id="preventivePrescriptionNote" class="muted" hidden></p>
   <div id="strengthPicker">
     <div class="row">
-      <div><label for="strengthRegion">Região corporal</label><select id="strengthRegion"></select></div>
+      <div><label id="strengthRegionLabel" for="strengthRegion">Região corporal</label><select id="strengthRegion"></select></div>
       <div><label for="strengthCategory">Categoria</label><select id="strengthCategory"></select></div>
     </div>
     <label for="strengthSearch">Buscar exercício pelo nome</label><input id="strengthSearch" type="search" maxlength="150">
@@ -1334,7 +1337,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
         const heading=document.createElement('h3');heading.textContent='Exercício '+(index+1)+' — '+i.exercise;parent.appendChild(heading);
         $('previewTreinoAluno').appendChild(parent);coachRenderedItems.set(i.id,parent);
       }
-      text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.prescription?.directed||i.prescription?.strength?'':i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
+      text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.prescription?.directed||i.prescription?.strength||i.prescription?.preventive?'':i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
     });
     if(session?.role==='coach'&&!sessionDraft)$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
     const observed=(label,value,suffix='')=>value!==undefined&&value!==null&&value!==''?label+value+suffix:'';
@@ -1410,7 +1413,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       fillSessionDraft(data,fromModel);
       $('coachTreinoId').value='';
       renderSessionDraft();
-      if(data.items.some(item=>item.strength))await prepareStrengthDraft();
+      await prepareBatchDraft(data.items);
       $('coachFinishStatus').textContent='Montagem recuperada nesta aba.';
     }
     if(requestId){
@@ -1515,6 +1518,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
           intensity.description??(intensity.value===undefined?'Dificuldade em aberto':[intensity.value,intensity.scale].filter(Boolean).join(' • '));
         text(row,label+' • '+value);
       }
+      if(input.preventive){
+        preventiveDescription(input.preventive,display.band).forEach(line=>text(row,line));
+        return;
+      }
       if(input.strength){
         strengthDescription(input.strength,display.total,null).forEach(line=>text(row,line));
         return;
@@ -1553,7 +1560,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     const {payload}=await library('getSessionModel',{modelId:id});
     resetCoachDraft();
     fillSessionDraft({session:payload.session,items:payload.items.map(entry=>entry.input)},true);
-    if(sessionDraft.items.some(item=>item.strength))await prepareStrengthDraft();
+    await prepareBatchDraft(sessionDraft.items);
     selected='';selectedWorkout=null;
     $('coachTreinoId').value='';$('alunoTreinoId').value='';
     $('previewTreinoAluno').replaceChildren();$('listaRetornos').replaceChildren();coachRenderedItems.clear();
@@ -1615,6 +1622,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
     $('libraryClassification').disabled=locked||strengthMode;
     $('openStrength').disabled=locked;
+    $('openPreventive').disabled=locked;
     $('strengthAdd').disabled=locked||!strengthCards.size;
     $('btnAddItem').disabled=busy||(!pendingCoachSave&&((!sessionDraft&&!selected)||(!isSpecificTask()&&(hasDirectedSubblock()?!fingerboardDefs:(!libraryReady||!exerciseSelection)))));
     coachTabs.forEach(tab=>$(tab.button).disabled=busy);
@@ -1660,7 +1668,18 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   const strengthCards=new Map();
   const strengthConditions={bodyweight:'Peso corporal',added:'Carga adicional',assisted:'Carga assistida'};
   const strengthExecutions={bilateral:'Bilateral',unilateral:'Unilateral'};
-  let strengthMode=false,strengthReferences=new Map();
+  const preventiveArea='Exercícios preventivos',injurySubgroup='Específicos para lesões';
+  const clinicalGuidance='Nos exercícios específicos para lesões, siga as orientações da sua equipe de saúde.';
+  const preventiveResistance={'':'Não informada',Fraca:'Fraca',Média:'Média',Forte:'Forte'};
+  let strengthMode=false,preventiveMode=false,strengthReferences=new Map();
+  function preventiveDescription(d,band){
+    return [d.sets+' séries × '+d.repetitionsPerSet+' repetições',
+      d.resistance?(band?'Resistência do elástico: ':'Intensidade: ')+d.resistance:'',
+      'Volume: '+d.sets*d.repetitionsPerSet+' repetições',d.guidance].filter(Boolean);
+  }
+  function batchRows(){
+    return generalCatalogRows(preventiveMode?preventiveArea:'Musculação');
+  }
   function strengthVolume(d){
     return d.sets*d.repetitionsPerSet*(d.execution==='unilateral'?2:1);
   }
@@ -1682,12 +1701,19 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       d.restBetweenRepetitionsSeconds===undefined?'':'Entre repetições: '+d.restBetweenRepetitionsSeconds+' s',d.guidance
     ].filter(Boolean);
   }
-  function setStrengthMode(active){
+  function setStrengthMode(active,preventive=false){
     strengthMode=active;
+    preventiveMode=active&&preventive;
+    $('strengthTitle').textContent=preventiveMode?preventiveArea:'Musculação';
+    $('strengthRegionLabel').textContent=preventiveMode?'Subgrupo':'Região corporal';
+    $('strengthResults').setAttribute('aria-label',preventiveMode?preventiveArea:'Exercícios de musculação');
+    $('preventivePrescriptionNote').textContent=clinicalGuidance;
+    $('preventivePrescriptionNote').hidden=!preventiveMode;
     $('strengthPanel').hidden=!active;
     $('legacyPrescriptionFields').hidden=active;
     $('libraryClassification').disabled=active||busy;
     $('openStrength').hidden=active||$('libraryClassification').value!=='general';
+    $('openPreventive').hidden=$('openStrength').hidden;
   }
   function clearStrengthForm(){
     strengthCards.clear();
@@ -1700,7 +1726,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   async function refreshStrengthReferences(){
     strengthReferences=new Map();
     const {studentId,date}=readSessionIdentification();
-    if((strengthMode||sessionDraft?.items.some(item=>item.strength))&&studentId&&date){
+    if(((strengthMode&&!preventiveMode)||sessionDraft?.items.some(item=>item.strength))&&studentId&&date){
       try{
         const rows=await library('listStrengthReferences',{studentId,date});
         strengthReferences=new Map(rows.map(row=>[row.exerciseId+'|'+row.definition,row.kilograms]));
@@ -1709,21 +1735,25 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     strengthCards.forEach(updateStrengthCard);
     renderSessionDraft();
   }
-  async function prepareStrengthDraft(){
-    try{await fetchGeneralCatalog();}
-    catch(error){if(error.message==='UNAUTHENTICATED')throw error;}
-    await refreshStrengthReferences();
+  async function prepareBatchDraft(items){
+    const strength=items.some(item=>item.strength),preventive=items.some(item=>item.preventive);
+    try{
+      await Promise.all([strength&&fetchGeneralCatalog(),preventive&&fetchPreventiveCatalog()]);
+    }catch(error){if(error.message==='UNAUTHENTICATED')throw error;}
+    if(strength)await refreshStrengthReferences();
+    else if(preventive)renderSessionDraft();
   }
   function renderStrengthChoices(){
-    const rows=generalCatalog||[],region=$('strengthRegion').value,category=$('strengthCategory').value;
+    const region=$('strengthRegion').value,category=$('strengthCategory').value;
     const query=librarySearchKey($('strengthSearch').value),results=$('strengthResults');
     results.replaceChildren();
     $('strengthSelectionCount').textContent=strengthCards.size+' selecionado(s)';
     $('strengthPicker').hidden=draftEdit!==null;
     if(draftEdit!==null)return;
-    const matches=rows.filter(row=>row.area==='Musculação'&&(query?librarySearchKey(row.name).includes(query):
+    const matches=uniqueExercises(batchRows().filter(row=>query?librarySearchKey(row.name).includes(query):
       region&&row.region===region&&(!category||row.category===category)));
-    $('strengthResultsStatus').textContent=region||query?matches.length+' exercício(s) encontrado(s).':'Escolha uma região ou busque pelo nome.';
+    $('strengthResultsStatus').textContent=region||query?matches.length+' exercício(s) encontrado(s).':
+      preventiveMode?'Escolha um subgrupo ou busque pelo nome.':'Escolha uma região ou busque pelo nome.';
     matches.forEach(exercise=>{
       const label=document.createElement('label'),input=document.createElement('input');
       input.type='checkbox';input.checked=strengthCards.has(exercise.id);input.disabled=busy;
@@ -1742,7 +1772,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   }
   function syncStrengthFilters(){
     const region=$('strengthRegion').value;
-    strengthOptions('strengthCategory',(generalCatalog||[]).filter(row=>row.region===region).map(row=>row.category),
+    strengthOptions('strengthCategory',batchRows().filter(row=>row.region===region).map(row=>row.category),
       'Todas as categorias',$('strengthCategory').value);
     renderStrengthChoices();
   }
@@ -1764,24 +1794,31 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   }
   function addStrengthCard(exercise,values={}){
     const card=document.createElement('article'),title=document.createElement('h4'),main=document.createElement('div');
-    const details=document.createElement('details'),summary=document.createElement('summary'),output=document.createElement('p');
-    const record={exercise,card,fields:{},details,output};
+    const output=document.createElement('p');
+    const record={exercise,card,fields:{},output,preventive:preventiveMode};
     strengthCards.set(exercise.id,record);
-    card.className='strength-card';title.textContent=exercise.name;card.append(title,main,output,details);
+    card.className='strength-card';title.textContent=exercise.name;card.append(title,main,output);
     main.className='strength-fields';output.className='muted';output.setAttribute('aria-live','polite');
     const field=(parent,name,label,config)=>strengthField(parent,record,name,label,{...config,value:values[name]??config.value});
     field(main,'sets','Séries',{numeric:{min:1,max:100,step:1},required:true});
     field(main,'repetitionsPerSet','Repetições por série',{numeric:{min:1,max:10000,step:1},required:true});
-    field(main,'restBetweenSetsSeconds','Recuperação entre séries',{choices:{'':'Selecione',60:'1 min',120:'2 min',180:'3 min',300:'5 min',600:'10 min',900:'15 min'},required:true});
-    field(main,'kilograms','Carga (kg)',{numeric:{min:0,max:100000,step:'any'},required:true});
-    summary.textContent='Parâmetros complementares';details.appendChild(summary);
-    const extras=document.createElement('div');extras.className='row';details.appendChild(extras);
-    field(extras,'execution','Forma de execução',{choices:strengthExecutions,value:'bilateral'});
-    field(extras,'condition','Condição de carga',{choices:strengthConditions,value:'added'});
-    record.basis=field(extras,'loadBasis','Base da carga',{choices:{total:'Carga total',per_implement:'Por implemento independente'},value:'total'});
-    field(extras,'durationSeconds','Duração da repetição (s, opcional)',{numeric:{min:0.001,max:86400,step:'any'}});
-    field(extras,'restBetweenRepetitionsSeconds','Recuperação entre repetições (s, opcional)',{numeric:{min:0,max:86400,step:1}});
-    field(details,'guidance','Orientações (opcional)',{maxLength:2000});
+    if(record.preventive){
+      field(main,'resistance',(exercise.band?'Resistência do elástico':'Intensidade')+' (opcional)',{choices:preventiveResistance});
+      field(main,'guidance','Orientações (opcional)',{maxLength:2000});
+    }else{
+      const details=document.createElement('details'),summary=document.createElement('summary');
+      record.details=details;card.appendChild(details);
+      field(main,'restBetweenSetsSeconds','Recuperação entre séries',{choices:{'':'Selecione',60:'1 min',120:'2 min',180:'3 min',300:'5 min',600:'10 min',900:'15 min'},required:true});
+      field(main,'kilograms','Carga (kg)',{numeric:{min:0,max:100000,step:'any'},required:true});
+      summary.textContent='Parâmetros complementares';details.appendChild(summary);
+      const extras=document.createElement('div');extras.className='row';details.appendChild(extras);
+      field(extras,'execution','Forma de execução',{choices:strengthExecutions,value:'bilateral'});
+      field(extras,'condition','Condição de carga',{choices:strengthConditions,value:'added'});
+      record.basis=field(extras,'loadBasis','Base da carga',{choices:{total:'Carga total',per_implement:'Por implemento independente'},value:'total'});
+      field(extras,'durationSeconds','Duração da repetição (s, opcional)',{numeric:{min:0.001,max:86400,step:'any'}});
+      field(extras,'restBetweenRepetitionsSeconds','Recuperação entre repetições (s, opcional)',{numeric:{min:0,max:86400,step:1}});
+      field(details,'guidance','Orientações (opcional)',{maxLength:2000});
+    }
     if(draftEdit===null){
       const remove=document.createElement('button');remove.type='button';remove.textContent='Remover';
       remove.setAttribute('aria-label','Remover '+exercise.name);
@@ -1809,24 +1846,38 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     return d;
   }
   function updateStrengthCard(record){
-    const {fields,output,basis}=record,bodyweight=fields.condition.value==='bodyweight';
+    const {fields,output,basis}=record;
+    const guidance=fields.guidance.value.trim();
+    fields.guidance.setCustomValidity(/^[=+@-]/.test(guidance)?'Inicie a orientação com texto.':'');
+    if(record.preventive){
+      const d=readStrengthCard(record);
+      output.textContent='Volume: '+(d.sets&&d.repetitionsPerSet?d.sets*d.repetitionsPerSet+' repetições':'—');
+      return;
+    }
+    const bodyweight=fields.condition.value==='bodyweight';
     fields.kilograms.readOnly=bodyweight;basis.hidden=bodyweight;
     if(bodyweight){fields.kilograms.value='0';fields.loadBasis.value='total';}
     const d=readStrengthCard(record),volume=strengthVolume(d);
     fields.kilograms.setCustomValidity(!bodyweight&&d.kilograms===0?'Informe uma carga positiva.':'');
-    const invalidGuidance=d.guidance&&/^[=+@-]/.test(d.guidance);
-    fields.guidance.setCustomValidity(invalidGuidance?'Inicie a orientação com texto.':'');
     output.textContent=[strengthConditions[d.condition],d.loadBasis==='per_implement'?'Por implemento independente':'',
       'Volume: '+(Number.isFinite(volume)?volume+' repetições':'—'),'%1RM: '+strengthPercentLabel(strengthPercent(d))].filter(Boolean).join(' • ');
   }
-  $('openStrength').addEventListener('click',()=>perform(async()=>{
-    if(!sessionDraft)throw Error('Inicie uma nova montagem antes de prescrever musculação.');
-    if(draftEdit!==null||coachDraftDirty())throw Error('Aplique ou limpe o exercício em edição antes de abrir a musculação.');
-    const rows=await fetchGeneralCatalog();
-    setStrengthMode(true);
-    strengthOptions('strengthRegion',rows.map(row=>row.region),'Selecione uma região');
-    syncStrengthFilters();await refreshStrengthReferences();$('strengthSearch').focus();
-  }));
+  function openBatchPicker(preventive){
+    return perform(async()=>{
+      if(!sessionDraft)throw Error(preventive?'Inicie uma nova montagem antes de prescrever exercícios preventivos.':
+        'Inicie uma nova montagem antes de prescrever musculação.');
+      if(draftEdit!==null||coachDraftDirty())throw Error('Aplique ou limpe o exercício em edição antes de abrir '+
+        (preventive?'os exercícios preventivos.':'a musculação.'));
+      await (preventive?fetchPreventiveCatalog():fetchGeneralCatalog());
+      setStrengthMode(true,preventive);
+      strengthOptions('strengthRegion',batchRows().map(row=>row.region),preventive?'Selecione um subgrupo':'Selecione uma região');
+      syncStrengthFilters();
+      if(!preventive)await refreshStrengthReferences();
+      $('strengthSearch').focus();
+    });
+  }
+  $('openStrength').addEventListener('click',()=>openBatchPicker(false));
+  $('openPreventive').addEventListener('click',()=>openBatchPicker(true));
   $('strengthBack').addEventListener('click',()=>perform(()=>{
     if(strengthCards.size||draftEdit!==null)throw Error('Aplique ou limpe os exercícios selecionados antes de voltar.');
     clearStrengthForm();$('coachPrescriptionTitle').focus();
@@ -1840,14 +1891,17 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     for(const record of strengthCards.values()){
       updateStrengthCard(record);
       const invalid=Object.values(record.fields).find(input=>!input.checkValidity());
-      if(invalid){if(record.details.contains(invalid))record.details.open=true;invalid.reportValidity();return;}
+      if(invalid){if(record.details?.contains(invalid))record.details.open=true;invalid.reportValidity();return;}
     }
     return perform(()=>{
-      const items=[...strengthCards.values()].map(record=>({block:'Treinamento geral',classification:'general',strength:readStrengthCard(record)}));
+      const preventive=preventiveMode;
+      const items=[...strengthCards.values()].map(record=>({
+        block:'Treinamento geral',classification:'general',[preventive?'preventive':'strength']:readStrengthCard(record)
+      }));
       if(draftEdit===null)sessionDraft.items.push(...items);
       else sessionDraft.items[draftEdit]=items[0];
       resetCoachDraft();renderSessionDraft();checkpointDraft();
-      $('coachFinishStatus').textContent=items.length+' exercício(s) de musculação na montagem.';
+      $('coachFinishStatus').textContent=items.length+(preventive?' exercício(s) preventivo(s) na montagem.':' exercício(s) de musculação na montagem.');
       $('coachPrescriptionTitle').focus();
     });
   });
@@ -1957,6 +2011,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     const sp=isSpecificTask(),d=SpecificTaskModel.definition($('specificSubblock').value);
     const fb=hasDirectedSubblock(),structured=sp||fb;
     $('openStrength').hidden=strengthMode||$('libraryClassification').value!=='general';
+    $('openPreventive').hidden=$('openStrength').hidden;
     $('directedSubblockPanel').hidden=$('libraryClassification').value!=='directed';
     $('fingerboardFields').hidden=!fb;
     $('coachNotesLabel').textContent=fb?'Orientações adicionais (opcional)':'Notas do treinador';
@@ -2037,6 +2092,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:
         intensity.kind==='ordinal'?(intensity.notPrescribed?'Dificuldade não prescrita':`${intensity.value} (${intensity.scale})`):intensity.description||String(intensity.value)+(intensity.indicatorId==='int-rpe'?' PSE':'');
       const parent=coachRenderedItems.get(item.id)||$('previewTreinoAluno'),task=snapshot.task;
+      if(p.preventive){
+        preventiveDescription(p.preventive,snapshot.exercise.band).forEach(line=>text(parent,line));
+        return;
+      }
       if(p.strength){
         strengthDescription(p.strength,volume.total,p.strength.oneRm?.percent).forEach(line=>text(parent,line));
         return;
@@ -2249,9 +2308,11 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     sessionDraft.items.forEach((data,index)=>{
       const row=document.createElement('div');
       parent.appendChild(row);
-      if(data.strength){
-        const d=data.strength,name=generalCatalog?.find(exercise=>exercise.id===d.exerciseId)?.name||d.exerciseId;
-        text(row,(index+1)+'. '+name+' • '+strengthDescription(d,strengthVolume(d),strengthPercent(d)).join(' • '));
+      if(data.strength||data.preventive){
+        const d=data.preventive||data.strength,rows=data.preventive?preventiveCatalog:generalCatalog;
+        const exercise=rows?.find(row=>row.id===d.exerciseId);
+        const description=data.preventive?preventiveDescription(d,exercise?.band):strengthDescription(d,strengthVolume(d),strengthPercent(d));
+        text(row,(index+1)+'. '+(exercise?.name||d.exerciseId)+' • '+description.join(' • '));
       }
       const name=data.task?SpecificTaskModel.definition(data.task.subblock)?.label:
         data.directed?directedSubblockLabel(data.directed.subblock):coachExercises.find(e=>e.id===data.exerciseId)?.name;
@@ -2259,7 +2320,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       const repetitions=data.task?.repetitionsPerSet??data.directed?.repetitionsPerSet;
       const dose=sets?(sets+' séries'+(repetitions?' × '+repetitions+' repetições':'')):
         data.volume?.blocks?.length+' blocos';
-      if(!data.strength)text(row,(index+1)+'. '+(name||data.block)+' • '+dose);
+      if(!data.strength&&!data.preventive)text(row,(index+1)+'. '+(name||data.block)+' • '+dose);
       if(needsDraftAssessment(data))text(row,'Selecione uma avaliação individual válida ao editar este exercício.');
       button(row,'Editar exercício '+(index+1),()=>editDraftItem(index));
       button(row,'Excluir exercício '+(index+1),()=>{
@@ -2294,15 +2355,17 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   }
   async function editDraftItem(index){
     const data=sessionDraft.items[index];
-    if(strengthCards.size)throw Error('Aplique ou limpe os exercícios de musculação selecionados antes de editar outro item.');
+    if(strengthCards.size)throw Error('Aplique ou limpe os exercícios selecionados antes de editar outro item.');
     resetCoachDraft();
     $('libraryClassification').value=data.classification;
-    if(data.strength){
-      const rows=await fetchGeneralCatalog(),exercise=rows.find(row=>row.id===data.strength.exerciseId);
-      if(!exercise)throw Error('Exercício de musculação indisponível no catálogo.');
-      draftEdit=index;setStrengthMode(true);renderStrengthChoices();addStrengthCard(exercise,data.strength);
+    if(data.strength||data.preventive){
+      const preventive=!!data.preventive,d=data.preventive||data.strength;
+      const rows=await (preventive?fetchPreventiveCatalog():fetchGeneralCatalog());
+      const exercise=rows.find(row=>row.id===d.exerciseId);
+      if(!exercise)throw Error('Exercício indisponível no catálogo.');
+      draftEdit=index;setStrengthMode(true,preventive);renderStrengthChoices();addStrengthCard(exercise,d);
       $('strengthAdd').textContent='Aplicar alterações ao exercício';
-      await refreshStrengthReferences();
+      if(!preventive)await refreshStrengthReferences();
       invalidateCoachReview();$('strengthTitle').scrollIntoView({block:'start'});
       strengthCards.get(exercise.id).fields.sets.focus();
       return;
@@ -2434,7 +2497,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
         options('libraryAssessment',[],'Selecione uma avaliação válida');
         await refreshAssessments();
         if(draftEdit!==null)await loadDraftAuxiliaryAssessments(sessionDraft.items[draftEdit]);
-        if(strengthMode||sessionDraft.items.some(item=>item.strength))await refreshStrengthReferences();
+        if((strengthMode&&!preventiveMode)||sessionDraft.items.some(item=>item.strength))await refreshStrengthReferences();
       }
     }));
   }
@@ -2788,7 +2851,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   function clearSession() {
     resetFinance();
     closeLibraryPage();
-    generalCatalog=null;generalCatalogRequest=null;generalCatalogLoading=false;generalCatalogError=false;strengthReferences=new Map();
+    generalCatalog=null;generalCatalogRequest=null;preventiveCatalog=null;preventiveCatalogRequest=null;catalogLoading.clear();catalogErrors.clear();strengthReferences=new Map();
     for(const id of ['sessionModelEditor','sessionModelsPicker'])if($(id).open)$(id).close();
     sessionModels=[];sessionModelRequest=null;$('sessionModelList').replaceChildren();clearModelPreview();
     $('sessionModelMicrocycle').value='';$('sessionModelsStatus').textContent='';$('reloadSessionModels').hidden=true;
@@ -2861,7 +2924,37 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     });
   }
   let generalArea='',generalAreaButton=null,generalRegion='',generalCategory='';
-  let generalCatalog=null,generalCatalogRequest=null,generalCatalogLoading=false,generalCatalogError=false;
+  let generalCatalog=null,generalCatalogRequest=null,preventiveCatalog=null,preventiveCatalogRequest=null;
+  const catalogLoading=new Set(),catalogErrors=new Set();
+  const preventiveCategories={
+    Gerais:['Ombros','Cotovelos','Punhos','Tronco','Quadril','Membros inferiores','Pés'],
+    [injurySubgroup]:['Ombros','Cotovelos','Punhos','Dedos','Coluna e tronco','Quadril','Joelhos','Tornozelos']
+  };
+  function fetchPreventiveCatalog(){
+    if(preventiveCatalog)return Promise.resolve(preventiveCatalog);
+    if(!preventiveCatalogRequest){
+      const token=sessionToken;
+      preventiveCatalogRequest=library('listPreventiveCatalog',{}).then(result=>{
+        if(token===sessionToken)preventiveCatalog=result.exercises;
+        return result.exercises;
+      }).finally(()=>{if(token===sessionToken)preventiveCatalogRequest=null;});
+    }
+    return preventiveCatalogRequest;
+  }
+  function generalCatalogRows(area){
+    if(area!==preventiveArea)return (generalCatalog||[]).filter(row=>row.area===area);
+    const exercises=preventiveCatalog||[];
+    return Object.entries(preventiveCategories).flatMap(([region,categories])=>categories.flatMap(category=>
+      exercises.flatMap(row=>row.references.filter(ref=>ref.subgroup===region&&ref.category===category)
+        .map(ref=>({id:row.id,name:row.name,band:row.band,region,category,page:ref.page})))));
+  }
+  function uniqueExercises(rows){
+    const unique=new Map();
+    for(const row of rows)if(!unique.has(row.id))unique.set(row.id,row);
+    return [...unique.values()];
+  }
+  function catalogAvailable(area){return area==='Musculação'||area===preventiveArea;}
+  function cachedCatalog(area){return area===preventiveArea?preventiveCatalog:generalCatalog;}
   function fetchGeneralCatalog(){
     if(generalCatalog)return Promise.resolve(generalCatalog);
     if(!generalCatalogRequest){
@@ -2886,13 +2979,16 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     card.addEventListener('click',select);parent.appendChild(card);
   }
   function renderGeneralExercises(){
-    const exercises=generalCatalog.filter(row=>row.area===generalArea&&row.region===generalRegion&&row.category===generalCategory);
+    const rows=generalCatalogRows(generalArea).filter(row=>row.region===generalRegion&&row.category===generalCategory);
+    const exercises=uniqueExercises(rows);
     const query=librarySearchKey($('generalExerciseSearch').value);
     const results=exercises.filter(row=>librarySearchKey(row.name).includes(query));
     const list=$('generalExerciseList');
     list.replaceChildren();
     results.forEach(row=>{
-      const item=document.createElement('li');item.textContent=row.name;list.appendChild(item);
+      const item=document.createElement('li');
+      const pages=generalArea===preventiveArea?rows.filter(ref=>ref.id===row.id).map(ref=>ref.page).join(', '):'';
+      item.textContent=row.name+(pages?' — p. '+pages:'');list.appendChild(item);
     });
     $('generalCatalogStatus').textContent=results.length===0?'Nenhum exercício encontrado.':
       query?results.length+' de '+exerciseCount(exercises.length):exerciseCount(exercises.length);
@@ -2914,16 +3010,18 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('generalCatalogTitle').textContent=path[path.length-1];
     const choices=$('generalCatalogChoices'),status=$('generalCatalogStatus');
     choices.replaceChildren();
-    $('retryGeneralCatalog').hidden=!generalCatalogError||generalArea!=='Musculação';
+    $('retryGeneralCatalog').hidden=!!cachedCatalog(generalArea)||!catalogErrors.has(generalArea);
+    $('generalPreventiveNote').hidden=generalArea!==preventiveArea||generalRegion!==injurySubgroup;
+    $('generalPreventiveNote').textContent=clinicalGuidance;
     $('generalExerciseFilter').hidden=!generalCategory;
     $('generalExerciseList').hidden=!generalCategory;
     status.textContent='';
-    if(generalArea!=='Musculação'){status.textContent='Conteúdo em preparação.';return;}
-    if(generalCatalogError){status.textContent='Não foi possível carregar o catálogo de musculação.';return;}
-    if(generalCatalogLoading){status.textContent='Carregando exercícios…';return;}
-    if(!generalCatalog)return;
+    if(!catalogAvailable(generalArea)){status.textContent='Conteúdo em preparação.';return;}
+    if(!cachedCatalog(generalArea)&&catalogErrors.has(generalArea)){status.textContent='Não foi possível carregar o catálogo.';return;}
+    if(catalogLoading.has(generalArea)){status.textContent='Carregando exercícios…';return;}
+    if(!cachedCatalog(generalArea))return;
     if(generalCategory){renderGeneralExercises();return;}
-    const exercises=generalCatalog.filter(row=>row.area===generalArea);
+    const exercises=generalCatalogRows(generalArea);
     if(!generalRegion){
       for(const region of new Set(exercises.map(row=>row.region))){
         generalChoice(choices,region,undefined,()=>setGeneralPath(region));
@@ -2932,7 +3030,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     }
     const regionExercises=exercises.filter(row=>row.region===generalRegion);
     for(const category of new Set(regionExercises.map(row=>row.category))){
-      const count=regionExercises.filter(row=>row.category===category).length;
+      const count=uniqueExercises(regionExercises.filter(row=>row.category===category)).length;
       generalChoice(choices,category,count,()=>setGeneralPath(generalRegion,category));
     }
   }
@@ -2943,18 +3041,19 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     if(activeLibraryCard==='General'&&generalArea)$('generalCatalogTitle').focus();
   }
   async function loadGeneralCatalog(){
-    if(generalCatalog||generalCatalogLoading)return;
+    const area=generalArea;
+    if(!catalogAvailable(area)||cachedCatalog(area)||catalogLoading.has(area))return;
     const token=sessionToken;
-    generalCatalogLoading=true;generalCatalogError=false;renderGeneralCatalog();
+    catalogLoading.add(area);catalogErrors.delete(area);renderGeneralCatalog();
     try{
-      await fetchGeneralCatalog();
+      await (area===preventiveArea?fetchPreventiveCatalog():fetchGeneralCatalog());
     }catch(error){
       if(token!==sessionToken)return;
       if(error.message==='UNAUTHENTICATED'){clearSession();return;}
-      generalCatalogError=true;
+      catalogErrors.add(area);
     }finally{
       if(token===sessionToken){
-        generalCatalogLoading=false;
+        catalogLoading.delete(area);
         if(activeLibraryCard==='General')renderGeneralCatalog();
       }
     }
@@ -2964,7 +3063,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     area.addEventListener('click',()=>{
       generalArea=area.textContent.trim();generalAreaButton=area;
       setGeneralPath();
-      if(generalArea==='Musculação')return loadGeneralCatalog();
+      if(catalogAvailable(generalArea))return loadGeneralCatalog();
     });
   }
   $('generalExerciseSearch').addEventListener('input',renderGeneralExercises);

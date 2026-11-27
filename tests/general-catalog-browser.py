@@ -37,7 +37,7 @@ try:
         back = page.locator('#libraryBack')
         path = page.locator('#generalCatalogBreadcrumb li')
         expect(back).to_have_text('Voltar à Biblioteca')
-        for title in areas[1:]:
+        for title in areas[1:-1]:
             card = page.get_by_role('button', name=title, exact=True)
             card.click()
             expect(page.locator('#generalCatalogTitle')).to_have_text(title)

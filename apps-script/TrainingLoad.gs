@@ -342,5 +342,6 @@ function prescriptionRecord_(user,id,d,validated,existing){
   if(validated.task)snapshot.task=validated.task;
   if(validated.directed)snapshot.directed=validated.directed;
   if(validated.strength)snapshot.strength=validated.strength;
+  if(validated.preventive)snapshot.preventive=validated.preventive;
   return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||(validated.strength&&validated.strength.oneRm?validated.strength.oneRm.assessmentId:''),snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
 }

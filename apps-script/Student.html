@@ -131,8 +131,9 @@ var StudentModel = (() => {
   function remaining(t,now){return t?.endsAt!==null&&t?.endsAt!==undefined?Math.max(0,t.endsAt-now):(t?.remaining||0);}
   function restStart(t,seconds,now){return {remaining:t?.remaining??seconds*1000,endsAt:now+(t?.remaining??seconds*1000)};}
   function restPause(t,now){return {remaining:remaining(t,now),endsAt:null};}
-  function quantity(p){if(p.strength)return p.strength.repetitionsPerSet+' por série'+(p.strength.execution==='unilateral'?' por lado':'');if(p.directed){const d=p.directed;return d.repetitionsPerSet+' por série'+(d.durationSeconds===undefined?'':' × '+d.durationSeconds+' s');}if(p.task?.version>=2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
+  function quantity(p){if(p.preventive)return p.preventive.repetitionsPerSet+' por série';if(p.strength)return p.strength.repetitionsPerSet+' por série'+(p.strength.execution==='unilateral'?' por lado':'');if(p.directed){const d=p.directed;return d.repetitionsPerSet+' por série'+(d.durationSeconds===undefined?'':' × '+d.durationSeconds+' s');}if(p.task?.version>=2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
   function intensity(p){
+    if(p.preventive)return p.preventive.resistance||'Não informada';
     if(p.strength){
       const d=p.strength;
       return d.kilograms+' kg'+(d.loadBasis==='per_implement'?' por implemento':'');
@@ -154,6 +155,7 @@ var StudentModel = (() => {
   }
   function prescriptionDetails(p){
     if(p.source!=='library')return [];
+    if(p.preventive)return ['Volume prescrito: '+p.volume.total+' repetições'];
     if(p.strength){
       const d=p.strength,condition={bodyweight:'Peso corporal',added:'Carga adicional',assisted:'Carga assistida'}[d.condition];
       const details=['Musculação • '+(d.execution==='unilateral'?'Unilateral, mesma dose nos dois lados':'Bilateral'),condition+' • '+intensity(p),
@@ -488,8 +490,9 @@ function renderCampusBoard(path){
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics'),directed=p.directed;
       const restLabel=p.strength?'Entre séries':directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
-      metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
-      if(!directed)metrics.append(metric(p.strength?'Carga':'Intensidade',M.intensity(p),'intensity'));
+      metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'));
+      if(!p.preventive)metrics.append(metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
+      if(!directed)metrics.append(metric(p.strength?'Carga':p.preventive&&p.snapshot.exercise.band?'Resistência do elástico':'Intensidade',M.intensity(p),'intensity'));
       body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
@@ -499,7 +502,7 @@ function renderCampusBoard(path){
       }
       const note=el('div','technical-note'),noteText=el('div');const guidance=directed?directed.guidance:item.notes;
       if(!directed||guidance){
-        noteText.append(el('strong','',directed?'Orientações do treinador':'Observações'),el('p','',guidance||'Nenhuma observação técnica adicional.'));
+        noteText.append(el('strong','',directed||p.preventive?'Orientações do treinador':'Observações'),el('p','',guidance||'Nenhuma observação técnica adicional.'));
         note.append(icon('chat'),noteText);body.append(note);
       }
       const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);

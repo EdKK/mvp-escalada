@@ -15,8 +15,9 @@ var StudentModel = (() => {
   function remaining(t,now){return t?.endsAt!==null&&t?.endsAt!==undefined?Math.max(0,t.endsAt-now):(t?.remaining||0);}
   function restStart(t,seconds,now){return {remaining:t?.remaining??seconds*1000,endsAt:now+(t?.remaining??seconds*1000)};}
   function restPause(t,now){return {remaining:remaining(t,now),endsAt:null};}
-  function quantity(p){if(p.strength)return p.strength.repetitionsPerSet+' por série'+(p.strength.execution==='unilateral'?' por lado':'');if(p.directed){const d=p.directed;return d.repetitionsPerSet+' por série'+(d.durationSeconds===undefined?'':' × '+d.durationSeconds+' s');}if(p.task?.version>=2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
+  function quantity(p){if(p.preventive)return p.preventive.repetitionsPerSet+' por série';if(p.strength)return p.strength.repetitionsPerSet+' por série'+(p.strength.execution==='unilateral'?' por lado':'');if(p.directed){const d=p.directed;return d.repetitionsPerSet+' por série'+(d.durationSeconds===undefined?'':' × '+d.durationSeconds+' s');}if(p.task?.version>=2)return `${p.task.repetitionsPerSet} por série`;if(p.source==='library')return `${p.volume.total} ${units[p.quantityUnit]} no total`;return p.quantity!==''&&p.quantity!==undefined?`${p.quantity} ${units[p.quantityUnit]||p.quantityUnit||''}`:'Não informada';}
   function intensity(p){
+    if(p.preventive)return p.preventive.resistance||'Não informada';
     if(p.strength){
       const d=p.strength;
       return d.kilograms+' kg'+(d.loadBasis==='per_implement'?' por implemento':'');
@@ -38,6 +39,7 @@ var StudentModel = (() => {
   }
   function prescriptionDetails(p){
     if(p.source!=='library')return [];
+    if(p.preventive)return ['Volume prescrito: '+p.volume.total+' repetições'];
     if(p.strength){
       const d=p.strength,condition={bodyweight:'Peso corporal',added:'Carga adicional',assisted:'Carga assistida'}[d.condition];
       const details=['Musculação • '+(d.execution==='unilateral'?'Unilateral, mesma dose nos dois lados':'Bilateral'),condition+' • '+intensity(p),

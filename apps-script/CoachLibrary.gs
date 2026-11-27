@@ -221,8 +221,15 @@ function coachSessionPlan_(db,user,d){
   if(!Array.isArray(d.items)||!d.items.length)fail_('INVALID_DATA');
   var workout=workoutCandidate_(db,user,d.session);
   sheet_(db,'WorkoutGuidance');
+  var strengthContext;
   var items=d.items.map(function(input,index){
     try{
+      if(input&&input.strength!==undefined){
+        if(!strengthContext)strengthContext={exercises:strengthExercises_(db),references:strengthReferences_(db,workout.studentId,workout.date)};
+        var preparedStrength=strengthCandidate_(workout,id_(),input,strengthContext);
+        var strengthPlan={workoutId:workout.id,itemId:preparedStrength.item.id,classification:'general',expectedRevision:0};
+        return {item:preparedStrength.item,prescription:prescriptionRecord_(user,id_(),strengthPlan,preparedStrength.validated,null)};
+      }
       fields_(input,['exerciseId','block','category','metric','quantity','minutes','notes','methodId','protocolId','capacityId','classification','intensity','auxiliaryIntensities','volume','task','directed']);
       var itemPlan=coachPlan_(workout,id_(),input);
       var prepared=coachItemCandidate_(db,user,workout,Object.assign({workoutId:workout.id},input),itemPlan);
@@ -310,7 +317,7 @@ function accessSessionModel_(db,user,request){
   }
   if(row.status!=='active')fail_('NOT_FOUND');
   var payload=studentJson_(row.payloadJson);
-  if(!payload||payload.version!==1)fail_('SCHEMA_ERROR');
+  if(!payload||[1,2].indexOf(payload.version)<0)fail_('SCHEMA_ERROR');
   return Object.assign(sessionModelMetadata_(row),{payload:payload});
 }
 function createSessionModel_(db,user,request){
@@ -338,7 +345,7 @@ function createSessionModel_(db,user,request){
   if(guidance.microcycleType===undefined)session.goal=workout.goal;
   else session.microcycleType=guidance.microcycleType;
   var indicators=new Map(libraryRows_(db,'INDICADORES').map(function(indicator){return [indicator.id,indicator.name];}));
-  var payload={version:1,session:session,items:items.map(function(item){return sessionModelItem_(item,indicators);})};
+  var payload={version:items.some(function(item){return !!item.prescription.strength;})?2:1,session:session,items:items.map(function(item){return sessionModelItem_(item,indicators);})};
   var payloadJson;
   try{payloadJson=libraryJson_(payload);}
   catch(error){if(error.code==='INVALID_DATA')fail_('MODEL_TOO_LARGE');throw error;}
@@ -376,6 +383,11 @@ function sessionModelItem_(item,indicators){
   var p=item.prescription,snapshot=p.snapshot;
   var input={block:item.block,classification:snapshot.classification};
   var display={name:snapshot.exercise.name,total:p.volume.total,unitId:p.volume.unitId};
+  if(p.strength){
+    input.strength=Object.assign({},p.strength);
+    delete input.strength.oneRm;
+    return {input:input,display:display};
+  }
   if(p.directed){
     // The snapshot adds display labels and a computed path to the original directed parameters.
     var directed=Object.assign({},p.directed);

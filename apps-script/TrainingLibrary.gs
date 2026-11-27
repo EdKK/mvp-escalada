@@ -103,7 +103,7 @@ function libraryApi(request){
   var lock;
   try{
     fields_(request,['action','data','requestId','sessionToken']);
-    var actions=['catalog','listGeneralCatalog','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','coachSessionStatus','abandonCoachSession','listPendingCoachSessions','listSessionModels','getSessionModel','createSessionModel','deleteSessionModel'];
+    var actions=['catalog','listGeneralCatalog','listStrengthReferences','listExercises','getExercise','createExercise','linkExerciseMethod','linkExerciseCapacity','recordAssessment','getAssessment','validateLoad','createLibraryPrescription','getLibraryPrescription','listAssessments','listLibraryPrescriptions','saveCoachPrescription','listPendingCoachSaves','coachSaveStatus','fingerboardDefinitions','listDraftAssessments','saveCoachSession','resumeCoachSession','coachSessionStatus','abandonCoachSession','listPendingCoachSessions','listSessionModels','getSessionModel','createSessionModel','deleteSessionModel'];
     if(actions.indexOf(request.action)<0)fail_('INVALID_ACTION');
     var identity=sessionIdentity_(request.sessionToken);lock=LockService.getScriptLock();if(!lock.tryLock(5000))fail_('BUSY');
     var db=libraryDb_(),user=userForEmail_(db,identity.email),d=request.data,result;
@@ -115,6 +115,7 @@ function libraryApi(request){
       libraryCoach_(db,user);
       if(request.action==='catalog'){fields_(d,[]);result={};['CAPACIDADES','METODOS','UNIDADES','INDICADORES'].forEach(function(name){result[name]=libraryRows_(db,name);});}
       else if(request.action==='listGeneralCatalog')result=listGeneralCatalog_(db,d);
+      else if(request.action==='listStrengthReferences')result=listStrengthReferences_(db,user,d);
       else if(request.action==='fingerboardDefinitions'){fields_(d,[]);result=fingerboardDefinitions_();result.tractionBlocks=tractionBlockDefinitions_();result.campusBoard=campusDefinitions_();}
       else if(request.action==='listExercises'){fields_(d,[]);result=libraryRows_(db,'EXERCICIOS');}
       else if(request.action==='getExercise'){fields_(d,['exerciseId']);result=libraryOne_(db,'EXERCICIOS',d.exerciseId,false);result.methods=libraryRows_(db,'EXERCICIO_METODOS').filter(function(r){return r.exerciseId===result.id;});result.capacities=libraryRows_(db,'EXERCICIO_CAPACIDADES').filter(function(r){return r.exerciseId===result.id;});}

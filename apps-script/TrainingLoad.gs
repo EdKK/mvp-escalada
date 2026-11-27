@@ -52,12 +52,17 @@ function libraryVolume_(exercise,input,mode){
 function libraryRecordAssessment_(db,user,req){
   fields_(req.data,['studentId','exerciseId','indicatorId','value','unitId','protocol','referenceDefinition','assessedOn','validUntil','supersedesId']);
   return libraryWrite_(db,user,req,'AVALIACOES',function(id){
-    var d=req.data;libraryStudent_(db,user,d.studentId);libraryExercise_(db,d.exerciseId);
+    var d=req.data;libraryStudent_(db,user,d.studentId);
+    if(typeof d.exerciseId==='string'&&d.exerciseId.indexOf('mus-')===0){
+      if(!strengthExercises_(db).has(d.exerciseId))fail_('NOT_FOUND');
+      if(d.indicatorId!=='int-1rm'||d.unitId!=='unit-kg'||!/^musculacao:added:(bilateral|unilateral):(total|per_implement)$/.test(d.referenceDefinition))fail_('INVALID_DATA');
+    }else libraryExercise_(db,d.exerciseId);
     var indicator=libraryOne_(db,'INDICADORES',d.indicatorId,true);if(indicator.kind!=='relative')fail_('INCOMPATIBLE_INDICATOR');
     if(JSON.parse(indicator.referenceUnitsJson).indexOf(d.unitId)<0)fail_('INCOMPATIBLE_UNIT');libraryOne_(db,'UNIDADES',d.unitId,true);
     var on=libraryDate_(d.assessedOn),until=libraryDate_(d.validUntil);if(until<on)fail_('INVALID_DATA');
     var parent=d.supersedesId||'';
-    if(parent){var old=libraryOne_(db,'AVALIACOES',parent,false);if(old.studentId!==d.studentId||old.exerciseId!==d.exerciseId||old.indicatorId!==d.indicatorId||old.assessedOn>on)fail_('INVALID_DATA');libraryUnique_(db,'AVALIACOES',function(a){return a.supersedesId===parent;},id,req.action,function(p){return p.supersedesId===parent;});}
+    if(parent){var old=libraryOne_(db,'AVALIACOES',parent,false);if(old.studentId!==d.studentId||old.exerciseId!==d.exerciseId||old.indicatorId!==d.indicatorId||old.assessedOn>on||
+      (d.exerciseId.indexOf('mus-')===0&&old.referenceDefinition!==d.referenceDefinition))fail_('INVALID_DATA');libraryUnique_(db,'AVALIACOES',function(a){return a.supersedesId===parent;},id,req.action,function(p){return p.supersedesId===parent;});}
     return {id:id,studentId:d.studentId,exerciseId:d.exerciseId,indicatorId:indicator.id,referenceType:indicator.referenceType,value:libraryNumber_(d.value,Number.MIN_VALUE,1e9,false),unitId:d.unitId,protocol:text_(d.protocol,2000),referenceDefinition:text_(d.referenceDefinition,2000),assessedOn:on,validUntil:until,supersedesId:parent,status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
   });
 }
@@ -336,5 +341,6 @@ function prescriptionRecord_(user,id,d,validated,existing){
   var snapshot={exercise:validated.exercise,method:validated.method,protocol:validated.protocol,capacity:validated.capacity,intensity:validated.intensity,auxiliaryIntensities:validated.auxiliaryIntensities,classification:validated.classification,session:{id:validated.workout.id,studentId:validated.workout.studentId,date:validated.workout.date},volumeMode:'prescribed'};
   if(validated.task)snapshot.task=validated.task;
   if(validated.directed)snapshot.directed=validated.directed;
-  return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||'',snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
+  if(validated.strength)snapshot.strength=validated.strength;
+  return {id:id,workoutId:d.workoutId,itemId:d.itemId,studentId:validated.workout.studentId,exerciseId:validated.exercise.id,methodId:d.methodId||'',protocolId:d.protocolId||'',capacityId:d.capacityId||'',classification:d.classification,intensityJson:libraryJson_({primary:validated.intensity,auxiliary:validated.auxiliaryIntensities}),volumeJson:libraryJson_(validated.volume),totalVolume:validated.volume.total,volumeUnitId:validated.volume.unitId,assessmentId:validated.intensity.assessmentId||(validated.strength&&validated.strength.oneRm?validated.strength.oneRm.assessmentId:''),snapshotJson:libraryJson_(snapshot),revision:d.expectedRevision+1,supersedesId:existing?existing.id:'',status:'active',createdBy:user.id,createdAt:new Date().toISOString()};
 }

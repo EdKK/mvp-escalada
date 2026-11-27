@@ -3,7 +3,7 @@
 const http=require('node:http'),fs=require('node:fs'),vm=require('node:vm');
 const {fixture,setupFinance}=require('./gas.cjs');
 const f=setupFinance(fixture());
-for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary','GeneralCatalog'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);
+for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary','GeneralCatalog','StrengthPrescription'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);
 f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();
 f.context.prepararCatalogoGeralHomologacao_();
 f.tables.Links.push(['l2','c1','s2',true]);

@@ -126,6 +126,18 @@ function effectiveItemPrescription_(workout,item,index,context){
     p.directed=d;
     p.restSeconds=d.restBetweenRepetitionsSeconds>0?d.restBetweenRepetitionsSeconds:d.restBetweenSetsSeconds;
   }
+  if(snapshot.strength){
+    var strength=snapshot.strength;
+    var repetitions=strength.repetitionsPerSet*(strength.execution==='unilateral'?2:1);
+    if(record.classification!=='general'||snapshot.classification!=='general'||strength.version!==1||
+      strength.exerciseId!==record.exerciseId||unit!=='repetitions'||strength.sets!==p.sets||p.directed||p.task||
+      volume.total!==strength.sets*repetitions||lines.some(function(line){return line.total!==repetitions;})||
+      (strength.oneRm?strength.oneRm.assessmentId:'')!==record.assessmentId)fail_('SCHEMA_ERROR');
+    p.strength=strength;
+    p.quantity=strength.repetitionsPerSet;
+    p.restSeconds=strength.restBetweenSetsSeconds;
+    p.rpeApplicable=true;
+  }
   return p;
 }
 function workoutGuidance_(rows,workoutId) {
@@ -154,22 +166,32 @@ function hydrateStudentWorkout_(db, workout, user) {
   var visibleIds=new Set(workout.items.map(function(item){return item.id;}));
   var feedbackRequests=new Map(context.requests.filter(function(r){return r.entity==='ItemFeedback';}).map(function(r){return [r.entityId,r];}));
   var prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===workout.id;}).map(function(p){return [p.id,p];}));
-  workout.itemFeedback=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id&&f.studentId===workout.studentId&&visibleIds.has(f.itemId);}).map(function(f){return directedFeedbackDetails_(f,feedbackRequests.get(f.id),prescriptions);});
+  workout.itemFeedback=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id&&f.studentId===workout.studentId&&visibleIds.has(f.itemId);}).map(function(f){return structuredFeedbackDetails_(f,feedbackRequests.get(f.id),prescriptions);});
   return workout;
 }
 // The existing reservation stores the submitted series with the feedback revision.
-function directedFeedbackDetails_(record,reservation,prescriptions){
+function structuredFeedbackDetails_(record,reservation,prescriptions){
   if(!reservation)return record;
   var fp=studentJson_(reservation.fingerprint);
-  if(fp[0]!=='submitItemFeedback'||!fp[1].prescriptionId)return record;
-  var data=fp[1];
+  if(fp[0]!=='submitItemFeedback')return record;
+  var data=fp[1],strengthId=data.strengthPrescriptionId,prescriptionId=strengthId||data.prescriptionId;
+  if(!prescriptionId)return record;
   if(reservation.userId!==record.studentId||data.itemId!==record.itemId||data.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
-  record.prescriptionId=data.prescriptionId;
+  record.prescriptionId=prescriptionId;
+  if(strengthId||record.status==='completed'){
+    var prescription=prescriptions.get(prescriptionId);
+    if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
+    var snapshot=studentJson_(prescription.snapshotJson);
+    if(strengthId){
+      if(!snapshot.strength)fail_('SCHEMA_ERROR');
+      record.actualRepetitions=data.actualRepetitions??0;
+      record.actualKilograms=data.actualKilograms??0;
+      return record;
+    }
+  }
   if(data.actualSeries!==undefined)record.actualSeries=data.actualSeries;
   if(record.status==='completed'){
-    var prescription=prescriptions.get(data.prescriptionId);
-    if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
-    var directed=studentJson_(prescription.snapshotJson).directed;
+    var directed=snapshot.directed;
     if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
     record.actualSeries=Array.from({length:directed.sets},function(){
       var line={repetitions:directed.repetitionsPerSet};
@@ -207,7 +229,7 @@ function applyDirectedFeedback_(record,data,p){
 function saveItemFeedback_(db,user,req) {
   if (user.role!=='student') fail_('FORBIDDEN');
   var d=req.data;
-  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision','prescriptionId','actualSeries']);
+  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision','prescriptionId','actualSeries','actualRepetitions','actualKilograms','strengthPrescriptionId']);
   var w=workout_(db,user,text_(d.workoutId,100));
   var items=rows_(db,'Items').filter(function(i){return i.id===d.itemId && i.workoutId===w.id;});
   if(items.length!==1) fail_('NOT_FOUND');
@@ -215,26 +237,30 @@ function saveItemFeedback_(db,user,req) {
   var reservations=context.requests.filter(function(r){return r.userId===user.id&&r.key===req.requestId;});
   if(reservations.length>1)fail_('CONFLICT');
   var reservation=reservations[0];
+  if(d.prescriptionId!==undefined&&d.strengthPrescriptionId!==undefined)fail_('INVALID_DATA');
+  var prescriptionId=d.strengthPrescriptionId===undefined?d.prescriptionId:d.strengthPrescriptionId;
   var prescriptions;
-  if(d.prescriptionId!==undefined)prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
-  if(reservation&&d.prescriptionId!==undefined){
+  if(prescriptionId!==undefined)prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
+  if(reservation&&prescriptionId!==undefined){
     if(reservation.entity!=='ItemFeedback'||reservation.fingerprint!==fingerprint_(req.action,d))fail_('CONFLICT');
     var saved=optionalRows_(db,'ItemFeedback').filter(function(f){return f.id===reservation.entityId;});
     if(saved.length>1)fail_('SCHEMA_ERROR');
-    if(saved.length)return directedFeedbackDetails_(saved[0],reservation,prescriptions);
+    if(saved.length)return structuredFeedbackDetails_(saved[0],reservation,prescriptions);
     // An interrupted submission retains the original prescription even after an edit.
-    context.prescriptions=context.prescriptions.filter(function(p){return p.itemId!==d.itemId||p.id===d.prescriptionId;});
+    context.prescriptions=context.prescriptions.filter(function(p){return p.itemId!==d.itemId||p.id===prescriptionId;});
     context.requests=context.requests.filter(function(r){
       if(r.entity!=='PRESCRICOES')return true;
       var fp=studentJson_(r.fingerprint);
-      return fp[1].itemId!==d.itemId||r.entityId===d.prescriptionId;
+      return fp[1].itemId!==d.itemId||r.entityId===prescriptionId;
     });
   }
   var p=effectiveItemPrescription_(w,items[0],0,context);
   if(!p)fail_('NOT_FOUND');
   if (['completed','partial','not_done'].indexOf(d.status)<0) fail_('INVALID_DATA');
   var record={id:id_(),workoutId:w.id,itemId:items[0].id,studentId:user.id,status:d.status,rpe:'',fingerPain:numberRange_(d.fingerPain,0,10,true),comment:d.comment===undefined||d.comment===''?'':text_(d.comment,2000),actualSets:'',actualQuantity:'',quantityUnit:'',createdAt:new Date().toISOString()};
-  if(p.directed)applyDirectedFeedback_(record,d,p);
+  if(!p.strength&&(d.actualRepetitions!==undefined||d.actualKilograms!==undefined||d.strengthPrescriptionId!==undefined))fail_('INVALID_DATA');
+  if(p.strength)applyStrengthFeedback_(record,d,p);
+  else if(p.directed)applyDirectedFeedback_(record,d,p);
   else{
     if(d.prescriptionId!==undefined||d.actualSeries!==undefined)fail_('INVALID_DATA');
     if(d.rpe!==undefined && d.rpe!==null) {
@@ -259,5 +285,5 @@ function saveItemFeedback_(db,user,req) {
     record.revision=d.expectedRevision+1; record.supersedesId=previous?previous.id:'';
   };
   var savedRecord=persistRecord_(db,user,req,'ItemFeedback',record,beforeInsert);
-  return p.directed?directedFeedbackDetails_(savedRecord,{fingerprint:fingerprint_(req.action,d),userId:user.id},prescriptions):savedRecord;
+  return p.directed||p.strength?structuredFeedbackDetails_(savedRecord,{fingerprint:fingerprint_(req.action,d),userId:user.id},prescriptions):savedRecord;
 }

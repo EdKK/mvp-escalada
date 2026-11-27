@@ -512,6 +512,15 @@ select.native-hidden {
     #panelCoach #librarySaveHint[data-kind="validation"],#panelCoach #librarySaveHint[data-kind="error"]{color:#fca5a5;border-color:var(--bad)}
     #panelCoach #librarySaveHint[data-kind="success"]{color:#bff7d0;border-color:var(--good)}
     #panelCoach #librarySaveHint[data-kind="warning"]{color:#fde68a;border-color:var(--warn)}
+    #strengthPanel .strength-card{padding:14px;border:1px solid var(--line);border-radius:12px;margin:12px 0}
+    #strengthPanel h4{margin:0 0 12px;overflow-wrap:anywhere}
+    #strengthPanel .strength-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    #strengthPanel .strength-fields label{min-height:42px}
+    #strengthPanel details summary{min-height:44px;cursor:pointer}
+    #strengthResults{max-height:224px;overflow:auto;margin:8px 0}
+    #strengthResults label{display:flex;align-items:center;gap:10px}
+    #panelCoach #strengthResults input{width:18px;min-height:44px;flex:none}
+    @media(max-width:540px){#strengthPanel .strength-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
     #fingerboardFields input,#fingerboardFields select,#directedSubblock{font-size:16px;min-height:44px}
     #fingerboardFields .row{margin-top:10px}
     #fbVolume{display:block;margin-top:10px;color:#bff7d0}
@@ -815,6 +824,26 @@ select.native-hidden {
         <h2 id="coachPrescriptionTitle" tabindex="-1">Montar treino — prescrição</h2>
         <p id="coachNextExercise" class="muted" aria-live="polite">Selecione uma sessão para prescrever.</p>
 <section class="coach-field-group"><h3>Bloco principal</h3><label for="libraryClassification">Bloco de treinamento</label><select id="libraryClassification"><option value="general">Treinamento geral</option><option value="directed">Treinamento direcionado</option><option value="specific">Treinamento específico</option></select></section>
+<button id="openStrength" type="button">Musculação</button>
+<section id="strengthPanel" class="coach-field-group" aria-labelledby="strengthTitle" hidden>
+  <h3 id="strengthTitle">Musculação</h3>
+  <button type="button" id="strengthBack">Voltar aos exercícios da biblioteca</button>
+  <div id="strengthPicker">
+    <div class="row">
+      <div><label for="strengthRegion">Região corporal</label><select id="strengthRegion"></select></div>
+      <div><label for="strengthCategory">Categoria</label><select id="strengthCategory"></select></div>
+    </div>
+    <label for="strengthSearch">Buscar exercício pelo nome</label><input id="strengthSearch" type="search" maxlength="150">
+    <p id="strengthResultsStatus" role="status"></p>
+    <div id="strengthResults" role="group" aria-label="Exercícios de musculação"></div>
+    <p id="strengthSelectionCount" role="status"></p>
+  </div>
+  <form id="strengthBatchForm" novalidate>
+    <div id="strengthCards"></div>
+    <button id="strengthAdd" class="primary" type="submit">Adicionar selecionados à montagem</button>
+  </form>
+</section>
+<div id="legacyPrescriptionFields">
 <section id="directedSubblockPanel" class="coach-field-group" hidden><label for="directedSubblock">Subbloco</label><select id="directedSubblock"><option value="">Exercício da biblioteca</option><option value="fingerboard">Fingerboard</option><option value="traction_blocks">Blocos de tração</option><option value="campus_board">Campus Board</option></select></section>
 <section id="fingerboardFields" class="coach-field-group" hidden>
 <p id="fingerboardEditing" role="status" hidden></p><button type="button" id="cancelFingerboardEdit" hidden>Cancelar edição</button>
@@ -939,6 +968,7 @@ select.native-hidden {
 <div class="btnbar"><button id="btnAddItem" class="primary">Salvar e adicionar próximo exercício</button></div>
 <p class="muted">O aluno acessa o treino em sua própria conta Google.</p>
 </section>
+</div>
       </section>
       <aside class="coach-results card" aria-labelledby="coachResultsTitle">
         <h2 id="coachResultsTitle">Treino prescrito</h2>
@@ -1260,7 +1290,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     const specific=$('libraryClassification').value==='specific';
     return id.startsWith('specific')===specific?$(id).value:'';
   }).concat(hasDirectedSubblock()?[$('directedSubblock').value,editingDirected?.itemId,...fingerboardDraftFields.map(id=>$(id).value)]:[]));
-  const coachDraftDirty=()=>coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
+  const coachDraftDirty=()=>strengthCards.size>0||coachDraftBaseline!==''&&coachDraftSignature()!==coachDraftBaseline;
   let selected = '', session, sessionToken = '', busy = false, generation = 0;
   const pending = new Map();
   const key = () => crypto.randomUUID();
@@ -1304,11 +1334,11 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
         const heading=document.createElement('h3');heading.textContent='Exercício '+(index+1)+' — '+i.exercise;parent.appendChild(heading);
         $('previewTreinoAluno').appendChild(parent);coachRenderedItems.set(i.id,parent);
       }
-      text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.prescription?.directed?'':i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
+      text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.prescription?.directed||i.prescription?.strength?'':i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
     });
     if(session?.role==='coach'&&!sessionDraft)$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
     feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')+(line.additionalMoves===undefined?'':' / '+line.additionalMoves+' movimentos em repetições incompletas')),f.comment].filter(Boolean).join(' • '));});
+    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId&&f.actualKilograms===undefined?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualKilograms===undefined?[]:['Carga executada: '+f.actualKilograms+' kg','Repetições executadas por série: '+f.actualRepetitions]),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')+(line.additionalMoves===undefined?'':' / '+line.additionalMoves+' movimentos em repetições incompletas')),f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
     if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(!sessionDraft&&libraryReady&&!isSpecificTask()&&!hasDirectedSubblock())await refreshAssessments();}
   }
@@ -1367,6 +1397,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       fillSessionDraft(data,fromModel);
       $('coachTreinoId').value='';
       renderSessionDraft();
+      if(data.items.some(item=>item.strength))await prepareStrengthDraft();
       $('coachFinishStatus').textContent='Montagem recuperada nesta aba.';
     }
     if(requestId){
@@ -1471,6 +1502,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
           intensity.description??(intensity.value===undefined?'Dificuldade em aberto':[intensity.value,intensity.scale].filter(Boolean).join(' • '));
         text(row,label+' • '+value);
       }
+      if(input.strength){
+        strengthDescription(input.strength,display.total,null).forEach(line=>text(row,line));
+        return;
+      }
       const dose=input.directed||input.task;
       if(input.directed){
         const d=input.directed;
@@ -1505,6 +1540,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     const {payload}=await library('getSessionModel',{modelId:id});
     resetCoachDraft();
     fillSessionDraft({session:payload.session,items:payload.items.map(entry=>entry.input)},true);
+    if(sessionDraft.items.some(item=>item.strength))await prepareStrengthDraft();
     selected='';selectedWorkout=null;
     $('coachTreinoId').value='';$('alunoTreinoId').value='';
     $('previewTreinoAluno').replaceChildren();$('listaRetornos').replaceChildren();coachRenderedItems.clear();
@@ -1564,6 +1600,9 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     if(pendingCoachSave){document.querySelectorAll('#panelCoach input, #panelCoach select, #panelCoach textarea, #panelCoach button').forEach(n=>{if(!['btnAddItem','correctCoachDraft','btnReviewSession','btnConfirmSession'].includes(n.id))n.disabled=true;});$('alunoTreinoId').disabled=true;}
     else {$('alunoTreinoId').disabled=busy;}
     $('itemIntensTipo').disabled=true;$('itemMetrica').disabled=true;
+    $('libraryClassification').disabled=locked||strengthMode;
+    $('openStrength').disabled=locked;
+    $('strengthAdd').disabled=locked||!strengthCards.size;
     $('btnAddItem').disabled=busy||(!pendingCoachSave&&((!sessionDraft&&!selected)||(!isSpecificTask()&&(hasDirectedSubblock()?!fingerboardDefs:(!libraryReady||!exerciseSelection)))));
     coachTabs.forEach(tab=>$(tab.button).disabled=busy);
     $('btnAddItem').disabled ||= !!pendingSessionSave;
@@ -1605,6 +1644,200 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     syncSpecificUi();
     updateCoachControls();
   }
+  const strengthCards=new Map();
+  const strengthConditions={bodyweight:'Peso corporal',added:'Carga adicional',assisted:'Carga assistida'};
+  const strengthExecutions={bilateral:'Bilateral',unilateral:'Unilateral'};
+  let strengthMode=false,strengthReferences=new Map();
+  function strengthVolume(d){
+    return d.sets*d.repetitionsPerSet*(d.execution==='unilateral'?2:1);
+  }
+  function strengthPercent(d){
+    const reference=strengthReferences.get(d.exerciseId+'|musculacao:added:'+d.execution+':'+d.loadBasis);
+    const percent=d.condition==='added'&&d.kilograms>0&&reference?d.kilograms/reference*100:null;
+    return Number.isFinite(percent)?percent:null;
+  }
+  function strengthPercentLabel(value){
+    return value===null||value===undefined?'—':value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+  }
+  function strengthDescription(d,volume,percent){
+    return [
+      d.sets+' séries × '+d.repetitionsPerSet+' repetições'+(d.execution==='unilateral'?' por lado':''),
+      'Entre séries: '+d.restBetweenSetsSeconds/60+' min',
+      strengthExecutions[d.execution],strengthConditions[d.condition]+' • '+d.kilograms+' kg'+(d.loadBasis==='per_implement'?' por implemento':''),
+      'Volume: '+volume+' repetições','%1RM: '+strengthPercentLabel(percent),
+      d.durationSeconds===undefined?'':'Duração da repetição: '+d.durationSeconds+' s',
+      d.restBetweenRepetitionsSeconds===undefined?'':'Entre repetições: '+d.restBetweenRepetitionsSeconds+' s',d.guidance
+    ].filter(Boolean);
+  }
+  function setStrengthMode(active){
+    strengthMode=active;
+    $('strengthPanel').hidden=!active;
+    $('legacyPrescriptionFields').hidden=active;
+    $('libraryClassification').disabled=active||busy;
+    $('openStrength').hidden=active||$('libraryClassification').value!=='general';
+  }
+  function clearStrengthForm(){
+    strengthCards.clear();
+    $('strengthCards').replaceChildren();
+    $('strengthRegion').value='';$('strengthCategory').value='';$('strengthSearch').value='';
+    $('strengthResults').replaceChildren();$('strengthResultsStatus').textContent='';
+    setStrengthMode(false);
+    $('strengthAdd').textContent='Adicionar selecionados à montagem';
+  }
+  async function refreshStrengthReferences(){
+    strengthReferences=new Map();
+    const {studentId,date}=readSessionIdentification();
+    if((strengthMode||sessionDraft?.items.some(item=>item.strength))&&studentId&&date){
+      try{
+        const rows=await library('listStrengthReferences',{studentId,date});
+        strengthReferences=new Map(rows.map(row=>[row.exerciseId+'|'+row.definition,row.kilograms]));
+      }catch(error){if(error.message==='UNAUTHENTICATED')throw error;}
+    }
+    strengthCards.forEach(updateStrengthCard);
+    renderSessionDraft();
+  }
+  async function prepareStrengthDraft(){
+    try{await fetchGeneralCatalog();}
+    catch(error){if(error.message==='UNAUTHENTICATED')throw error;}
+    await refreshStrengthReferences();
+  }
+  function renderStrengthChoices(){
+    const rows=generalCatalog||[],region=$('strengthRegion').value,category=$('strengthCategory').value;
+    const query=librarySearchKey($('strengthSearch').value),results=$('strengthResults');
+    results.replaceChildren();
+    $('strengthSelectionCount').textContent=strengthCards.size+' selecionado(s)';
+    $('strengthPicker').hidden=draftEdit!==null;
+    if(draftEdit!==null)return;
+    const matches=rows.filter(row=>row.area==='Musculação'&&(query?librarySearchKey(row.name).includes(query):
+      region&&row.region===region&&(!category||row.category===category)));
+    $('strengthResultsStatus').textContent=region||query?matches.length+' exercício(s) encontrado(s).':'Escolha uma região ou busque pelo nome.';
+    matches.forEach(exercise=>{
+      const label=document.createElement('label'),input=document.createElement('input');
+      input.type='checkbox';input.checked=strengthCards.has(exercise.id);input.disabled=busy;
+      input.addEventListener('change',()=>{
+        if(input.checked)addStrengthCard(exercise);
+        else removeStrengthCard(exercise.id);
+        $('strengthSelectionCount').textContent=strengthCards.size+' selecionado(s)';
+        invalidateCoachReview();updateCoachControls();
+      });
+      label.append(input,document.createTextNode(exercise.name));results.appendChild(label);
+    });
+  }
+  function strengthOptions(id,values,placeholder,value){
+    options(id,[...new Set(values)].map(name=>({id:name,name})),placeholder);
+    $(id).value=value||'';
+  }
+  function syncStrengthFilters(){
+    const region=$('strengthRegion').value;
+    strengthOptions('strengthCategory',(generalCatalog||[]).filter(row=>row.region===region).map(row=>row.category),
+      'Todas as categorias',$('strengthCategory').value);
+    renderStrengthChoices();
+  }
+  function strengthField(parent,record,name,label,{choices,numeric,value='',required=false,maxLength}){
+    const field=document.createElement('div'),caption=document.createElement('label');
+    const input=document.createElement(choices?'select':numeric?'input':'textarea');
+    input.id='strength-'+record.exercise.id+'-'+name;input.name=name;caption.htmlFor=input.id;caption.textContent=label;
+    if(numeric){
+      input.type='number';
+      for(const [key,setting] of Object.entries(numeric))input[key]=setting;
+    }
+    if(maxLength)input.maxLength=maxLength;
+    if(choices)Object.entries(choices).forEach(([key,labelText])=>{
+      const option=document.createElement('option');option.value=key;option.textContent=labelText;input.appendChild(option);
+    });
+    input.required=required;input.value=value;
+    field.append(caption,input);parent.appendChild(field);record.fields[name]=input;
+    return field;
+  }
+  function addStrengthCard(exercise,values={}){
+    const card=document.createElement('article'),title=document.createElement('h4'),main=document.createElement('div');
+    const details=document.createElement('details'),summary=document.createElement('summary'),output=document.createElement('p');
+    const record={exercise,card,fields:{},details,output};
+    strengthCards.set(exercise.id,record);
+    card.className='strength-card';title.textContent=exercise.name;card.append(title,main,output,details);
+    main.className='strength-fields';output.className='muted';output.setAttribute('aria-live','polite');
+    const field=(parent,name,label,config)=>strengthField(parent,record,name,label,{...config,value:values[name]??config.value});
+    field(main,'sets','Séries',{numeric:{min:1,max:100,step:1},required:true});
+    field(main,'repetitionsPerSet','Repetições por série',{numeric:{min:1,max:10000,step:1},required:true});
+    field(main,'restBetweenSetsSeconds','Recuperação entre séries',{choices:{'':'Selecione',60:'1 min',120:'2 min',180:'3 min',300:'5 min',600:'10 min',900:'15 min'},required:true});
+    field(main,'kilograms','Carga (kg)',{numeric:{min:0,max:100000,step:'any'},required:true});
+    summary.textContent='Parâmetros complementares';details.appendChild(summary);
+    const extras=document.createElement('div');extras.className='row';details.appendChild(extras);
+    field(extras,'execution','Forma de execução',{choices:strengthExecutions,value:'bilateral'});
+    field(extras,'condition','Condição de carga',{choices:strengthConditions,value:'added'});
+    record.basis=field(extras,'loadBasis','Base da carga',{choices:{total:'Carga total',per_implement:'Por implemento independente'},value:'total'});
+    field(extras,'durationSeconds','Duração da repetição (s, opcional)',{numeric:{min:0.001,max:86400,step:'any'}});
+    field(extras,'restBetweenRepetitionsSeconds','Recuperação entre repetições (s, opcional)',{numeric:{min:0,max:86400,step:1}});
+    field(details,'guidance','Orientações (opcional)',{maxLength:2000});
+    if(draftEdit===null){
+      const remove=document.createElement('button');remove.type='button';remove.textContent='Remover';
+      remove.setAttribute('aria-label','Remover '+exercise.name);
+      remove.addEventListener('click',()=>{
+        removeStrengthCard(exercise.id);
+        renderStrengthChoices();invalidateCoachReview();updateCoachControls();
+        $('strengthSearch').focus();
+      });card.appendChild(remove);
+    }
+    card.addEventListener('input',()=>updateStrengthCard(record));
+    card.addEventListener('change',()=>updateStrengthCard(record));
+    $('strengthCards').appendChild(card);
+    updateStrengthCard(record);
+  }
+  function removeStrengthCard(id){
+    strengthCards.get(id)?.card.remove();
+    strengthCards.delete(id);
+  }
+  function readStrengthCard(record){
+    const d={version:1,exerciseId:record.exercise.id};
+    for(const [name,input] of Object.entries(record.fields)){
+      const value=input.value.trim();
+      if(value!=='')d[name]=input.type==='number'||name==='restBetweenSetsSeconds'?Number(value):value;
+    }
+    return d;
+  }
+  function updateStrengthCard(record){
+    const {fields,output,basis}=record,bodyweight=fields.condition.value==='bodyweight';
+    fields.kilograms.readOnly=bodyweight;basis.hidden=bodyweight;
+    if(bodyweight){fields.kilograms.value='0';fields.loadBasis.value='total';}
+    const d=readStrengthCard(record),volume=strengthVolume(d);
+    fields.kilograms.setCustomValidity(!bodyweight&&d.kilograms===0?'Informe uma carga positiva.':'');
+    const invalidGuidance=d.guidance&&/^[=+@-]/.test(d.guidance);
+    fields.guidance.setCustomValidity(invalidGuidance?'Inicie a orientação com texto.':'');
+    output.textContent=[strengthConditions[d.condition],d.loadBasis==='per_implement'?'Por implemento independente':'',
+      'Volume: '+(Number.isFinite(volume)?volume+' repetições':'—'),'%1RM: '+strengthPercentLabel(strengthPercent(d))].filter(Boolean).join(' • ');
+  }
+  $('openStrength').addEventListener('click',()=>perform(async()=>{
+    if(!sessionDraft)throw Error('Inicie uma nova montagem antes de prescrever musculação.');
+    if(draftEdit!==null||coachDraftDirty())throw Error('Aplique ou limpe o exercício em edição antes de abrir a musculação.');
+    const rows=await fetchGeneralCatalog();
+    setStrengthMode(true);
+    strengthOptions('strengthRegion',rows.map(row=>row.region),'Selecione uma região');
+    syncStrengthFilters();await refreshStrengthReferences();$('strengthSearch').focus();
+  }));
+  $('strengthBack').addEventListener('click',()=>perform(()=>{
+    if(strengthCards.size||draftEdit!==null)throw Error('Aplique ou limpe os exercícios selecionados antes de voltar.');
+    clearStrengthForm();$('coachPrescriptionTitle').focus();
+  }));
+  $('strengthRegion').addEventListener('change',()=>{$('strengthCategory').value='';$('strengthSearch').value='';syncStrengthFilters();});
+  $('strengthCategory').addEventListener('change',()=>{$('strengthSearch').value='';renderStrengthChoices();});
+  $('strengthSearch').addEventListener('input',renderStrengthChoices);
+  $('strengthBatchForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    if(busy||!strengthMode||!sessionDraft||!strengthCards.size)return;
+    for(const record of strengthCards.values()){
+      updateStrengthCard(record);
+      const invalid=Object.values(record.fields).find(input=>!input.checkValidity());
+      if(invalid){if(record.details.contains(invalid))record.details.open=true;invalid.reportValidity();return;}
+    }
+    return perform(()=>{
+      const items=[...strengthCards.values()].map(record=>({block:'Treinamento geral',classification:'general',strength:readStrengthCard(record)}));
+      if(draftEdit===null)sessionDraft.items.push(...items);
+      else sessionDraft.items[draftEdit]=items[0];
+      resetCoachDraft();renderSessionDraft();checkpointDraft();
+      $('coachFinishStatus').textContent=items.length+' exercício(s) de musculação na montagem.';
+      $('coachPrescriptionTitle').focus();
+    });
+  });
   const isSpecificTask=()=>$('libraryClassification').value==='specific';
   const hasDirectedSubblock=()=>$('libraryClassification').value==='directed'&&$('directedSubblock').value!=='';
   const isTractionBlock=()=>$('directedSubblock').value==='traction_blocks';
@@ -1710,6 +1943,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   function syncSpecificUi(){
     const sp=isSpecificTask(),d=SpecificTaskModel.definition($('specificSubblock').value);
     const fb=hasDirectedSubblock(),structured=sp||fb;
+    $('openStrength').hidden=strengthMode||$('libraryClassification').value!=='general';
     $('directedSubblockPanel').hidden=$('libraryClassification').value!=='directed';
     $('fingerboardFields').hidden=!fb;
     $('coachNotesLabel').textContent=fb?'Orientações adicionais (opcional)':'Notas do treinador';
@@ -1789,6 +2023,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:
         intensity.kind==='ordinal'?(intensity.notPrescribed?'Dificuldade não prescrita':`${intensity.value} (${intensity.scale})`):intensity.description||String(intensity.value);
       const parent=coachRenderedItems.get(item.id)||$('previewTreinoAluno'),task=snapshot.task;
+      if(p.strength){
+        strengthDescription(p.strength,volume.total,p.strength.oneRm?.percent).forEach(line=>text(parent,line));
+        return;
+      }
       if(p.directed){
         const d=p.directed,l=d.labels;
         text(parent,[l.modality,d.path?.name,d.bouts===undefined?'':d.bouts+' botes por repetição',l.grip,l.gripOption,l.prehension,l.side,l.feet,l.load,d.load.kilograms===undefined?'':d.load.kilograms+' kg',l.assistance].filter(Boolean).join(' • '));
@@ -1967,6 +2205,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     try{await detail(result.item.workoutId);}catch(e){coachHint('warning','Gravação confirmada, mas a atualização da lista falhou: '+e.message+'. Atualize os treinos; não salve novamente a mesma intenção.');}
   }
   function resetCoachDraft(){
+    if(strengthMode||strengthCards.size)clearStrengthForm();
     draftContextOptions.splice(0).forEach(option=>option.remove());
     if(hasDirectedSubblock()||editingDirected){
       editingDirected=null;
@@ -1996,13 +2235,17 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     sessionDraft.items.forEach((data,index)=>{
       const row=document.createElement('div');
       parent.appendChild(row);
+      if(data.strength){
+        const d=data.strength,name=generalCatalog?.find(exercise=>exercise.id===d.exerciseId)?.name||d.exerciseId;
+        text(row,(index+1)+'. '+name+' • '+strengthDescription(d,strengthVolume(d),strengthPercent(d)).join(' • '));
+      }
       const name=data.task?SpecificTaskModel.definition(data.task.subblock)?.label:
         data.directed?directedSubblockLabel(data.directed.subblock):coachExercises.find(e=>e.id===data.exerciseId)?.name;
       const sets=data.task?.sets??data.directed?.sets??data.volume?.sets?.length;
       const repetitions=data.task?.repetitionsPerSet??data.directed?.repetitionsPerSet;
       const dose=sets?(sets+' séries'+(repetitions?' × '+repetitions+' repetições':'')):
         data.volume?.blocks?.length+' blocos';
-      text(row,(index+1)+'. '+(name||data.block)+' • '+dose);
+      if(!data.strength)text(row,(index+1)+'. '+(name||data.block)+' • '+dose);
       if(needsDraftAssessment(data))text(row,'Selecione uma avaliação individual válida ao editar este exercício.');
       button(row,'Editar exercício '+(index+1),()=>editDraftItem(index));
       button(row,'Excluir exercício '+(index+1),()=>{
@@ -2037,8 +2280,19 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   }
   async function editDraftItem(index){
     const data=sessionDraft.items[index];
+    if(strengthCards.size)throw Error('Aplique ou limpe os exercícios de musculação selecionados antes de editar outro item.');
     resetCoachDraft();
     $('libraryClassification').value=data.classification;
+    if(data.strength){
+      const rows=await fetchGeneralCatalog(),exercise=rows.find(row=>row.id===data.strength.exerciseId);
+      if(!exercise)throw Error('Exercício de musculação indisponível no catálogo.');
+      draftEdit=index;setStrengthMode(true);renderStrengthChoices();addStrengthCard(exercise,data.strength);
+      $('strengthAdd').textContent='Aplicar alterações ao exercício';
+      await refreshStrengthReferences();
+      invalidateCoachReview();$('strengthTitle').scrollIntoView({block:'start'});
+      strengthCards.get(exercise.id).fields.sets.focus();
+      return;
+    }
     if(data.directed)await fillDirected(data.directed);
     else if(data.task){
       $('specificSubblock').value=data.task.subblock;specificGrades();
@@ -2166,6 +2420,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
         options('libraryAssessment',[],'Selecione uma avaliação válida');
         await refreshAssessments();
         if(draftEdit!==null)await loadDraftAuxiliaryAssessments(sessionDraft.items[draftEdit]);
+        if(strengthMode||sessionDraft.items.some(item=>item.strength))await refreshStrengthReferences();
       }
     }));
   }
@@ -2517,7 +2772,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   function clearSession() {
     resetFinance();
     closeLibraryPage();
-    generalCatalog=null;generalCatalogLoading=false;generalCatalogError=false;
+    generalCatalog=null;generalCatalogRequest=null;generalCatalogLoading=false;generalCatalogError=false;strengthReferences=new Map();
     for(const id of ['sessionModelEditor','sessionModelsPicker'])if($(id).open)$(id).close();
     sessionModels=[];sessionModelRequest=null;$('sessionModelList').replaceChildren();clearModelPreview();
     $('sessionModelMicrocycle').value='';$('sessionModelsStatus').textContent='';$('reloadSessionModels').hidden=true;
@@ -2590,7 +2845,18 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     });
   }
   let generalArea='',generalAreaButton=null,generalRegion='',generalCategory='';
-  let generalCatalog=null,generalCatalogLoading=false,generalCatalogError=false;
+  let generalCatalog=null,generalCatalogRequest=null,generalCatalogLoading=false,generalCatalogError=false;
+  function fetchGeneralCatalog(){
+    if(generalCatalog)return Promise.resolve(generalCatalog);
+    if(!generalCatalogRequest){
+      const token=sessionToken;
+      generalCatalogRequest=library('listGeneralCatalog',{}).then(result=>{
+        if(token===sessionToken)generalCatalog=result.exercises;
+        return result.exercises;
+      }).finally(()=>{if(token===sessionToken)generalCatalogRequest=null;});
+    }
+    return generalCatalogRequest;
+  }
   function exerciseCount(count){return count+' '+(count===1?'exercício':'exercícios');}
   function generalChoice(parent,label,count,select){
     const card=document.createElement('button'),title=document.createElement('span');
@@ -2665,9 +2931,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     const token=sessionToken;
     generalCatalogLoading=true;generalCatalogError=false;renderGeneralCatalog();
     try{
-      const result=await library('listGeneralCatalog',{});
-      if(token!==sessionToken)return;
-      generalCatalog=result.exercises;
+      await fetchGeneralCatalog();
     }catch(error){
       if(token!==sessionToken)return;
       if(error.message==='UNAUTHENTICATED'){clearSession();return;}

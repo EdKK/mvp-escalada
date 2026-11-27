@@ -56,9 +56,9 @@
       if(prev)title.append(el('span','status-label',M.statuses[prev.status]));
       const arrow=icon('chevron');arrow.classList.add('chevron');summary.append(number,title,el('span','expand-label','Ver detalhes'),arrow);card.append(summary);
       const body=el('div','exercise-body'),metrics=el('div','metrics'),directed=p.directed;
-      const restLabel=directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
+      const restLabel=p.strength?'Entre séries':directed?(directed.restBetweenRepetitionsSeconds>0?'Entre repetições':'Entre séries'):p.task?.version>=2?'Entre repetições':'Descanso';
       metrics.append(metric(p.volume?.kind==='hand_moves'&&!directed?'Blocos':'Séries',M.setCount(p),'stack'),metric(p.quantityUnit==='repetitions'||directed?.path?'Repetições':'Dose / duração',M.quantity(p),'repeat'),metric(restLabel,p.restSeconds!==''&&p.restSeconds!==undefined?(p.restSeconds>=60&&p.restSeconds%60===0?`${p.restSeconds/60} min`:`${p.restSeconds} s`):'Não informado','clock'));
-      if(!directed)metrics.append(metric('Intensidade',M.intensity(p),'intensity'));
+      if(!directed)metrics.append(metric(p.strength?'Carga':'Intensidade',M.intensity(p),'intensity'));
       body.append(metrics);
       if(p.source==='library'){
         const prescription=el('div','technical-note'),content=el('div');content.append(el('strong','','Prescrição do treinador'));
@@ -74,13 +74,14 @@
       const timer=el('div','exercise-timer'),clock=el('div','clock-face');clock.append(icon('clock'));const clockText=el('span','','00:00');clockText.dataset.elapsed=key;clock.setAttribute('aria-label','Tempo decorrido do exercício');clock.append(clockText);
       timer.append(clock,button('Iniciar','timer-btn primary',()=>{timers.set(key,M.start(timers.get(key),Date.now()));paintClocks();},'play'),button('Pausar','timer-btn',()=>{timers.set(key,M.pause(timers.get(key),Date.now()));paintClocks();},'pause'),button('Zerar','timer-btn',()=>{timers.set(key,M.zero());paintClocks();},'reset'));body.append(timer);
       if(p.restSeconds!==undefined&&p.restSeconds!==''&&p.restSeconds>0){
-        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',directed||p.task?.version>=2?'Recuperação '+restLabel.toLowerCase():'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
+        const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',directed||p.strength||p.task?.version>=2?'Recuperação '+restLabel.toLowerCase():'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
         rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
       }
       const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);
       if(prev){
         const dose=[prev.actualSets!==''&&prev.actualSets!==undefined?`${prev.actualSets} ${prev.prescriptionId?(prev.actualSets===1?'série':'séries'):'séries/blocos'}`:'',prev.actualQuantity!==''&&prev.actualQuantity!==undefined?`${prev.actualQuantity} ${prev.prescriptionId&&prev.actualQuantity===1&&prev.quantityUnit==='repetitions'?'repetição':M.units[prev.quantityUnit]||prev.quantityUnit}`:''].filter(Boolean).join(' • ');
-        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
+        const strengthDose=p.strength&&prev.actualKilograms!==undefined?` • ${prev.actualKilograms} kg • ${prev.actualRepetitions} repetições por série${p.strength.execution==='unilateral'?' por lado':''}`:'';
+        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}${strengthDose}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
       }
       if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
         body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}${line.additionalMoves===undefined?'':' • '+line.additionalMoves+' movimentos em repetições incompletas'}`));
@@ -99,10 +100,16 @@
     if(!selectionVisible())return;dialogItem=item;const p=item.prescription||{},prev=M.latest(workout.itemFeedback||[],item.id);
     $('feedbackHeading').textContent=prev?'Corrigir feedback':'Seu feedback';$('feedbackExercise').textContent=item.exercise;
     $('feedbackStatus').value=prev?.status||'completed';$('feedbackPain').value=prev?.fingerPain??0;
-    $('feedbackRpe').value=prev?.rpe??'';$('feedbackComment').value=prev?.comment||'';$('actualSets').value=prev?.actualSets??'';$('actualQuantity').value=prev?.actualQuantity??'';
+    $('feedbackRpe').value=prev?.rpe??'';$('feedbackComment').value=prev?.comment||'';$('actualSets').value=prev?.actualSets??'';
+    $('actualQuantity').value=(p.strength?prev?.actualRepetitions:prev?.actualQuantity)??'';
+    const load=$('actualKilograms'),bodyweight=p.strength?.condition==='bodyweight';
+    $('actualKilogramsField').hidden=!p.strength;load.disabled=!p.strength;load.readOnly=bodyweight;
+    load.value=bodyweight?'0':prev?.actualKilograms??'';
+    $('actualKilogramsLabel').textContent='Carga executada (kg'+(p.strength?.loadBasis==='per_implement'?' por implemento':'')+')';
+    $('actualStrengthVolume').hidden=!p.strength;
     $('rpeField').hidden=!p.rpeApplicable;$('feedbackRpe').disabled=!p.rpeApplicable;
     const directed=!!p.directed;
-    $('legacyFeedbackHelp').hidden=directed;$('directedFeedbackHelp').hidden=!directed;
+    $('legacyFeedbackHelp').hidden=directed||!!p.strength;$('directedFeedbackHelp').hidden=!directed;
     $('feedbackStatus').options[0].textContent=directed?'Execução completa':'Concluído';
     $('feedbackStatus').options[1].textContent=directed?'Execução parcial':'Parcial';
     $('feedbackStatus').options[2].textContent=directed?'Não realizada':'Não realizado';
@@ -130,6 +137,10 @@
     $('actualQuantity').step=p.source==='library'&&['repetitions','moves'].includes(p.quantityUnit)?'1':'any';
     $('actualQuantity').placeholder=p.feedbackQuantityScope==='total'?'Total executado • opcional':'Por série • opcional';
     $('actualQuantityLabel').textContent=p.feedbackQuantityScope==='total'?`Total executado (${M.units[p.quantityUnit]})`:(p.quantityUnit==='repetitions'?'Repetições por série':`Executado por série (${M.units[p.quantityUnit]||p.quantityUnit})`);
+    if(p.strength){
+      $('actualQuantityLabel').textContent='Repetições executadas por série'+(p.strength.execution==='unilateral'?' e por lado':'');
+      $('actualQuantity').placeholder='';
+    }
     $('feedbackHistory').textContent=(workout.itemFeedback||[]).filter(f=>f.itemId===item.id).sort((a,b)=>b.revision-a.revision).map(f=>`Registro ${f.revision}: ${M.statuses[f.status]}`).join(' · ');
     $('feedbackError').textContent='';syncFeedbackStatus();showModal('feedbackDialog');
   }
@@ -139,12 +150,20 @@
     $('actualSeriesFields').querySelectorAll('input').forEach(input=>input.disabled=$('actualSeriesFields').hidden);
     const message='Para Não realizado, séries e quantidades executadas devem ser zero ou ficar em branco. Se houve execução, selecione Parcial.';
     let invalid=false;
-    ['actualSets','actualQuantity'].forEach(id=>{
-      const input=$(id);
-      input.max=notDone?'0':id==='actualSets'?'1000':p.source==='library'?'1000000000000':'100000';
+    ['actualSets','actualQuantity','actualKilograms'].forEach(id=>{
+      const input=$(id),sets=id==='actualSets',load=id==='actualKilograms';
+      input.required=!!p.strength&&!notDone&&!input.readOnly;
+      input.min=p.strength&&!notDone&&!load?'1':'0';
+      input.max=notDone?'0':load?'100000':sets?'1000':p.strength?'10000':p.source==='library'?'1000000000000':'100000';
       const inconsistent=notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0;
-      input.setCustomValidity(inconsistent?message:'');invalid=invalid||inconsistent;
+      const assistance=load&&p.strength?.condition==='assisted'&&!notDone&&input.value!==''&&Number(input.value)<=0;
+      input.setCustomValidity(inconsistent?message:assistance?'Informe a assistência em kg.':'');invalid=invalid||inconsistent;
     });
+    if(p.strength){
+      const sets=$('actualSets').value,repetitions=$('actualQuantity').value;
+      const total=notDone?0:sets!==''&&repetitions!==''?Number(sets)*Number(repetitions)*(p.strength.execution==='unilateral'?2:1):null;
+      $('actualStrengthVolume').textContent='Volume executado: '+(total===null?'—':total+' repetições');
+    }
     if(p.directed?.path){
       $('actualSeriesFields').querySelectorAll('fieldset').forEach(group=>{
         const reps=group.querySelector('[data-series-field=repetitions]');
@@ -156,11 +175,15 @@
   }
   $('feedbackStatus').addEventListener('change',syncFeedbackStatus);
   $('actualSeriesFields').addEventListener('input',syncFeedbackStatus);
-  ['actualSets','actualQuantity'].forEach(id=>{
+  ['actualSets','actualQuantity','actualKilograms'].forEach(id=>{
     $(id).addEventListener('input',syncFeedbackStatus);
     $(id).addEventListener('change',syncFeedbackStatus);
   });
-  function openComplete(item){if(!selectionVisible())return;dialogItem=item;$('confirmExercise').textContent=item.exercise;$('legacyCompleteHelp').hidden=!!item.prescription?.directed;$('directedCompleteHelp').hidden=!item.prescription?.directed;$('confirmError').textContent='';showModal('confirmDialog');}
+  function openComplete(item){if(!selectionVisible())return;
+    if(item.prescription?.strength&&!M.latest(workout.itemFeedback||[],item.id)?.actualRepetitions){
+      openFeedback(item);$('feedbackStatus').value='completed';syncFeedbackStatus();return;
+    }
+    dialogItem=item;$('confirmExercise').textContent=item.exercise;$('legacyCompleteHelp').hidden=!!item.prescription?.directed;$('directedCompleteHelp').hidden=!item.prescription?.directed;$('confirmError').textContent='';showModal('confirmDialog');}
   async function save(values,modal,errorId){
     if(sending)return;sending=true;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=true);$('demoProfile')&&($('demoProfile').disabled=true);
     try{
@@ -169,8 +192,11 @@
       hideModal(modal);renderExercises();notify(values.status==='completed'&&!directed?'Encerramento registrado; a dose executada é a informada no feedback.':'Registro salvo. Apenas este exercício foi atualizado.');
     }catch(e){$(errorId).textContent=errorText(e);}finally{sending=false;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=false);$('demoProfile')&&($('demoProfile').disabled=false);}
   }
-  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});if(!$('actualSeriesFields').hidden)values.actualSeries=[...$('actualSeriesFields').children].map(group=>Object.fromEntries([...group.querySelectorAll('input')].map(input=>[input.dataset.seriesField,Number(input.value)])));save(values,'feedbackDialog','feedbackError');});
-  $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
+  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});if(dialogItem.prescription?.strength){
+    values.actualRepetitions=values.actualQuantity;delete values.actualQuantity;
+    if($('actualKilograms').value!=='')values.actualKilograms=Number($('actualKilograms').value);
+  }if(!$('actualSeriesFields').hidden)values.actualSeries=[...$('actualSeriesFields').children].map(group=>Object.fromEntries([...group.querySelectorAll('input')].map(input=>[input.dataset.seriesField,Number(input.value)])));save(values,'feedbackDialog','feedbackError');});
+  $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity','actualRepetitions','actualKilograms'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
   ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));$('cancelComplete').addEventListener('click',()=>{if(!sending)hideModal('confirmDialog');});
   document.addEventListener('keydown',e=>{const modal=['feedbackDialog','confirmDialog'].map($).find(n=>!n.hidden);if(!modal)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});
   $('previousDays').addEventListener('click',()=>$('days').scrollBy({left:-180,behavior:'smooth'}));$('nextDays').addEventListener('click',()=>$('days').scrollBy({left:180,behavior:'smooth'}));

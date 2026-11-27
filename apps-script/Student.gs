@@ -193,20 +193,22 @@ function structuredFeedbackDetails_(record,reservation,prescriptions){
   if(!reservation)return record;
   var fp=studentJson_(reservation.fingerprint);
   if(fp[0]!=='submitItemFeedback')return record;
-  var data=fp[1],strengthId=data.strengthPrescriptionId,prescriptionId=strengthId||data.prescriptionId;
+  var data=fp[1],versioned=data.structuredFeedback;
+  if(versioned!==undefined&&(!versioned||versioned.version!==2))fail_('SCHEMA_ERROR');
+  var details=versioned||data,strengthId=details.strengthPrescriptionId,prescriptionId=strengthId||details.prescriptionId;
   if(!prescriptionId)return record;
   if(reservation.userId!==record.studentId||data.itemId!==record.itemId||data.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
   record.prescriptionId=prescriptionId;
-  if(data.actualSeries!==undefined)record.actualSeries=data.actualSeries;
-  var historicalCompletion=!strengthId&&data.actualSeries===undefined&&record.status==='completed'&&record.actualQuantity!=='';
+  if(details.actualSeries!==undefined)record.actualSeries=details.actualSeries;
+  var historicalCompletion=!versioned&&!strengthId&&data.actualSeries===undefined&&record.status==='completed'&&record.actualQuantity!=='';
   if(!strengthId&&!historicalCompletion)return record;
   var prescription=prescriptions.get(prescriptionId);
   if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
   var snapshot=studentJson_(prescription.snapshotJson);
   if(strengthId){
     if(!snapshot.strength)fail_('SCHEMA_ERROR');
-    if(data.actualRepetitions!==undefined)record.actualRepetitions=data.actualRepetitions;
-    if(data.actualKilograms!==undefined)record.actualKilograms=data.actualKilograms;
+    if(details.actualRepetitions!==undefined)record.actualRepetitions=details.actualRepetitions;
+    if(details.actualKilograms!==undefined)record.actualKilograms=details.actualKilograms;
     return record;
   }
   var directed=snapshot.directed;
@@ -245,6 +247,16 @@ function applyDirectedFeedback_(record,data,p){
     record.quantityUnit=p.quantityUnit;
   }
 }
+// Hide structured details from the v30 reader while retaining the same public request.
+function versionedFeedbackRequest_(req){
+  var data=Object.assign({},req.data),details={version:2};
+  ['prescriptionId','strengthPrescriptionId','actualSeries','actualRepetitions','actualKilograms'].forEach(function(key){
+    if(data[key]!==undefined)details[key]=data[key];
+    delete data[key];
+  });
+  data.structuredFeedback=details;
+  return Object.assign({},req,{data:data});
+}
 function saveItemFeedback_(db,user,req) {
   if (user.role!=='student') fail_('FORBIDDEN');
   var d=req.data;
@@ -263,10 +275,15 @@ function saveItemFeedback_(db,user,req) {
   var reservation=reservations[0];
   if(d.prescriptionId!==undefined&&d.strengthPrescriptionId!==undefined)fail_('INVALID_DATA');
   var prescriptionId=d.strengthPrescriptionId===undefined?d.prescriptionId:d.strengthPrescriptionId;
-  var prescriptions;
-  if(prescriptionId!==undefined)prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
+  var prescriptions,storedRequest=req;
+  if(prescriptionId!==undefined){
+    prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
+    // A receipt written by an older release still replays with its original fingerprint.
+    if(!reservation||reservation.fingerprint!==fingerprint_(req.action,d))storedRequest=versionedFeedbackRequest_(req);
+  }
+  var storedFingerprint=fingerprint_(storedRequest.action,storedRequest.data);
   if(reservation&&prescriptionId!==undefined){
-    if(reservation.entity!=='ItemFeedback'||reservation.fingerprint!==fingerprint_(req.action,d))fail_('CONFLICT');
+    if(reservation.entity!=='ItemFeedback'||reservation.fingerprint!==storedFingerprint)fail_('CONFLICT');
     var saved=optionalRows_(db,'ItemFeedback').filter(function(f){return f.id===reservation.entityId;});
     if(saved.length>1)fail_('SCHEMA_ERROR');
     if(saved.length)return structuredFeedbackDetails_(saved[0],reservation,prescriptions);
@@ -313,7 +330,7 @@ function saveItemFeedback_(db,user,req) {
       ['rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit'].forEach(function(key){record[key]=previous[key];});
     }
   };
-  var savedRecord=persistRecord_(db,user,req,'ItemFeedback',record,beforeInsert);
+  var savedRecord=persistRecord_(db,user,storedRequest,'ItemFeedback',record,beforeInsert);
   if(completeOnly){
     var history=optionalRows_(db,'ItemFeedback').filter(function(row){
       return row.workoutId===w.id&&row.itemId===d.itemId&&row.studentId===user.id;
@@ -321,5 +338,5 @@ function saveItemFeedback_(db,user,req) {
     context.requests=rows_(db,'Requests');
     return itemFeedbackReader_(context,w,history)(savedRecord);
   }
-  return p.directed||p.strength?structuredFeedbackDetails_(savedRecord,{fingerprint:fingerprint_(req.action,d),userId:user.id},prescriptions):savedRecord;
+  return p.directed||p.strength?structuredFeedbackDetails_(savedRecord,{fingerprint:storedFingerprint,userId:user.id},prescriptions):savedRecord;
 }

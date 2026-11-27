@@ -125,7 +125,7 @@ test('coach tabs default to build and preserve the same unsaved prescription nod
  await fill(ui);const draft=['coachAluno','coachTreinoId','itemExercicio','libraryMethod','libraryAssessment','itemIntensVal','librarySets','itemQtd','itemMin','itemNotas'].map(id=>({id,node:ui.elements.get(id),value:ui.elements.get(id).value}));
  const calls=ui.requests.length,tables=JSON.stringify(ui.f.tables);
  for(const [button,panel,title] of [['coachTabStudents','coachStudentsPanel','Alunos'],['coachTabLibrary','coachLibraryPanel','Biblioteca']]){
-  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.ok(ui.descendant(ui.elements.get(panel==='coachLibraryPanel'?'libraryExercisesTitle':'studentsRegistrationTitle'),panel));
+  await ui.click(button);assert.equal(ui.elements.get(panel).hidden,false);assert.equal(ui.elements.get('coachBuildPanel').hidden,true);assert.equal(ui.elements.get(button)['aria-selected'],'true');assert.ok(ui.descendant(ui.elements.get(panel==='coachLibraryPanel'?'libraryGeneralTitle':'studentsRegistrationTitle'),panel));
  }
  await ui.click('coachTabBuild');for(const f of draft){assert.equal(ui.elements.get(f.id),f.node);assert.equal(ui.elements.get(f.id).value,f.value);}
  assert.deepEqual(ui.requests.slice(calls).filter(r=>r.method!=='financeApi').map(r=>r.request.action),['listSessionModels']);
@@ -156,19 +156,27 @@ test('only the finance card is interactive; prescription RPC/model retain their 
 });
 
 
-test('library keeps four presentation-only cards and adds the interactive session-models card',()=>{
+test('library shows six cards in order with controls only in session models',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const students=source=>source.slice(source.indexOf('aria-labelledby="studentsAssessmentTitle"'),source.indexOf('<section id="coachLibraryPanel"'));
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
- assert.equal((library.match(/class="card library-overview-card"/g)||[]).length,5);
- const modelCard=library.indexOf('<section id="sessionModelsCard"');
- assert.match(library.slice(modelCard),/Modelos de sessões/);
- assert.doesNotMatch(library.slice(0,modelCard),/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
- for(const text of ['Exercícios','Escalada em via','Boulder','Campus board','Fingerboard','Exercícios complementares','Capacidades físicas','Força máxima','Força explosiva','Resistência muscular','Flexibilidade','Coordenação','Métodos de treinamento','Protocolos de treinamento','Vinculação entre exercícios e métodos','Indicadores e unidades','Intensidade','Volume','Grau de dificuldade','Carga absoluta','Carga relativa','Percepção subjetiva de esforço','Movimentos efetivos de mão','Repetições','Tempo acumulado de suspensão','EXERCICIOS','CAPACIDADES','EXERCICIO_CAPACIDADES','METODOS','EXERCICIO_METODOS','INDICADORES','UNIDADES'])assert.ok(library.includes(text),text);
- assert.match(library,/Campo de busca ilustrativo, sem interação/);assert.match(library,/são apresentados de forma ilustrativa/);
+ const cards=library.split(/<section\b(?=[^>]*\bclass="card library-overview-card")/).slice(1);
+ assert.deepEqual(cards.map(card=>card.match(/<h3\b[^>]*>([^<]+)<\/h3>/)?.[1]),[
+  'Treinamento geral','Treinamento direcionado','Treinamento específico',
+  'Modelos de sessões','Mídias e orientações','Modelos de planejamento'
+ ]);
+ const modelCard=cards[3];
+ assert.match(modelCard,/id="sessionModelsCard"/);
+ assert.match(modelCard,/<input\b[^>]*\bid="sessionModelSearch"/);
+ assert.match(modelCard,/<select\b[^>]*\bid="sessionModelMicrocycle"/);
+ for(const card of cards){
+  assert.match(card,/<svg\b/);
+  if(card!==modelCard)assert.doesNotMatch(card,/<(?:input|select|textarea|button|a|form)\b|contenteditable=|\bon(?:click|input|change)=/);
+ }
+ assert.match(library,/Os cartões de treinamento, mídias e planejamento são ilustrativos\./);
 });
 
 

@@ -51,7 +51,7 @@ api recebe {action, data, requestId?, sessionToken?}; responde {ok:true,data} ou
 - submitFeedback, requestId, data {workoutId, status, reason?, fingerPain, rpe, comment?}.
 - listFeedback, data {workoutId} → retornos autorizados do treino.
 
-Campos desconhecidos são rejeitados. Datas YYYY-MM-DD; quantidade/minutos numéricos 0–100000. Retorno: status Concluído/Parcial/Não fez; motivo obrigatório nos dois últimos; dor inteira 0–10; RPE inteiro 1–10. Textos não podem começar por indicadores de fórmula, inclusive após espaços. Renderização usa textContent. Intensidade do item é preservada nas notas, sem modificar o esquema anterior.
+Campos desconhecidos são rejeitados. Datas usam YYYY-MM-DD e quantidade e minutos aceitam valores de 0 a 100000. No retorno da sessão, o motivo é obrigatório para Parcial ou Não fez. A dor (inteiro de 0 a 10) e a PSE (inteiro de 1 a 10) são opcionais. Textos não podem começar por indicadores de fórmula, inclusive após espaços. Renderização usa textContent. Intensidade do item é preservada nas notas, sem modificar o esquema anterior.
 
 ## Concorrência e limites
 
@@ -77,3 +77,5 @@ Ver [INTERFACE-ALUNO.md](../docs/INTERFACE-ALUNO.md). Copiar também Student.gs 
 O cartão usa `MODELOS_SESSAO` e as ações `listSessionModels`, `getSessionModel`, `createSessionModel` e `deleteSessionModel` em `libraryApi`. Para uma validação futura em cópia isolada, o inicializador existente `prepararBibliotecaTeste_` cria a aba ausente com os cabeçalhos de `LIBRARY_SCHEMA_`. O acesso segue a autorização da Biblioteca e o ID do treinador proprietário.
 
 A criação usa uma sessão integral concluída com prescrições compatíveis, inclusive a revisão vigente de cada exercício. O JSON v1 tem o limite de 45.000 caracteres por modelo. A intensidade relativa preserva o percentual e requer a seleção de uma avaliação válida para o novo aluno e a nova data. O modelo usa a identificação da sessão de origem, que na v25 é objetivo ou microciclo. A exclusão limpa o conteúdo e conserva um recibo mínimo para impedir que uma repetição da criação recupere o registro excluído.
+
+O feedback por exercício aceita dados quantitativos, PSE, dor e observações opcionais. Campos em branco permanecem ausentes e valores zero são preservados. A conclusão imediata cria uma revisão que conserva o último feedback do exercício.

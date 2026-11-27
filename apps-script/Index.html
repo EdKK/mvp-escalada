@@ -537,7 +537,7 @@ select.native-hidden {
 <button id="btnLogout" hidden>Sair do MVP</button>
 <div id="appPanel" hidden><header>
   <h1>MVP – Treinos de Escalada Indoor</h1>
-  <div class="sub">Treinador cria treinos detalhados. Aluno devolve status, motivo, dor no dedo e RPE. Dados protegidos por identidade Google e permissões no servidor.</div>
+  <div class="sub">Treinador cria treinos detalhados. Aluno devolve status, motivo, dor no dedo e PSE. Dados protegidos por identidade Google e permissões no servidor.</div>
 
   <div class="tabs" role="tablist" aria-label="Papéis">
     <button class="tabbtn" id="tabCoach" role="tab" aria-selected="true" aria-controls="panelCoach">Treinador</button>
@@ -928,7 +928,7 @@ select.native-hidden {
 <div id="legacyIntensityControls"><div class="row"><div>
             <label for="itemIntensTipo">Intensidade (tipo)</label>
             <select id="itemIntensTipo">
-              <option value="RPE">RPE</option>
+              <option value="RPE">PSE</option>
               <option value="Grade">Grade</option>
               <option value="%">%</option>
               <option value="Peso">Peso</option>
@@ -1061,11 +1061,11 @@ select.native-hidden {
         <div class="row" style="margin-top:10px">
           <div>
             <label for="alunoDor">Dor no dedo (0–10)</label>
-            <input id="alunoDor" type="number" min="0" max="10" step="1" value="0" />
+            <input id="alunoDor" type="number" min="0" max="10" step="1" />
           </div>
           <div>
-            <label for="alunoRpe">RPE do treino (1–10)</label>
-            <input id="alunoRpe" type="number" min="1" max="10" step="1" value="6" />
+            <label for="alunoRpe">Percepção subjetiva do esforço — PSE (1–10)</label>
+            <input id="alunoRpe" type="number" min="1" max="10" step="1" />
           </div>
         </div>
 
@@ -1337,8 +1337,21 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       text(parent,[i.block,i.category,i.exercise,i.quantity!==''?i.metric:'',i.quantity,i.minutes!==''?i.minutes+' min':'',i.prescription?.directed||i.prescription?.strength?'':i.notes].filter(value=>value!==''&&value!==undefined).join(' • '));
     });
     if(session?.role==='coach'&&!sessionDraft)$('coachNextExercise').textContent='Próximo: Exercício '+(w.items.length+1)+' • '+w.items.length+' exercício(s) gravado(s) nesta sessão.';
-    feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status=(f.prescriptionId&&f.actualKilograms===undefined?{completed:'Execução completa',partial:'Execução parcial',not_done:'Não realizada'}:{completed:'Concluído',partial:'Parcial',not_done:'Não realizado'})[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',...coachExecutedFeedback(f),...(f.actualKilograms===undefined?[]:['Carga executada: '+f.actualKilograms+' kg','Repetições executadas por série: '+f.actualRepetitions]),...(f.actualSeries||[]).map((line,index)=>'Série '+(index+1)+': '+line.repetitions+' repetições'+(line.seconds===undefined?'':' / '+line.seconds+' s')+(line.additionalMoves===undefined?'':' / '+line.additionalMoves+' movimentos em repetições incompletas')),f.comment].filter(Boolean).join(' • '));});
+    const observed=(label,value,suffix='')=>value!==undefined&&value!==null&&value!==''?label+value+suffix:'';
+    feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,
+      observed('Dor: ',f.fingerPain),observed('PSE: ',f.rpe),f.comment].filter(Boolean).join(' • ')));
+    (w.itemFeedback||[]).forEach(f=>{
+      const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;
+      const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];
+      const series=(f.actualSeries||[]).map((line,index)=>{
+        const dose=[observed('',line.repetitions,' repetições'),observed('',line.seconds,' s'),
+          observed('',line.additionalMoves,' movimentos em repetições incompletas')].filter(Boolean).join(' / ');
+        return dose?'Série '+(index+1)+': '+dose:'';
+      });
+      text($('listaRetornos'),[exercise,status,'Registro '+f.revision,observed('Dor: ',f.fingerPain),observed('PSE: ',f.rpe),
+        ...coachExecutedFeedback(f),observed('Carga executada: ',f.actualKilograms,' kg'),
+        observed('Repetições executadas por série: ',f.actualRepetitions),...series,f.comment].filter(Boolean).join(' • '));
+    });
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
     if(session?.role==='coach'){showLibraryPrescriptions(w.items);if(!sessionDraft&&libraryReady&&!isSpecificTask()&&!hasDirectedSubblock())await refreshAssessments();}
   }
@@ -1497,7 +1510,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       heading.textContent=(index+1)+'. '+display.name;row.appendChild(heading);parent.appendChild(row);
       text(row,[input.block,input.category,display.method,display.protocol,display.capacity].filter(Boolean).join(' • '));
       for(const intensity of [input.intensity,...(input.auxiliaryIntensities||[])].filter(Boolean)){
-        const label=display.indicators?.[intensity.indicatorId]||intensity.indicatorId;
+        const label=intensity.indicatorId==='int-rpe'?'PSE auxiliar':display.indicators?.[intensity.indicatorId]||intensity.indicatorId;
         const value=intensity.percent!==undefined?intensity.percent+'% da avaliação individual':
           intensity.description??(intensity.value===undefined?'Dificuldade em aberto':[intensity.value,intensity.scale].filter(Boolean).join(' • '));
         text(row,label+' • '+value);
@@ -1974,11 +1987,12 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     $('libraryCapacities').textContent='Capacidades/manifestações associadas: '+(selection.capacities.map(c=>c.name).join(' • ')||'Não informadas');
     options('libraryMethod',selection.methods,'Selecione um método');options('libraryProtocol',selection.protocols,'Sem protocolo');options('libraryCapacity',selection.capacities,'Não especificada');
     options('libraryVolumeUnit',selection.units,null);$('libraryVolumeUnit').value=selection.exercise.primaryVolumeUnitId;
-    options('itemIntensTipo',[{id:selection.indicator.id,name:selection.indicator.name}],null);
+    const perceived=selection.indicator.id==='int-rpe';
+    options('itemIntensTipo',[{id:selection.indicator.id,name:perceived?'PSE':selection.indicator.name}],null);
     $('itemIntensVal').value='';$('gradeScale').value='';$('itemQtd').value='';$('librarySets').value='';$('librarySuspensions').value='';$('libraryBlocks').value='';$('libraryBouts').value='';$('volumeDistribution').value='';
     const kind=selection.indicator.kind;$('assessmentField').hidden=kind!=='relative';$('gradeField').hidden=kind!=='ordinal';
     $('itemIntensVal').type=['relative','absolute'].includes(kind)?'number':'text';$('itemIntensVal').step='any';
-    $('intensityLabel').textContent=kind==='relative'?'Intensidade (% da referência selecionada)':kind==='ordinal'?'Grau de dificuldade':kind==='undefined'?'Referência qualitativa (metodologia pendente)':'Intensidade';
+    $('intensityLabel').textContent=kind==='relative'?'Intensidade (% da referência selecionada)':kind==='ordinal'?'Grau de dificuldade':kind==='undefined'?'Referência qualitativa (metodologia pendente)':perceived?'Percepção subjetiva do esforço — PSE (1–10)':'Intensidade';
     $('itemIntensVal').placeholder=kind==='relative'?'Ex.: 85':kind==='ordinal'?'Ex.: V4':kind==='undefined'?'Descreva a referência; sem percentual':'Valor';
     $('libraryAssessment').setAttribute('aria-required',String(kind==='relative'));
     $('gradeScale').setAttribute('aria-required',String(kind==='ordinal'));
@@ -2021,7 +2035,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
       if(p?.source!=='library')return;
       const {volume,snapshot}=p,intensity=p.intensity.primary;
       const value=intensity.kind==='relative'?`${intensity.percent}% • alvo ${intensity.targetValue} ${intensity.targetUnitId.replace('unit-','')}`:
-        intensity.kind==='ordinal'?(intensity.notPrescribed?'Dificuldade não prescrita':`${intensity.value} (${intensity.scale})`):intensity.description||String(intensity.value);
+        intensity.kind==='ordinal'?(intensity.notPrescribed?'Dificuldade não prescrita':`${intensity.value} (${intensity.scale})`):intensity.description||String(intensity.value)+(intensity.indicatorId==='int-rpe'?' PSE':'');
       const parent=coachRenderedItems.get(item.id)||$('previewTreinoAluno'),task=snapshot.task;
       if(p.strength){
         strengthDescription(p.strength,volume.total,p.strength.oneRm?.percent).forEach(line=>text(parent,line));
@@ -2508,8 +2522,10 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
 
   $('btnEnviarRetorno').addEventListener('click',()=>perform(async()=>{
     if(!selected) throw Error('Selecione um treino');
-    if(!$('alunoDor').value || !$('alunoRpe').value) throw Error('Preencha dor e RPE');
-    await write('submitFeedback',{workoutId:selected,status:$('alunoStatus').value,reason:$('alunoMotivo').value,fingerPain:Number($('alunoDor').value),rpe:Number($('alunoRpe').value),comment:$('alunoComentario').value});
+    const data={workoutId:selected,status:$('alunoStatus').value,reason:$('alunoMotivo').value,comment:$('alunoComentario').value};
+    if($('alunoDor').value!=='')data.fingerPain=Number($('alunoDor').value);
+    if($('alunoRpe').value!=='')data.rpe=Number($('alunoRpe').value);
+    await write('submitFeedback',data);
     $('alunoComentario').value=''; await detail(selected);
   }));
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
@@ -2992,7 +3008,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     }
     if(session.role==='coach'){await loadLibrary();coachDraftBaseline=coachDraftSignature();}
     const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-    $('alunoDor').value='0'; $('alunoRpe').value='6';
+    $('alunoDor').value=''; $('alunoRpe').value='';
     await refresh();
     if(session.role==='coach')await restoreSessionDraft();
     $('appPanel').hidden=false; $('loginPanel').hidden=true; $('btnLogout').hidden=false;

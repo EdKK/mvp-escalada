@@ -93,8 +93,8 @@ function create_(db, user, req) {
     if (['Concluído', 'Parcial', 'Não fez'].indexOf(d.status) < 0) fail_('INVALID_DATA');
     var reason = d.reason === undefined ? '' : d.reason;
     if (['', 'Sem tempo', 'Dor', 'Cansaço', 'Sem acesso', 'Outro'].indexOf(reason) < 0 || (d.status !== 'Concluído' && !reason)) fail_('INVALID_DATA');
-    ['fingerPain', 'rpe'].forEach(function(k) { if (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10) fail_('INVALID_DATA'); });
-    entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain, rpe: d.rpe, comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
+    ['fingerPain', 'rpe'].forEach(function(k) { if (d[k] !== undefined && (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10)) fail_('INVALID_DATA'); });
+    entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain ?? '', rpe: d.rpe ?? '', comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
   } else {
     fields_(d, ['workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'prescription']);
     if (d.prescription !== undefined) prescription_(d.prescription);

@@ -148,8 +148,7 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
 <div class="progress-line"><strong>Seu treino, um movimento de cada vez</strong><span id="progressText"></span></div><div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div><div id="exercises"></div></section></div></main>
 <footer class="app-footer">MVP ESCALADA · TREINE COM PROPÓSITO <span id="demoFooter"></span></footer></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-<div id="feedbackDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="feedbackHeading" hidden><section class="modal"><div class="modal-head"><h2 id="feedbackHeading">Seu feedback</h2><button id="closeFeedback" class="icon-only" aria-label="Fechar feedback">✕</button></div><p id="feedbackExercise" class="subheading"></p><p id="legacyFeedbackHelp" class="subheading">Não realizado: quantidades zero ou em branco. Se houve execução, use Parcial. Concluído registra o encerramento informado, sem presumir toda a dose prescrita.</p><p id="directedFeedbackHelp" class="subheading" hidden>Completa preenche a dose prescrita. Não realizada registra volume zero. Em Parcial, preencha cada série com os valores realizados.</p><form id="feedbackForm"><div class="form-grid"><div class="full"><label for="feedbackStatus">Como foi este exercício?</label><select id="feedbackStatus"><option value="completed">Concluído</option><option value="partial">Parcial</option><option value="not_done">Não realizado</option></select></div><div id="rpeField"><label for="feedbackRpe">RPE percebida (1–10)</label><input id="feedbackRpe" inputmode="numeric" type="number" min="1" max="10" step="1" placeholder="Opcional"></div><div><label for="feedbackPain">Dor nos dedos (0–10)</label><input id="feedbackPain" inputmode="numeric" type="number" min="0" max="10" step="1" required value="0"></div><div id="setsField"><label for="actualSets" id="actualSetsLabel">Séries executadas</label><input id="actualSets" type="number" inputmode="numeric" min="0" max="1000" step="1" placeholder="Opcional"></div><div id="quantityField"><label for="actualQuantity" id="actualQuantityLabel">Quantidade executada</label><input id="actualQuantity" type="number" inputmode="decimal" min="0" max="100000" step="any" placeholder="Por série • opcional"></div><div id="actualKilogramsField" hidden><label id="actualKilogramsLabel" for="actualKilograms">Carga executada (kg)</label><input id="actualKilograms" type="number" inputmode="decimal" min="0" max="100000" step="any"></div><output id="actualStrengthVolume" class="full" aria-live="polite" hidden></output><div id="actualSeriesFields" class="full" hidden></div><div class="full"><label for="feedbackComment">Observações do aluno</label><textarea id="feedbackComment" maxlength="2000" placeholder="Como você se sentiu? Algo a ajustar?"></textarea></div></div><p id="feedbackError" class="field-error" role="alert"></p><div class="modal-actions"><button type="button" id="cancelFeedback">Cancelar</button><button type="submit" class="save" id="saveFeedback">Salvar feedback</button></div><div class="history" id="feedbackHistory"></div></form></section></div>
-<div id="confirmDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirmHeading" hidden><section class="modal"><h2 id="confirmHeading">Concluir exercício?</h2><p id="confirmExercise" class="subheading"></p><p id="legacyCompleteHelp" class="subheading">Apenas este exercício será marcado como concluído. Você poderá corrigir o registro em “Editar feedback”. As quantidades anteriores serão preservadas, sem preenchimento automático da dose prescrita. Concluído registra o encerramento informado; não comprova execução integral. A sessão não será concluída automaticamente.</p><p id="directedCompleteHelp" class="subheading" hidden>A dose prescrita será registrada para este exercício. Você poderá corrigir o registro em “Editar feedback”.</p><p id="confirmError" class="field-error" role="alert"></p><div class="modal-actions"><button id="cancelComplete">Cancelar</button><button class="complete-btn" id="confirmComplete">Sim, concluir</button></div></section></div>
+<div id="feedbackDialog" class="overlay" role="dialog" aria-modal="true" aria-labelledby="feedbackHeading" hidden><section class="modal"><div class="modal-head"><h2 id="feedbackHeading">Seu feedback</h2><button id="closeFeedback" class="icon-only" aria-label="Fechar feedback">✕</button></div><p id="feedbackExercise" class="subheading"></p><p class="subheading">Todos os campos de feedback são opcionais. Informe zero quando esse for o valor observado.</p><form id="feedbackForm"><div class="form-grid"><div class="full"><label for="feedbackStatus">Como foi este exercício?</label><select id="feedbackStatus"><option value="completed">Concluído</option><option value="partial">Parcial</option><option value="not_done">Não realizado</option></select></div><div id="rpeField"><label for="feedbackRpe">Percepção subjetiva do esforço — PSE (1–10)</label><input id="feedbackRpe" inputmode="numeric" type="number" min="1" max="10" step="1" placeholder="Opcional"></div><div><label for="feedbackPain">Dor nos dedos (0–10)</label><input id="feedbackPain" inputmode="numeric" type="number" min="0" max="10" step="1" placeholder="Opcional"></div><div id="setsField"><label for="actualSets" id="actualSetsLabel">Séries executadas</label><input id="actualSets" type="number" inputmode="numeric" min="0" max="1000" step="1" placeholder="Opcional"></div><div id="quantityField"><label for="actualQuantity" id="actualQuantityLabel">Quantidade executada</label><input id="actualQuantity" type="number" inputmode="decimal" min="0" max="100000" step="any" placeholder="Por série • opcional"></div><div id="actualKilogramsField" hidden><label id="actualKilogramsLabel" for="actualKilograms">Carga executada (kg)</label><input id="actualKilograms" type="number" inputmode="decimal" min="0" max="100000" step="any"></div><output id="actualStrengthVolume" class="full" aria-live="polite" hidden></output><div id="actualSeriesFields" class="full" hidden></div><div class="full"><label for="feedbackComment">Observações do aluno</label><textarea id="feedbackComment" maxlength="2000" placeholder="Como você se sentiu? Algo a ajustar?"></textarea></div></div><p id="feedbackError" class="field-error" role="alert"></p><div class="modal-actions"><button type="button" id="cancelFeedback">Cancelar</button><button type="submit" class="save" id="saveFeedback">Salvar feedback</button></div><div class="history" id="feedbackHistory"></div></form></section></div>
 <script>/* Pure student view model; timers are derived from timestamps, never tick counters. */
 var StudentModel = (() => {
   const units={repetitions:'repetições',seconds:'segundos',hang_seconds:'s de suspensão',minutes:'minutos',meters:'metros',attempts:'tentativas',moves:'movimentos'};
@@ -178,9 +177,9 @@ var StudentModel = (() => {
       if(i.kind==='relative')return `${i.percent}% ${i.reference.referenceType==='one_rm'?'de 1RM':'da referência'} • alvo ${i.targetValue} ${referenceUnit(i.targetUnitId)}`;
       if(i.kind==='ordinal')return `${i.value} (${i.scale})`;
       if(i.kind==='undefined')return i.description+' • metodologia pendente';
-      return `${i.value}${i.indicatorId==='int-rpe'?' RPE':''}`;
+      return `${i.value}${i.indicatorId==='int-rpe'?' PSE':''}`;
     }
-    if(!p.intensityUnit)return 'Não informada';if(p.intensityText)return p.intensityText;const v=p.intensityMin===p.intensityMax?String(p.intensityMin):`${p.intensityMin}–${p.intensityMax}`;return p.intensityUnit==='RPE'?'RPE '+v:v+' '+(p.intensityUnit==='%1RM'?'% de 1RM':p.intensityUnit==='%bodyweight'?'% do peso corporal':p.intensityUnit);}
+    if(!p.intensityUnit)return 'Não informada';if(p.intensityText)return p.intensityText;const v=p.intensityMin===p.intensityMax?String(p.intensityMin):`${p.intensityMin}–${p.intensityMax}`;return p.intensityUnit==='RPE'?'PSE '+v:v+' '+(p.intensityUnit==='%1RM'?'% de 1RM':p.intensityUnit==='%bodyweight'?'% do peso corporal':p.intensityUnit);}
   function referenceUnit(id){return {'unit-kg':'kg','unit-kgf':'kgf','unit-newton':'N','unit-bpm':'bpm','unit-degrees':'graus','unit-cm':'cm'}[id]||id;}
   function setCount(p){return p.sets!==''&&p.sets!==undefined?`${p.sets} ${p.volume?.kind==='hand_moves'&&!p.directed?'blocos':'séries'}`:'Não informadas';}
   function seriesDescription(p,line){
@@ -216,7 +215,7 @@ var StudentModel = (() => {
     }
     if(snapshot.capacity)details.push('Capacidade/manifestação: '+snapshot.capacity.name);
     if(p.reference){const a=p.reference;details.push(`Referência individual: ${a.value} ${referenceUnit(a.unitId)} • avaliação ${a.id} • ${a.assessedOn} • validade ${a.validUntil}`);details.push(`Protocolo da avaliação: ${a.protocol} • ${a.referenceDefinition}`);}
-    (p.intensity.auxiliary||[]).forEach(i=>details.push(i.indicatorId==='int-rpe'?`RPE auxiliar prescrito: ${i.value}`:JSON.stringify(i)));
+    (p.intensity.auxiliary||[]).forEach(i=>details.push(i.indicatorId==='int-rpe'?`PSE auxiliar prescrita: ${i.value}`:JSON.stringify(i)));
     if(p.task?.version>=2){
       const rest=p.task.restBetweenSetsSeconds;
       details.push('Recuperação entre séries: '+(rest===undefined?'não informada':`${rest/60} min`));
@@ -224,7 +223,23 @@ var StudentModel = (() => {
     }
     return details.concat(p.series.map(line=>seriesDescription(p,line)));
   }
-  function feedbackData(workout,item,history,values){const p=item.prescription||{},prev=latest(history,item.id);const data={workoutId:workout.id,itemId:item.id,status:values.status,fingerPain:values.fingerPain,comment:values.comment||'',expectedRevision:prev?.revision||0};if(p.strength){data.strengthPrescriptionId=p.prescriptionId;for(const key of ['rpe','actualSets','actualRepetitions','actualKilograms'])if(values[key]!==undefined)data[key]=values[key];return data;}if(p.directed){data.prescriptionId=p.prescriptionId;if(values.actualSeries!==undefined)data.actualSeries=values.actualSeries;return data;}if(values.rpe!==undefined&&p.rpeApplicable)data.rpe=values.rpe;if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}return data;}
+  function feedbackData(workout,item,history,values){
+    const p=item.prescription||{},prev=latest(history,item.id);
+    const data={workoutId:workout.id,itemId:item.id,status:values.status,expectedRevision:prev?.revision||0};
+    if(values.completeOnly)return {...data,completeOnly:true};
+    for(const key of ['rpe','fingerPain','comment'])if(values[key]!==undefined)data[key]=values[key];
+    if(p.strength){
+      data.strengthPrescriptionId=p.prescriptionId;
+      for(const key of ['actualSets','actualRepetitions','actualKilograms'])if(values[key]!==undefined)data[key]=values[key];
+    }else if(p.directed){
+      data.prescriptionId=p.prescriptionId;
+      if(values.actualSeries!==undefined)data.actualSeries=values.actualSeries;
+    }else{
+      if(values.actualSets!==undefined&&p.sets!==''&&p.sets!==undefined)data.actualSets=values.actualSets;
+      if(values.actualQuantity!==undefined&&p.quantityUnit){data.actualQuantity=values.actualQuantity;data.quantityUnit=p.quantityUnit;}
+    }
+    return data;
+  }
   return {units,statuses,dates,forDate,ordered,latest,state,formatTime,elapsed,start,pause,zero,remaining,restStart,restPause,quantity,intensity,setCount,seriesDescription,prescriptionDetails,feedbackData};
 })();
 </script><script>
@@ -330,8 +345,8 @@ function create_(db, user, req) {
     if (['Concluído', 'Parcial', 'Não fez'].indexOf(d.status) < 0) fail_('INVALID_DATA');
     var reason = d.reason === undefined ? '' : d.reason;
     if (['', 'Sem tempo', 'Dor', 'Cansaço', 'Sem acesso', 'Outro'].indexOf(reason) < 0 || (d.status !== 'Concluído' && !reason)) fail_('INVALID_DATA');
-    ['fingerPain', 'rpe'].forEach(function(k) { if (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10) fail_('INVALID_DATA'); });
-    entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain, rpe: d.rpe, comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
+    ['fingerPain', 'rpe'].forEach(function(k) { if (d[k] !== undefined && (!Number.isInteger(d[k]) || d[k] < (k === 'rpe' ? 1 : 0) || d[k] > 10)) fail_('INVALID_DATA'); });
+    entity = 'Feedback'; record = {id: id_(), workoutId: target.id, studentId: user.id, status: d.status, reason: reason, fingerPain: d.fingerPain ?? '', rpe: d.rpe ?? '', comment: d.comment === undefined || d.comment === '' ? '' : text_(d.comment, 2000), createdAt: new Date().toISOString()};
   } else {
     fields_(d, ['workoutId', 'block', 'category', 'exercise', 'metric', 'quantity', 'minutes', 'notes', 'prescription']);
     if (d.prescription !== undefined) prescription_(d.prescription);
@@ -574,114 +589,164 @@ function hydrateStudentWorkout_(db, workout, user) {
   });
   workout.items.sort(function(a,b){return (a.prescription?a.prescription.position:100000)-(b.prescription?b.prescription.position:100000);});
   var visibleIds=new Set(workout.items.map(function(item){return item.id;}));
-  var feedbackRequests=new Map(context.requests.filter(function(r){return r.entity==='ItemFeedback';}).map(function(r){return [r.entityId,r];}));
-  var prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===workout.id;}).map(function(p){return [p.id,p];}));
-  workout.itemFeedback=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id&&f.studentId===workout.studentId&&visibleIds.has(f.itemId);}).map(function(f){return directedFeedbackDetails_(f,feedbackRequests.get(f.id),prescriptions);});
+  var feedback=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id&&f.studentId===workout.studentId&&visibleIds.has(f.itemId);});
+  workout.itemFeedback=feedback.map(itemFeedbackReader_(context,workout,feedback));
   return workout;
 }
-// The existing reservation stores the submitted series with the feedback revision.
-function directedFeedbackDetails_(record,reservation,prescriptions){
+// An immediate completion keeps the previous dose and links to its revision.
+function itemFeedbackReader_(context,workout,history){
+  var requests=new Map(context.requests.filter(function(row){return row.entity==='ItemFeedback';}).map(function(row){return [row.entityId,row];}));
+  var prescriptions=new Map(context.prescriptions.filter(function(row){return row.workoutId===workout.id;}).map(function(row){return [row.id,row];}));
+  var byId=new Map(history.map(function(row){return [row.id,row];}));
+  return function(record){
+    var source=record,reservation=requests.get(source.id);
+    while(reservation&&studentJson_(reservation.fingerprint)[1].completeOnly&&source.supersedesId){
+      var previous=byId.get(source.supersedesId);
+      if(!previous||previous.workoutId!==source.workoutId||previous.itemId!==source.itemId||
+        previous.studentId!==source.studentId||previous.revision!==source.revision-1)fail_('SCHEMA_ERROR');
+      source=previous;reservation=requests.get(source.id);
+    }
+    var details=structuredFeedbackDetails_(Object.assign({},source),reservation,prescriptions);
+    ['prescriptionId','actualSeries','actualRepetitions','actualKilograms'].forEach(function(key){
+      if(details[key]!==undefined)record[key]=details[key];
+    });
+    return record;
+  };
+}
+// Revisions written before BIB-13E can have a stored aggregate without explicit series.
+function structuredFeedbackDetails_(record,reservation,prescriptions){
   if(!reservation)return record;
   var fp=studentJson_(reservation.fingerprint);
-  if(fp[0]!=='submitItemFeedback'||!fp[1].prescriptionId)return record;
-  var data=fp[1];
+  if(fp[0]!=='submitItemFeedback')return record;
+  var data=fp[1],strengthId=data.strengthPrescriptionId,prescriptionId=strengthId||data.prescriptionId;
+  if(!prescriptionId)return record;
   if(reservation.userId!==record.studentId||data.itemId!==record.itemId||data.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
-  record.prescriptionId=data.prescriptionId;
+  record.prescriptionId=prescriptionId;
   if(data.actualSeries!==undefined)record.actualSeries=data.actualSeries;
-  if(record.status==='completed'){
-    var prescription=prescriptions.get(data.prescriptionId);
-    if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
-    var directed=studentJson_(prescription.snapshotJson).directed;
-    if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
-    record.actualSeries=Array.from({length:directed.sets},function(){
-      var line={repetitions:directed.repetitionsPerSet};
-      if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
-      if(directed.path)line.additionalMoves=0;
-      return line;
-    });
+  var historicalCompletion=!strengthId&&data.actualSeries===undefined&&record.status==='completed'&&record.actualQuantity!=='';
+  if(!strengthId&&!historicalCompletion)return record;
+  var prescription=prescriptions.get(prescriptionId);
+  if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
+  var snapshot=studentJson_(prescription.snapshotJson);
+  if(strengthId){
+    if(!snapshot.strength)fail_('SCHEMA_ERROR');
+    if(data.actualRepetitions!==undefined)record.actualRepetitions=data.actualRepetitions;
+    if(data.actualKilograms!==undefined)record.actualKilograms=data.actualKilograms;
+    return record;
   }
+  var directed=snapshot.directed;
+  if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
+  record.actualSeries=Array.from({length:directed.sets},function(){
+    var line={repetitions:directed.repetitionsPerSet};
+    if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
+    if(directed.path)line.additionalMoves=0;
+    return line;
+  });
   return record;
 }
 function applyDirectedFeedback_(record,data,p){
   if(data.prescriptionId!==p.prescriptionId)fail_('CONFLICT');
-  if(data.rpe!==undefined||data.actualSets!==undefined||data.actualQuantity!==undefined||data.quantityUnit!==undefined)fail_('INVALID_DATA');
-  record.quantityUnit=p.quantityUnit;
-  record.actualSets=0;
-  record.actualQuantity=0;
-  if(data.status==='partial'){
-    if(!Array.isArray(data.actualSeries)||data.actualSeries.length!==p.sets)fail_('INVALID_DATA');
-    var isometric=p.directed.modality==='isometric',path=p.directed.path;
-    data.actualSeries.forEach(function(line){
-      fields_(line,isometric?['repetitions','seconds']:path?['repetitions','additionalMoves']:['repetitions']);
-      var reps=numberRange_(line.repetitions,0,path?p.directed.repetitionsPerSet:10000,true);
-      var quantity=isometric?numberRange_(line.seconds,0,1e9,false):reps;
-      if(path)quantity=reps*path.movesPerRep+numberRange_(line.additionalMoves,0,(p.directed.repetitionsPerSet-reps)*(path.movesPerRep-1),true);
-      if(isometric&&reps>0&&quantity===0)fail_('INVALID_DATA');
-      if(reps>0||quantity>0)record.actualSets++;
-      record.actualQuantity+=quantity;
-    });
-    record.actualQuantity=Math.round(record.actualQuantity*1e9)/1e9;
-  }else{
-    if(data.actualSeries!==undefined)fail_('INVALID_DATA');
-    if(data.status==='completed'){record.actualSets=p.sets;record.actualQuantity=p.volume.total;}
+  if(data.actualSets!==undefined||data.actualQuantity!==undefined||data.quantityUnit!==undefined)fail_('INVALID_DATA');
+  if(data.actualSeries===undefined)return;
+  if(!Array.isArray(data.actualSeries)||data.actualSeries.length!==p.sets)fail_('INVALID_DATA');
+  var isometric=p.directed.modality==='isometric',path=p.directed.path,notDone=data.status==='not_done';
+  var sets=0,volume=0,allSetsKnown=true,allVolumesKnown=true;
+  data.actualSeries.forEach(function(line){
+    fields_(line,isometric?['repetitions','seconds']:path?['repetitions','additionalMoves']:['repetitions']);
+    var reps=line.repetitions,seconds=line.seconds,moves=line.additionalMoves;
+    var maxReps=path?p.directed.repetitionsPerSet:10000;
+    if(reps!==undefined)numberRange_(reps,0,notDone?0:maxReps,true);
+    if(seconds!==undefined)numberRange_(seconds,0,notDone?0:1e9,false);
+    if(moves!==undefined)numberRange_(moves,0,notDone?0:(maxReps-(reps??0))*(path.movesPerRep-1),true);
+    var quantity=isometric?seconds:path?(reps!==undefined&&moves!==undefined?reps*path.movesPerRep+moves:undefined):reps;
+    if(reps>0||quantity>0||moves>0)sets++;
+    else if(reps!==0||quantity!==0)allSetsKnown=false;
+    if(quantity===undefined)allVolumesKnown=false;
+    else volume+=quantity;
+  });
+  if(allSetsKnown)record.actualSets=sets;
+  if(allVolumesKnown){
+    record.actualQuantity=Math.round(volume*1e9)/1e9;
+    record.quantityUnit=p.quantityUnit;
   }
 }
 function saveItemFeedback_(db,user,req) {
   if (user.role!=='student') fail_('FORBIDDEN');
   var d=req.data;
-  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision','prescriptionId','actualSeries']);
+  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision','prescriptionId','actualSeries','actualRepetitions','actualKilograms','strengthPrescriptionId','completeOnly']);
   var w=workout_(db,user,text_(d.workoutId,100));
   var items=rows_(db,'Items').filter(function(i){return i.id===d.itemId && i.workoutId===w.id;});
   if(items.length!==1) fail_('NOT_FOUND');
+  var completeOnly=d.completeOnly===true;
+  if(d.completeOnly!==undefined){
+    fields_(d,['workoutId','itemId','status','expectedRevision','completeOnly']);
+    if(!completeOnly||d.status!=='completed')fail_('INVALID_DATA');
+  }
   var context=studentPrescriptionContext_(db);
   var reservations=context.requests.filter(function(r){return r.userId===user.id&&r.key===req.requestId;});
   if(reservations.length>1)fail_('CONFLICT');
   var reservation=reservations[0];
+  if(d.prescriptionId!==undefined&&d.strengthPrescriptionId!==undefined)fail_('INVALID_DATA');
+  var prescriptionId=d.strengthPrescriptionId===undefined?d.prescriptionId:d.strengthPrescriptionId;
   var prescriptions;
-  if(d.prescriptionId!==undefined)prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
-  if(reservation&&d.prescriptionId!==undefined){
+  if(prescriptionId!==undefined)prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===w.id;}).map(function(p){return [p.id,p];}));
+  if(reservation&&prescriptionId!==undefined){
     if(reservation.entity!=='ItemFeedback'||reservation.fingerprint!==fingerprint_(req.action,d))fail_('CONFLICT');
     var saved=optionalRows_(db,'ItemFeedback').filter(function(f){return f.id===reservation.entityId;});
     if(saved.length>1)fail_('SCHEMA_ERROR');
-    if(saved.length)return directedFeedbackDetails_(saved[0],reservation,prescriptions);
+    if(saved.length)return structuredFeedbackDetails_(saved[0],reservation,prescriptions);
     // An interrupted submission retains the original prescription even after an edit.
-    context.prescriptions=context.prescriptions.filter(function(p){return p.itemId!==d.itemId||p.id===d.prescriptionId;});
+    context.prescriptions=context.prescriptions.filter(function(p){return p.itemId!==d.itemId||p.id===prescriptionId;});
     context.requests=context.requests.filter(function(r){
       if(r.entity!=='PRESCRICOES')return true;
       var fp=studentJson_(r.fingerprint);
-      return fp[1].itemId!==d.itemId||r.entityId===d.prescriptionId;
+      return fp[1].itemId!==d.itemId||r.entityId===prescriptionId;
     });
   }
   var p=effectiveItemPrescription_(w,items[0],0,context);
   if(!p)fail_('NOT_FOUND');
   if (['completed','partial','not_done'].indexOf(d.status)<0) fail_('INVALID_DATA');
-  var record={id:id_(),workoutId:w.id,itemId:items[0].id,studentId:user.id,status:d.status,rpe:'',fingerPain:numberRange_(d.fingerPain,0,10,true),comment:d.comment===undefined||d.comment===''?'':text_(d.comment,2000),actualSets:'',actualQuantity:'',quantityUnit:'',createdAt:new Date().toISOString()};
-  if(p.directed)applyDirectedFeedback_(record,d,p);
-  else{
-    if(d.prescriptionId!==undefined||d.actualSeries!==undefined)fail_('INVALID_DATA');
-    if(d.rpe!==undefined && d.rpe!==null) {
-      if(!p || !enabled_(p.rpeApplicable)) fail_('INVALID_DATA');
-      record.rpe=numberRange_(d.rpe,1,10,true);
+  var record={id:id_(),workoutId:w.id,itemId:items[0].id,studentId:user.id,status:d.status,
+    rpe:d.rpe===undefined||d.rpe===null?'':numberRange_(d.rpe,1,10,true),
+    fingerPain:d.fingerPain===undefined?'':numberRange_(d.fingerPain,0,10,true),
+    comment:d.comment===undefined||d.comment===''?'':text_(d.comment,2000),
+    actualSets:'',actualQuantity:'',quantityUnit:'',createdAt:new Date().toISOString()};
+  if(!completeOnly){
+    if(!p.strength&&(d.actualRepetitions!==undefined||d.actualKilograms!==undefined||d.strengthPrescriptionId!==undefined))fail_('INVALID_DATA');
+    if(p.strength)applyStrengthFeedback_(record,d,p);
+    else if(p.directed)applyDirectedFeedback_(record,d,p);
+    else{
+      if(d.prescriptionId!==undefined||d.actualSeries!==undefined)fail_('INVALID_DATA');
+      if(d.actualSets!==undefined){
+        if(p.sets===''||p.sets===undefined)fail_('INVALID_DATA');
+        record.actualSets=numberRange_(d.actualSets,0,1000,true);
+      }
+      if(d.actualQuantity!==undefined){
+        if(!p.quantityUnit||d.quantityUnit!==p.quantityUnit)fail_('INVALID_DATA');
+        record.actualQuantity=numberRange_(d.actualQuantity,0,p.source==='library'?1e12:100000,p.source==='library'&&['repetitions','moves'].indexOf(p.quantityUnit)>=0);
+        record.quantityUnit=d.quantityUnit;
+      }else if(d.quantityUnit!==undefined)fail_('INVALID_DATA');
+      if(d.status==='not_done'&&(record.actualSets>0||record.actualQuantity>0))fail_('INVALID_DATA');
     }
-    if(d.actualSets!==undefined) {
-      if(!p || p.sets==='' || p.sets===undefined) fail_('INVALID_DATA');
-      record.actualSets=numberRange_(d.actualSets,0,1000,true);
-    }
-    if(d.actualQuantity!==undefined) {
-      if(!p || !p.quantityUnit || d.quantityUnit!==p.quantityUnit) fail_('INVALID_DATA');
-      record.actualQuantity=numberRange_(d.actualQuantity,0,p.source==='library'?1e12:100000,p.source==='library'&&['repetitions','moves'].indexOf(p.quantityUnit)>=0); record.quantityUnit=d.quantityUnit;
-    } else if(d.quantityUnit!==undefined) fail_('INVALID_DATA');
-    // Status is independent of fulfillment; not_done alone forbids executed dose.
-    if(d.status==='not_done'&&((record.actualSets!==''&&record.actualSets!==0)||(record.actualQuantity!==''&&record.actualQuantity!==0)))fail_('INVALID_DATA');
   }
   numberRange_(d.expectedRevision,0,100000,true);
   var beforeInsert=function(){
     var previous=optionalRows_(db,'ItemFeedback').filter(function(f){return f.itemId===record.itemId && f.studentId===user.id && f.workoutId===w.id;}).sort(function(a,b){return b.revision-a.revision;})[0];
     if(d.expectedRevision!==(previous?previous.revision:0)) fail_('CONFLICT');
     record.revision=d.expectedRevision+1; record.supersedesId=previous?previous.id:'';
+    if(completeOnly&&previous){
+      ['rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit'].forEach(function(key){record[key]=previous[key];});
+    }
   };
   var savedRecord=persistRecord_(db,user,req,'ItemFeedback',record,beforeInsert);
-  return p.directed?directedFeedbackDetails_(savedRecord,{fingerprint:fingerprint_(req.action,d),userId:user.id},prescriptions):savedRecord;
+  if(completeOnly){
+    var history=optionalRows_(db,'ItemFeedback').filter(function(row){
+      return row.workoutId===w.id&&row.itemId===d.itemId&&row.studentId===user.id;
+    });
+    context.requests=rows_(db,'Requests');
+    return itemFeedbackReader_(context,w,history)(savedRecord);
+  }
+  return p.directed||p.strength?structuredFeedbackDetails_(savedRecord,{fingerprint:fingerprint_(req.action,d),userId:user.id},prescriptions):savedRecord;
 }
 
 function homologationFixture_() {
@@ -888,14 +953,30 @@ function renderCampusBoard(path){
         const rest=el('div','rest-row');rest.dataset.restRow=key;rest.append(el('span','',directed||p.strength||p.task?.version>=2?'Recuperação '+restLabel.toLowerCase():'Descanso regressivo'));const restText=el('span','rest-value',M.formatTime(p.restSeconds*1000));restText.dataset.rest=key;restText.dataset.seconds=p.restSeconds;rest.append(restText);
         rest.append(button('Iniciar','',()=>{let t=rests.get(key);if(t?.endsAt!=null&&t.endsAt>Date.now())return;if(t&&M.remaining(t,Date.now())===0)t=undefined;rests.set(key,M.restStart(t,p.restSeconds,Date.now()));paintClocks();}),button('Pausar','',()=>{const t=rests.get(key)||{remaining:p.restSeconds*1000,endsAt:null};rests.set(key,M.restPause(t,Date.now()));paintClocks();}),button('Zerar','',()=>{rests.set(key,{remaining:p.restSeconds*1000,endsAt:null});paintClocks();}));body.append(rest);
       }
-      const actions=el('div','exercise-actions');actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>openComplete(item),'check'));body.append(actions);
+      const actions=el('div','exercise-actions');
+      const complete=button(state==='completed'?'Concluído':'Concluir exercício','complete-btn',()=>completeExercise(item,complete),'check');
+      complete.disabled=state==='completed';
+      actions.append(button(prev?'Editar feedback':'Dar feedback','feedback-btn',()=>openFeedback(item),'chat'),complete);body.append(actions);
       if(prev){
-        const dose=[prev.actualSets!==''&&prev.actualSets!==undefined?`${prev.actualSets} ${prev.prescriptionId?(prev.actualSets===1?'série':'séries'):'séries/blocos'}`:'',prev.actualQuantity!==''&&prev.actualQuantity!==undefined?`${prev.actualQuantity} ${prev.prescriptionId&&prev.actualQuantity===1&&prev.quantityUnit==='repetitions'?'repetição':M.units[prev.quantityUnit]||prev.quantityUnit}`:''].filter(Boolean).join(' • ');
-        const strengthDose=p.strength&&prev.actualKilograms!==undefined?` • ${prev.actualKilograms} kg • ${prev.actualRepetitions} repetições por série${p.strength.execution==='unilateral'?' por lado':''}`:'';
-        body.append(el('p','saved-note',`Executado informado: ${dose||'quantidades não informadas'}${strengthDose}.${prev.status==='completed'&&!prev.prescriptionId?' Encerramento informado não equivale à dose integral prescrita.':''}`));
+        const group=p.volume?.kind==='hand_moves'&&!directed?'bloco':'série';
+        const unit=prev.actualQuantity===1&&prev.quantityUnit==='repetitions'?'repetição':M.units[prev.quantityUnit]||prev.quantityUnit;
+        const dose=[
+          prev.actualSets!==''&&prev.actualSets!==undefined?prev.actualSets+' '+group+(prev.actualSets===1?'':'s'):'',
+          prev.actualQuantity!==''&&prev.actualQuantity!==undefined?prev.actualQuantity+' '+unit:'',
+          prev.actualKilograms!==undefined?prev.actualKilograms+' kg':'',
+          prev.actualRepetitions!==undefined?prev.actualRepetitions+' repetições por série'+(p.strength?.execution==='unilateral'?' por lado':''):'',
+          prev.rpe!==''&&prev.rpe!==undefined?'PSE: '+prev.rpe:'',
+          prev.fingerPain!==''&&prev.fingerPain!==undefined?'Dor: '+prev.fingerPain:''
+        ].filter(Boolean).join(' • ');
+        body.append(el('p','saved-note','Feedback informado: '+(dose||'sem dados quantitativos')+'.'));
       }
-      if(prev?.status==='partial'&&prev.actualSeries)prev.actualSeries.forEach((line,index)=>{
-        body.append(el('p','saved-note',`Série ${index+1}: ${line.repetitions} repetições${line.seconds===undefined?'':' • '+line.seconds+' '+M.units[prev.quantityUnit]}${line.additionalMoves===undefined?'':' • '+line.additionalMoves+' movimentos em repetições incompletas'}`));
+      prev?.actualSeries?.forEach((line,index)=>{
+        const values=[
+          line.repetitions===undefined?'':line.repetitions+' repetições',
+          line.seconds===undefined?'':line.seconds+' '+M.units[prev.quantityUnit||'hang_seconds'],
+          line.additionalMoves===undefined?'':line.additionalMoves+' movimentos em repetições incompletas'
+        ].filter(Boolean);
+        if(values.length)body.append(el('p','saved-note','Série '+(index+1)+': '+values.join(' • ')));
       });
       if(prev)body.append(el('p','saved-note',`Registro ${prev.revision} salvo • ${new Date(prev.createdAt).toLocaleString('pt-BR')} • Pode ser corrigido.`));
       card.append(body);$('exercises').append(card);
@@ -910,20 +991,15 @@ function renderCampusBoard(path){
   function openFeedback(item){
     if(!selectionVisible())return;dialogItem=item;const p=item.prescription||{},prev=M.latest(workout.itemFeedback||[],item.id);
     $('feedbackHeading').textContent=prev?'Corrigir feedback':'Seu feedback';$('feedbackExercise').textContent=item.exercise;
-    $('feedbackStatus').value=prev?.status||'completed';$('feedbackPain').value=prev?.fingerPain??0;
+    $('feedbackStatus').value=prev?.status||'completed';$('feedbackPain').value=prev?.fingerPain??'';
     $('feedbackRpe').value=prev?.rpe??'';$('feedbackComment').value=prev?.comment||'';$('actualSets').value=prev?.actualSets??'';
     $('actualQuantity').value=(p.strength?prev?.actualRepetitions:prev?.actualQuantity)??'';
-    const load=$('actualKilograms'),bodyweight=p.strength?.condition==='bodyweight';
-    $('actualKilogramsField').hidden=!p.strength;load.disabled=!p.strength;load.readOnly=bodyweight;
-    load.value=bodyweight?'0':prev?.actualKilograms??'';
+    const load=$('actualKilograms');
+    $('actualKilogramsField').hidden=!p.strength;load.disabled=!p.strength;
+    load.value=prev?.actualKilograms??'';
     $('actualKilogramsLabel').textContent='Carga executada (kg'+(p.strength?.loadBasis==='per_implement'?' por implemento':'')+')';
     $('actualStrengthVolume').hidden=!p.strength;
-    $('rpeField').hidden=!p.rpeApplicable;$('feedbackRpe').disabled=!p.rpeApplicable;
     const directed=!!p.directed;
-    $('legacyFeedbackHelp').hidden=directed||!!p.strength;$('directedFeedbackHelp').hidden=!directed;
-    $('feedbackStatus').options[0].textContent=directed?'Execução completa':'Concluído';
-    $('feedbackStatus').options[1].textContent=directed?'Execução parcial':'Parcial';
-    $('feedbackStatus').options[2].textContent=directed?'Não realizada':'Não realizado';
     const fields=$('actualSeriesFields');fields.replaceChildren();
     if(directed){
       for(let i=0;i<p.sets;i++){
@@ -933,7 +1009,7 @@ function renderCampusBoard(path){
         if(p.directed.path)definitions.push(['additionalMoves','Movimentos nas repetições incompletas',p.directed.repetitionsPerSet*(p.directed.path.movesPerRep-1),1]);
         if(p.directed.modality==='isometric')definitions.push(['seconds','Tempo efetivo acumulado (s)',1e9,'any']);
         for(const [key,label,max,step] of definitions){
-          const input=el('input');Object.assign(input,{id:'actual-'+i+'-'+key,type:'number',min:0,max,step,value:prior?.[key]??'',required:true});
+          const input=el('input');Object.assign(input,{id:'actual-'+i+'-'+key,type:'number',min:0,max,step,value:prior?.[key]??''});
           input.dataset.seriesField=key;
           const caption=el('label','',label);caption.htmlFor=input.id;
           group.append(caption,input);
@@ -956,60 +1032,86 @@ function renderCampusBoard(path){
     $('feedbackError').textContent='';syncFeedbackStatus();showModal('feedbackDialog');
   }
   function syncFeedbackStatus(){
-    const status=$('feedbackStatus').value,notDone=status==='not_done',p=dialogItem?.prescription||{};
-    $('actualSeriesFields').hidden=!p.directed||status!=='partial';
-    $('actualSeriesFields').querySelectorAll('input').forEach(input=>input.disabled=$('actualSeriesFields').hidden);
-    const message='Para Não realizado, séries e quantidades executadas devem ser zero ou ficar em branco. Se houve execução, selecione Parcial.';
-    let invalid=false;
-    ['actualSets','actualQuantity','actualKilograms'].forEach(id=>{
+    const notDone=$('feedbackStatus').value==='not_done',p=dialogItem?.prescription||{};
+    $('actualSeriesFields').hidden=!p.directed;
+    const message='Em Não realizado, deixe a dose em branco ou informe zero.';
+    let inconsistent=false;
+    for(const id of ['actualSets','actualQuantity','actualKilograms']){
       const input=$(id),sets=id==='actualSets',load=id==='actualKilograms';
-      input.required=!!p.strength&&!notDone&&!input.readOnly;
-      input.min=p.strength&&!notDone&&!load?'1':'0';
-      input.max=notDone?'0':load?'100000':sets?'1000':p.strength?'10000':p.source==='library'?'1000000000000':'100000';
-      const inconsistent=notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0;
-      const assistance=load&&p.strength?.condition==='assisted'&&!notDone&&input.value!==''&&Number(input.value)<=0;
-      input.setCustomValidity(inconsistent?message:assistance?'Informe a assistência em kg.':'');invalid=invalid||inconsistent;
-    });
+      input.max=notDone||load&&p.strength?.condition==='bodyweight'?'0':
+        load?'100000':sets?'1000':p.strength?'10000':p.source==='library'?'1000000000000':'100000';
+      if(notDone&&!input.disabled&&input.value!==''&&Number(input.value)!==0)inconsistent=true;
+    }
     if(p.strength){
-      const sets=$('actualSets').value,repetitions=$('actualQuantity').value;
-      const total=notDone?0:sets!==''&&repetitions!==''?Number(sets)*Number(repetitions)*(p.strength.execution==='unilateral'?2:1):null;
+      const sets=$('actualSets'),repetitions=$('actualQuantity');
+      const known=sets.value!==''&&repetitions.value!==''&&sets.validity.valid&&repetitions.validity.valid;
+      const total=known?Number(sets.value)*Number(repetitions.value)*(p.strength.execution==='unilateral'?2:1):null;
       $('actualStrengthVolume').textContent='Volume executado: '+(total===null?'—':total+' repetições');
     }
-    if(p.directed?.path){
+    if(p.directed){
+      const d=p.directed,maxReps=d.path?d.repetitionsPerSet:10000;
       $('actualSeriesFields').querySelectorAll('fieldset').forEach(group=>{
         const reps=group.querySelector('[data-series-field=repetitions]');
         const moves=group.querySelector('[data-series-field=additionalMoves]');
-        moves.max=Math.max(0,p.directed.repetitionsPerSet-Number(reps.value))*(p.directed.path.movesPerRep-1);
+        const seconds=group.querySelector('[data-series-field=seconds]');
+        reps.max=notDone?0:maxReps;
+        if(moves)moves.max=notDone?0:Math.max(0,maxReps-Number(reps.value))*(d.path.movesPerRep-1);
+        if(seconds)seconds.max=notDone?0:1e9;
+        if(notDone&&[reps,moves,seconds].some(input=>input&&Number(input.value)>0))inconsistent=true;
       });
     }
-    $('feedbackError').textContent=invalid?message:'';
+    $('feedbackError').textContent=inconsistent?message:'';
   }
   $('feedbackStatus').addEventListener('change',syncFeedbackStatus);
   $('actualSeriesFields').addEventListener('input',syncFeedbackStatus);
-  ['actualSets','actualQuantity','actualKilograms'].forEach(id=>{
-    $(id).addEventListener('input',syncFeedbackStatus);
-    $(id).addEventListener('change',syncFeedbackStatus);
-  });
-  function openComplete(item){if(!selectionVisible())return;
-    if(item.prescription?.strength&&!M.latest(workout.itemFeedback||[],item.id)?.actualRepetitions){
-      openFeedback(item);$('feedbackStatus').value='completed';syncFeedbackStatus();return;
-    }
-    dialogItem=item;$('confirmExercise').textContent=item.exercise;$('legacyCompleteHelp').hidden=!!item.prescription?.directed;$('directedCompleteHelp').hidden=!item.prescription?.directed;$('confirmError').textContent='';showModal('confirmDialog');}
-  async function save(values,modal,errorId){
-    if(sending)return;sending=true;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=true);$('demoProfile')&&($('demoProfile').disabled=true);
-    try{
-      const target=workout,directed=!!dialogItem.prescription?.directed,record=await write(M.feedbackData(workout,dialogItem,workout.itemFeedback||[],values));
-      target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
-      hideModal(modal);renderExercises();notify(values.status==='completed'&&!directed?'Encerramento registrado; a dose executada é a informada no feedback.':'Registro salvo. Apenas este exercício foi atualizado.');
-    }catch(e){$(errorId).textContent=errorText(e);}finally{sending=false;document.querySelectorAll('.overlay button').forEach(b=>b.disabled=false);$('demoProfile')&&($('demoProfile').disabled=false);}
+  ['actualSets','actualQuantity','actualKilograms'].forEach(id=>$(id).addEventListener('input',syncFeedbackStatus));
+  async function completeExercise(item,control){
+    if(!selectionVisible())return;
+    await save(item,{status:'completed',completeOnly:true},control);
   }
-  $('feedbackForm').addEventListener('submit',e=>{e.preventDefault();syncFeedbackStatus();if(!$('feedbackForm').reportValidity())return;const values={status:$('feedbackStatus').value,fingerPain:Number($('feedbackPain').value),comment:$('feedbackComment').value};[['feedbackRpe','rpe'],['actualSets','actualSets'],['actualQuantity','actualQuantity']].forEach(([id,key])=>{if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);});if(dialogItem.prescription?.strength){
-    values.actualRepetitions=values.actualQuantity;delete values.actualQuantity;
-    if($('actualKilograms').value!=='')values.actualKilograms=Number($('actualKilograms').value);
-  }if(!$('actualSeriesFields').hidden)values.actualSeries=[...$('actualSeriesFields').children].map(group=>Object.fromEntries([...group.querySelectorAll('input')].map(input=>[input.dataset.seriesField,Number(input.value)])));save(values,'feedbackDialog','feedbackError');});
-  $('confirmComplete').addEventListener('click',()=>{const prev=M.latest(workout.itemFeedback||[],dialogItem.id);const values={status:'completed',fingerPain:prev?.fingerPain??0,comment:prev?.comment||''};['rpe','actualSets','actualQuantity','actualRepetitions','actualKilograms'].forEach(k=>{if(prev&&prev[k]!==''&&prev[k]!==undefined)values[k]=prev[k];});save(values,'confirmDialog','confirmError');});
-  ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));$('cancelComplete').addEventListener('click',()=>{if(!sending)hideModal('confirmDialog');});
-  document.addEventListener('keydown',e=>{const modal=['feedbackDialog','confirmDialog'].map($).find(n=>!n.hidden);if(!modal)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});
+  async function save(item,values,control){
+    if(sending)return;
+    sending=true;control.disabled=true;
+    if($('demoProfile'))$('demoProfile').disabled=true;
+    try{
+      const target=workout,record=await write(M.feedbackData(target,item,target.itemFeedback||[],values));
+      target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
+      if(workout===target){
+        if(!values.completeOnly)hideModal('feedbackDialog');
+        renderExercises();
+        if(values.completeOnly){
+          const card=[...$('exercises').children].find(element=>element.dataset.itemId===item.id);
+          card?.querySelector('.feedback-btn').focus();
+        }
+      }
+      notify(values.completeOnly?'Exercício concluído.':'Feedback salvo.');
+    }catch(e){
+      if(values.completeOnly)notify(errorText(e));
+      else $('feedbackError').textContent=errorText(e);
+    }finally{
+      sending=false;control.disabled=false;
+      if($('demoProfile'))$('demoProfile').disabled=false;
+    }
+  }
+  $('feedbackForm').addEventListener('submit',event=>{
+    event.preventDefault();syncFeedbackStatus();
+    if(!$('feedbackForm').reportValidity())return;
+    const p=dialogItem.prescription||{},values={status:$('feedbackStatus').value,comment:$('feedbackComment').value};
+    const numericFields=[['feedbackRpe','rpe'],['feedbackPain','fingerPain'],['actualSets','actualSets'],
+      ['actualQuantity',p.strength?'actualRepetitions':'actualQuantity'],['actualKilograms','actualKilograms']];
+    numericFields.forEach(([id,key])=>{
+      if(!$(id).disabled&&$(id).value!=='')values[key]=Number($(id).value);
+    });
+    if(p.directed){
+      const series=[...$('actualSeriesFields').children].map(group=>Object.fromEntries(
+        [...group.querySelectorAll('input')].filter(input=>input.value!=='').map(input=>[input.dataset.seriesField,Number(input.value)])
+      ));
+      if(series.some(line=>Object.keys(line).length))values.actualSeries=series;
+    }
+    save(dialogItem,values,$('saveFeedback'));
+  });
+  ['closeFeedback','cancelFeedback'].forEach(id=>$(id).addEventListener('click',()=>{if(!sending)hideModal('feedbackDialog');}));
+  document.addEventListener('keydown',e=>{const modal=$('feedbackDialog');if(modal.hidden)return;if(e.key==='Escape'&&!sending)hideModal(modal.id);if(e.key==='Tab'){const focus=[...modal.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea,select')].filter(n=>n.getClientRects().length);if(e.shiftKey&&document.activeElement===focus[0]){e.preventDefault();focus.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===focus.at(-1)){e.preventDefault();focus[0].focus();}}});
   $('previousDays').addEventListener('click',()=>$('days').scrollBy({left:-180,behavior:'smooth'}));$('nextDays').addEventListener('click',()=>$('days').scrollBy({left:180,behavior:'smooth'}));
   $('sessionSelect').addEventListener('change',()=>safe(()=>loadWorkout($('sessionSelect').value)));
   $('refreshWorkouts').addEventListener('click',()=>safe(()=>loadWorkouts(selectedDate)));

@@ -177,7 +177,7 @@ try:
         expect(exercise).to_contain_text('Volume prescrito: 64 repetições')
         coach.locator('#listaTreinos button',has_text='Choque').click()
         expect(coach.locator('#listaRetornos')).to_contain_text('Carga executada: 10.5 kg')
-        expect(coach.locator('#listaRetornos')).to_contain_text('RPE: 7')
+        expect(coach.locator('#listaRetornos')).to_contain_text('PSE: 7')
         expect(coach.locator('#listaRetornos')).to_contain_text('Reduzi a carga.')
 
         coach.locator('#openSessionModels').click()

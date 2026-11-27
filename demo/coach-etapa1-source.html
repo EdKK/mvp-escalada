@@ -386,7 +386,7 @@ select.native-hidden {
 <button id="btnLogout" hidden>Sair do MVP</button>
 <div id="appPanel" hidden><header>
   <h1>MVP – Treinos de Escalada Indoor</h1>
-  <div class="sub">Treinador cria treinos detalhados. Aluno devolve status, motivo, dor no dedo e RPE. Dados protegidos por identidade Google e permissões no servidor.</div>
+  <div class="sub">Treinador cria treinos detalhados. Aluno devolve status, motivo, dor no dedo e PSE. Dados protegidos por identidade Google e permissões no servidor.</div>
 
   <div class="tabs" role="tablist" aria-label="Papéis">
     <button class="tabbtn" id="tabCoach" role="tab" aria-selected="true" aria-controls="panelCoach">Treinador</button>
@@ -499,7 +499,7 @@ select.native-hidden {
           <div>
             <label for="itemIntensTipo">Intensidade (tipo)</label>
             <select id="itemIntensTipo">
-              <option value="RPE">RPE</option>
+              <option value="RPE">PSE</option>
               <option value="Grade">Grade</option>
               <option value="%">%</option>
               <option value="Peso">Peso</option>
@@ -528,9 +528,9 @@ select.native-hidden {
 <label><input id="structuredPrescription" type="checkbox" style="width:auto" /> Usar os campos estruturados abaixo</label>
 <div class="row"><div><label for="itemPosition">Ordem do exercício</label><input id="itemPosition" type="number" min="1" step="1" value="1" /></div><div><label for="itemSets">Séries (opcional)</label><input id="itemSets" type="number" min="1" step="1" /></div></div>
 <div class="row"><div><label for="itemDoseUnit">Unidade da quantidade acima</label><select id="itemDoseUnit"><option value="repetitions">Repetições</option><option value="seconds">Segundos</option><option value="hang_seconds">Segundos de suspensão</option><option value="minutes">Minutos</option><option value="meters">Metros</option><option value="attempts">Tentativas</option><option value="moves">Movimentos</option></select></div><div><label for="itemRestSeconds">Descanso em segundos (opcional)</label><input id="itemRestSeconds" type="number" min="0" step="1" /></div></div>
-<div class="row"><div><label for="structuredIntensityUnit">Unidade da intensidade</label><select id="structuredIntensityUnit"><option value="">Não informada</option><option>RPE</option><option>kg</option><option value="%1RM">% de 1RM</option><option value="%bodyweight">% do peso corporal</option><option value="grade">Graduação</option><option value="other">Outra (texto)</option></select></div><div><label for="structuredIntensityText">Graduação ou outra intensidade (texto)</label><input id="structuredIntensityText" /></div></div>
+<div class="row"><div><label for="structuredIntensityUnit">Unidade da intensidade</label><select id="structuredIntensityUnit"><option value="">Não informada</option><option value="RPE">PSE</option><option>kg</option><option value="%1RM">% de 1RM</option><option value="%bodyweight">% do peso corporal</option><option value="grade">Graduação</option><option value="other">Outra (texto)</option></select></div><div><label for="structuredIntensityText">Graduação ou outra intensidade (texto)</label><input id="structuredIntensityText" /></div></div>
 <div class="row"><div><label for="structuredIntensityMin">Intensidade mínima / única</label><input id="structuredIntensityMin" type="number" step="any" /></div><div><label for="structuredIntensityMax">Intensidade máxima (opcional)</label><input id="structuredIntensityMax" type="number" step="any" /></div></div>
-<label><input id="itemRpeApplicable" type="checkbox" style="width:auto" /> Solicitar RPE percebida no feedback</label></details>
+<label><input id="itemRpeApplicable" type="checkbox" style="width:auto" /> Percepção subjetiva do esforço — PSE (1–10)</label></details>
         <div class="btnbar">
           <button id="btnAddItem" class="primary">Adicionar item ao treino</button>
         </div>
@@ -598,11 +598,11 @@ select.native-hidden {
         <div class="row" style="margin-top:10px">
           <div>
             <label for="alunoDor">Dor no dedo (0–10)</label>
-            <input id="alunoDor" type="number" min="0" max="10" step="1" value="0" />
+            <input id="alunoDor" type="number" min="0" max="10" step="1" />
           </div>
           <div>
-            <label for="alunoRpe">RPE do treino (1–10)</label>
-            <input id="alunoRpe" type="number" min="1" max="10" step="1" value="6" />
+            <label for="alunoRpe">Percepção subjetiva do esforço — PSE (1–10)</label>
+            <input id="alunoRpe" type="number" min="1" max="10" step="1" />
           </div>
         </div>
 
@@ -679,8 +679,8 @@ function createRpc(run, getSessionToken) {
     selected=id; $('coachTreinoId').value=id; $('alunoTreinoId').value=id;
     text($('previewTreinoAluno'),w.date+' • '+w.goal+' • '+w.studentId);
     w.items.forEach(i => text($('previewTreinoAluno'),[i.block,i.category,i.exercise,i.metric,i.quantity,i.minutes+' min',i.notes].join(' • ')));
-    feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,'Dor: '+f.fingerPain,'RPE: '+f.rpe,f.comment].join(' • ')));
-    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,'Dor: '+f.fingerPain,f.rpe!==''?'RPE: '+f.rpe:'',f.comment].filter(Boolean).join(' • '));});
+    feedback.forEach(f => text($('listaRetornos'),[f.createdAt,f.status,f.reason,f.fingerPain!==''&&f.fingerPain!==undefined?'Dor: '+f.fingerPain:'',f.rpe!==''&&f.rpe!==undefined?'PSE: '+f.rpe:'',f.comment].filter(Boolean).join(' • ')));
+    (w.itemFeedback||[]).forEach(f=>{const exercise=w.items.find(i=>i.id===f.itemId)?.exercise||f.itemId;const status={completed:'Concluído',partial:'Parcial',not_done:'Não realizado'}[f.status];text($('listaRetornos'),[exercise,status,'Registro '+f.revision,f.fingerPain!==''&&f.fingerPain!==undefined?'Dor: '+f.fingerPain:'',f.rpe!==''?'PSE: '+f.rpe:'',f.comment].filter(Boolean).join(' • '));});
     if (!feedback.length && !(w.itemFeedback||[]).length) text($('listaRetornos'),'Nenhum retorno registrado.');
   }
   async function refresh(id) {
@@ -716,8 +716,10 @@ function createRpc(run, getSessionToken) {
   }));
   $('btnEnviarRetorno').addEventListener('click',()=>perform(async()=>{
     if(!selected) throw Error('Selecione um treino');
-    if(!$('alunoDor').value || !$('alunoRpe').value) throw Error('Preencha dor e RPE');
-    await write('submitFeedback',{workoutId:selected,status:$('alunoStatus').value,reason:$('alunoMotivo').value,fingerPain:Number($('alunoDor').value),rpe:Number($('alunoRpe').value),comment:$('alunoComentario').value});
+    const data={workoutId:selected,status:$('alunoStatus').value,reason:$('alunoMotivo').value,comment:$('alunoComentario').value};
+    if($('alunoDor').value!=='')data.fingerPain=Number($('alunoDor').value);
+    if($('alunoRpe').value!=='')data.rpe=Number($('alunoRpe').value);
+    await write('submitFeedback',data);
     $('alunoComentario').value=''; await detail(selected);
   }));
   $('alunoTreinoId').addEventListener('change',()=>perform(()=>detail($('alunoTreinoId').value)));
@@ -740,7 +742,7 @@ function createRpc(run, getSessionToken) {
       $('coachAluno').replaceChildren(); students.forEach(s=>{const o=document.createElement('option'); o.value=s.id; o.textContent=s.id; $('coachAluno').appendChild(o);});
     }
     const now=new Date(); $('coachData').value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-    $('alunoDor').value='0'; $('alunoRpe').value='6';
+    $('alunoDor').value=''; $('alunoRpe').value='';
     await refresh();
     $('appPanel').hidden=false; $('loginPanel').hidden=true; $('btnLogout').hidden=false;
   }

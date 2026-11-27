@@ -164,12 +164,31 @@ function hydrateStudentWorkout_(db, workout, user) {
     workout.canSaveSessionModel=coachSessionModelEligible_(user,workout,workout.items,context.requests);
   }
   var visibleIds=new Set(workout.items.map(function(item){return item.id;}));
-  var feedbackRequests=new Map(context.requests.filter(function(r){return r.entity==='ItemFeedback';}).map(function(r){return [r.entityId,r];}));
-  var prescriptions=new Map(context.prescriptions.filter(function(p){return p.workoutId===workout.id;}).map(function(p){return [p.id,p];}));
-  workout.itemFeedback=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id&&f.studentId===workout.studentId&&visibleIds.has(f.itemId);}).map(function(f){return structuredFeedbackDetails_(f,feedbackRequests.get(f.id),prescriptions);});
+  var feedback=optionalRows_(db,'ItemFeedback').filter(function(f){return f.workoutId===workout.id&&f.studentId===workout.studentId&&visibleIds.has(f.itemId);});
+  workout.itemFeedback=feedback.map(itemFeedbackReader_(context,workout,feedback));
   return workout;
 }
-// The existing reservation stores the submitted series with the feedback revision.
+// An immediate completion keeps the previous dose and links to its revision.
+function itemFeedbackReader_(context,workout,history){
+  var requests=new Map(context.requests.filter(function(row){return row.entity==='ItemFeedback';}).map(function(row){return [row.entityId,row];}));
+  var prescriptions=new Map(context.prescriptions.filter(function(row){return row.workoutId===workout.id;}).map(function(row){return [row.id,row];}));
+  var byId=new Map(history.map(function(row){return [row.id,row];}));
+  return function(record){
+    var source=record,reservation=requests.get(source.id);
+    while(reservation&&studentJson_(reservation.fingerprint)[1].completeOnly&&source.supersedesId){
+      var previous=byId.get(source.supersedesId);
+      if(!previous||previous.workoutId!==source.workoutId||previous.itemId!==source.itemId||
+        previous.studentId!==source.studentId||previous.revision!==source.revision-1)fail_('SCHEMA_ERROR');
+      source=previous;reservation=requests.get(source.id);
+    }
+    var details=structuredFeedbackDetails_(Object.assign({},source),reservation,prescriptions);
+    ['prescriptionId','actualSeries','actualRepetitions','actualKilograms'].forEach(function(key){
+      if(details[key]!==undefined)record[key]=details[key];
+    });
+    return record;
+  };
+}
+// Revisions written before BIB-13E can have a stored aggregate without explicit series.
 function structuredFeedbackDetails_(record,reservation,prescriptions){
   if(!reservation)return record;
   var fp=studentJson_(reservation.fingerprint);
@@ -178,61 +197,66 @@ function structuredFeedbackDetails_(record,reservation,prescriptions){
   if(!prescriptionId)return record;
   if(reservation.userId!==record.studentId||data.itemId!==record.itemId||data.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
   record.prescriptionId=prescriptionId;
-  if(strengthId||record.status==='completed'){
-    var prescription=prescriptions.get(prescriptionId);
-    if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
-    var snapshot=studentJson_(prescription.snapshotJson);
-    if(strengthId){
-      if(!snapshot.strength)fail_('SCHEMA_ERROR');
-      record.actualRepetitions=data.actualRepetitions??0;
-      record.actualKilograms=data.actualKilograms??0;
-      return record;
-    }
-  }
   if(data.actualSeries!==undefined)record.actualSeries=data.actualSeries;
-  if(record.status==='completed'){
-    var directed=snapshot.directed;
-    if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
-    record.actualSeries=Array.from({length:directed.sets},function(){
-      var line={repetitions:directed.repetitionsPerSet};
-      if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
-      if(directed.path)line.additionalMoves=0;
-      return line;
-    });
+  var historicalCompletion=!strengthId&&data.actualSeries===undefined&&record.status==='completed'&&record.actualQuantity!=='';
+  if(!strengthId&&!historicalCompletion)return record;
+  var prescription=prescriptions.get(prescriptionId);
+  if(!prescription||prescription.itemId!==record.itemId||prescription.workoutId!==record.workoutId)fail_('SCHEMA_ERROR');
+  var snapshot=studentJson_(prescription.snapshotJson);
+  if(strengthId){
+    if(!snapshot.strength)fail_('SCHEMA_ERROR');
+    if(data.actualRepetitions!==undefined)record.actualRepetitions=data.actualRepetitions;
+    if(data.actualKilograms!==undefined)record.actualKilograms=data.actualKilograms;
+    return record;
   }
+  var directed=snapshot.directed;
+  if(!directed||directed.version!==1||!Object.prototype.hasOwnProperty.call(directedSubblockNames_(),directed.subblock))fail_('SCHEMA_ERROR');
+  record.actualSeries=Array.from({length:directed.sets},function(){
+    var line={repetitions:directed.repetitionsPerSet};
+    if(directed.modality==='isometric')line.seconds=Math.round(directed.repetitionsPerSet*directed.durationSeconds*1e9)/1e9;
+    if(directed.path)line.additionalMoves=0;
+    return line;
+  });
   return record;
 }
 function applyDirectedFeedback_(record,data,p){
   if(data.prescriptionId!==p.prescriptionId)fail_('CONFLICT');
-  if(data.rpe!==undefined||data.actualSets!==undefined||data.actualQuantity!==undefined||data.quantityUnit!==undefined)fail_('INVALID_DATA');
-  record.quantityUnit=p.quantityUnit;
-  record.actualSets=0;
-  record.actualQuantity=0;
-  if(data.status==='partial'){
-    if(!Array.isArray(data.actualSeries)||data.actualSeries.length!==p.sets)fail_('INVALID_DATA');
-    var isometric=p.directed.modality==='isometric',path=p.directed.path;
-    data.actualSeries.forEach(function(line){
-      fields_(line,isometric?['repetitions','seconds']:path?['repetitions','additionalMoves']:['repetitions']);
-      var reps=numberRange_(line.repetitions,0,path?p.directed.repetitionsPerSet:10000,true);
-      var quantity=isometric?numberRange_(line.seconds,0,1e9,false):reps;
-      if(path)quantity=reps*path.movesPerRep+numberRange_(line.additionalMoves,0,(p.directed.repetitionsPerSet-reps)*(path.movesPerRep-1),true);
-      if(isometric&&reps>0&&quantity===0)fail_('INVALID_DATA');
-      if(reps>0||quantity>0)record.actualSets++;
-      record.actualQuantity+=quantity;
-    });
-    record.actualQuantity=Math.round(record.actualQuantity*1e9)/1e9;
-  }else{
-    if(data.actualSeries!==undefined)fail_('INVALID_DATA');
-    if(data.status==='completed'){record.actualSets=p.sets;record.actualQuantity=p.volume.total;}
+  if(data.actualSets!==undefined||data.actualQuantity!==undefined||data.quantityUnit!==undefined)fail_('INVALID_DATA');
+  if(data.actualSeries===undefined)return;
+  if(!Array.isArray(data.actualSeries)||data.actualSeries.length!==p.sets)fail_('INVALID_DATA');
+  var isometric=p.directed.modality==='isometric',path=p.directed.path,notDone=data.status==='not_done';
+  var sets=0,volume=0,allSetsKnown=true,allVolumesKnown=true;
+  data.actualSeries.forEach(function(line){
+    fields_(line,isometric?['repetitions','seconds']:path?['repetitions','additionalMoves']:['repetitions']);
+    var reps=line.repetitions,seconds=line.seconds,moves=line.additionalMoves;
+    var maxReps=path?p.directed.repetitionsPerSet:10000;
+    if(reps!==undefined)numberRange_(reps,0,notDone?0:maxReps,true);
+    if(seconds!==undefined)numberRange_(seconds,0,notDone?0:1e9,false);
+    if(moves!==undefined)numberRange_(moves,0,notDone?0:(maxReps-(reps??0))*(path.movesPerRep-1),true);
+    var quantity=isometric?seconds:path?(reps!==undefined&&moves!==undefined?reps*path.movesPerRep+moves:undefined):reps;
+    if(reps>0||quantity>0||moves>0)sets++;
+    else if(reps!==0||quantity!==0)allSetsKnown=false;
+    if(quantity===undefined)allVolumesKnown=false;
+    else volume+=quantity;
+  });
+  if(allSetsKnown)record.actualSets=sets;
+  if(allVolumesKnown){
+    record.actualQuantity=Math.round(volume*1e9)/1e9;
+    record.quantityUnit=p.quantityUnit;
   }
 }
 function saveItemFeedback_(db,user,req) {
   if (user.role!=='student') fail_('FORBIDDEN');
   var d=req.data;
-  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision','prescriptionId','actualSeries','actualRepetitions','actualKilograms','strengthPrescriptionId']);
+  fields_(d,['workoutId','itemId','status','rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit','expectedRevision','prescriptionId','actualSeries','actualRepetitions','actualKilograms','strengthPrescriptionId','completeOnly']);
   var w=workout_(db,user,text_(d.workoutId,100));
   var items=rows_(db,'Items').filter(function(i){return i.id===d.itemId && i.workoutId===w.id;});
   if(items.length!==1) fail_('NOT_FOUND');
+  var completeOnly=d.completeOnly===true;
+  if(d.completeOnly!==undefined){
+    fields_(d,['workoutId','itemId','status','expectedRevision','completeOnly']);
+    if(!completeOnly||d.status!=='completed')fail_('INVALID_DATA');
+  }
   var context=studentPrescriptionContext_(db);
   var reservations=context.requests.filter(function(r){return r.userId===user.id&&r.key===req.requestId;});
   if(reservations.length>1)fail_('CONFLICT');
@@ -257,33 +281,45 @@ function saveItemFeedback_(db,user,req) {
   var p=effectiveItemPrescription_(w,items[0],0,context);
   if(!p)fail_('NOT_FOUND');
   if (['completed','partial','not_done'].indexOf(d.status)<0) fail_('INVALID_DATA');
-  var record={id:id_(),workoutId:w.id,itemId:items[0].id,studentId:user.id,status:d.status,rpe:'',fingerPain:numberRange_(d.fingerPain,0,10,true),comment:d.comment===undefined||d.comment===''?'':text_(d.comment,2000),actualSets:'',actualQuantity:'',quantityUnit:'',createdAt:new Date().toISOString()};
-  if(!p.strength&&(d.actualRepetitions!==undefined||d.actualKilograms!==undefined||d.strengthPrescriptionId!==undefined))fail_('INVALID_DATA');
-  if(p.strength)applyStrengthFeedback_(record,d,p);
-  else if(p.directed)applyDirectedFeedback_(record,d,p);
-  else{
-    if(d.prescriptionId!==undefined||d.actualSeries!==undefined)fail_('INVALID_DATA');
-    if(d.rpe!==undefined && d.rpe!==null) {
-      if(!p || !enabled_(p.rpeApplicable)) fail_('INVALID_DATA');
-      record.rpe=numberRange_(d.rpe,1,10,true);
+  var record={id:id_(),workoutId:w.id,itemId:items[0].id,studentId:user.id,status:d.status,
+    rpe:d.rpe===undefined||d.rpe===null?'':numberRange_(d.rpe,1,10,true),
+    fingerPain:d.fingerPain===undefined?'':numberRange_(d.fingerPain,0,10,true),
+    comment:d.comment===undefined||d.comment===''?'':text_(d.comment,2000),
+    actualSets:'',actualQuantity:'',quantityUnit:'',createdAt:new Date().toISOString()};
+  if(!completeOnly){
+    if(!p.strength&&(d.actualRepetitions!==undefined||d.actualKilograms!==undefined||d.strengthPrescriptionId!==undefined))fail_('INVALID_DATA');
+    if(p.strength)applyStrengthFeedback_(record,d,p);
+    else if(p.directed)applyDirectedFeedback_(record,d,p);
+    else{
+      if(d.prescriptionId!==undefined||d.actualSeries!==undefined)fail_('INVALID_DATA');
+      if(d.actualSets!==undefined){
+        if(p.sets===''||p.sets===undefined)fail_('INVALID_DATA');
+        record.actualSets=numberRange_(d.actualSets,0,1000,true);
+      }
+      if(d.actualQuantity!==undefined){
+        if(!p.quantityUnit||d.quantityUnit!==p.quantityUnit)fail_('INVALID_DATA');
+        record.actualQuantity=numberRange_(d.actualQuantity,0,p.source==='library'?1e12:100000,p.source==='library'&&['repetitions','moves'].indexOf(p.quantityUnit)>=0);
+        record.quantityUnit=d.quantityUnit;
+      }else if(d.quantityUnit!==undefined)fail_('INVALID_DATA');
+      if(d.status==='not_done'&&(record.actualSets>0||record.actualQuantity>0))fail_('INVALID_DATA');
     }
-    if(d.actualSets!==undefined) {
-      if(!p || p.sets==='' || p.sets===undefined) fail_('INVALID_DATA');
-      record.actualSets=numberRange_(d.actualSets,0,1000,true);
-    }
-    if(d.actualQuantity!==undefined) {
-      if(!p || !p.quantityUnit || d.quantityUnit!==p.quantityUnit) fail_('INVALID_DATA');
-      record.actualQuantity=numberRange_(d.actualQuantity,0,p.source==='library'?1e12:100000,p.source==='library'&&['repetitions','moves'].indexOf(p.quantityUnit)>=0); record.quantityUnit=d.quantityUnit;
-    } else if(d.quantityUnit!==undefined) fail_('INVALID_DATA');
-    // Status is independent of fulfillment; not_done alone forbids executed dose.
-    if(d.status==='not_done'&&((record.actualSets!==''&&record.actualSets!==0)||(record.actualQuantity!==''&&record.actualQuantity!==0)))fail_('INVALID_DATA');
   }
   numberRange_(d.expectedRevision,0,100000,true);
   var beforeInsert=function(){
     var previous=optionalRows_(db,'ItemFeedback').filter(function(f){return f.itemId===record.itemId && f.studentId===user.id && f.workoutId===w.id;}).sort(function(a,b){return b.revision-a.revision;})[0];
     if(d.expectedRevision!==(previous?previous.revision:0)) fail_('CONFLICT');
     record.revision=d.expectedRevision+1; record.supersedesId=previous?previous.id:'';
+    if(completeOnly&&previous){
+      ['rpe','fingerPain','comment','actualSets','actualQuantity','quantityUnit'].forEach(function(key){record[key]=previous[key];});
+    }
   };
   var savedRecord=persistRecord_(db,user,req,'ItemFeedback',record,beforeInsert);
+  if(completeOnly){
+    var history=optionalRows_(db,'ItemFeedback').filter(function(row){
+      return row.workoutId===w.id&&row.itemId===d.itemId&&row.studentId===user.id;
+    });
+    context.requests=rows_(db,'Requests');
+    return itemFeedbackReader_(context,w,history)(savedRecord);
+  }
   return p.directed||p.strength?structuredFeedbackDetails_(savedRecord,{fingerprint:fingerprint_(req.action,d),userId:user.id},prescriptions):savedRecord;
 }

@@ -20,11 +20,11 @@ test('rest countdown is independent, pauses and clamps to zero after screen lock
  rest=M.restPause(rest,46000);assert.equal(M.remaining(rest,999000),75000);rest=M.restStart(rest,120,1000000);
  assert.equal(M.remaining(rest,2000000),0);assert.equal(M.formatTime(M.remaining(rest,2000000)),'00:00');assert.equal(M.elapsed(M.start(undefined,1000),46000),45000);
 });
-test('specific units remain visible; perceived RPE and actual dose are conditional',()=>{
- assert.match(M.quantity(prescription),/6 s de suspensão/);assert.equal(M.intensity(prescription),'RPE 7–8');
+test('specific units remain visible; PSE is optional and dose follows item units',()=>{
+ assert.match(M.quantity(prescription),/6 s de suspensão/);assert.equal(M.intensity(prescription),'PSE 7–8');
  assert.equal(M.intensity({intensityUnit:'%1RM',intensityMin:80,intensityMax:85}),'80–85 % de 1RM');
  assert.equal(M.intensity({intensityUnit:'kg',intensityMin:10,intensityMax:10}),'10 kg');
- const d=M.feedbackData({id:'w'},{id:'i',prescription:{rpeApplicable:false}},[],{status:'not_done',fingerPain:0,rpe:7,actualSets:2});assert.equal(d.rpe,undefined);assert.equal(d.actualSets,undefined);assert.equal(d.expectedRevision,0);
+ const d=M.feedbackData({id:'w'},{id:'i',prescription:{rpeApplicable:false}},[],{status:'not_done',fingerPain:0,rpe:7,actualSets:2});assert.equal(d.rpe,7);assert.equal(d.actualSets,undefined);assert.equal(d.expectedRevision,0);
 });
 test('new schema preserves legacy rows and adds structured instructions/prescriptions',()=>{
  const f=prepared();assert.equal(f.w.id,f.tables.Workouts[1][0]);assert.equal(f.tables.Items[1].length,10);
@@ -67,7 +67,7 @@ test('student UI has native multi-expansion, touch targets, small-screen rules a
  new vm.Script(app);assert.match(app,/el\('details','exercise'\)/);assert.match(app,/expanded\.set\(key,card.open\)/);assert.match(app,/visibilitychange/);assert.match(app,/pageshow/);
  assert.match(css,/@media\(max-width:480px\)/);assert.match(css,/min-height:44px/);assert.match(css,/font-size:16px/);assert.match(css,/repeat\(2,minmax\(0,1fr\)\)/);assert.match(html,/viewport-fit=cover/);
  const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);for(const m of app.matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.includes(m[1])||['demoProfile','resetDemo'].includes(m[1]),m[1]);
- assert.match(html,/id="confirmDialog"/);assert.match(html,/id="feedbackDialog"/);assert.match(css,/\[data-status=completed\]/);
+ assert.doesNotMatch(html,/id="confirmDialog"/);assert.match(html,/id="feedbackDialog"/);assert.match(css,/\[data-status=completed\]/);
 });
 test('new demo adapter offers authorized dates and full item feedback with shared server validation',async()=>{
  const html=fs.readFileSync('demo/student.html','utf8'),scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);

@@ -153,16 +153,16 @@ test('Fingerboard resumes interrupted creation and revision and reopens saved da
   assert.equal(ok(f.lib('listPendingCoachSaves',{})).length,0);
 });
 
-test('Fingerboard feedback derives the complete and not-done dose and returns partial series to the trainer',()=>{
+test('Fingerboard leaves omitted dose blank and returns explicit partial and zero series to the trainer',()=>{
   const f=setup(),saved=ok(f.save());
   const completed=ok(f.feedback(saved));
-  assert.deepEqual([completed.actualSets,completed.actualQuantity,completed.quantityUnit],[2,30,'hang_seconds']);
-  assert.deepEqual(JSON.parse(JSON.stringify(completed.actualSeries)),[{repetitions:3,seconds:15},{repetitions:3,seconds:15}]);
+  assert.deepEqual([completed.actualSets,completed.actualQuantity,completed.quantityUnit],['','','']);
+  assert.equal(completed.actualSeries,undefined);
   const actualSeries=[{repetitions:1,seconds:7.25},{repetitions:0,seconds:2.5}];
   const partial=ok(f.feedback(saved,{status:'partial',expectedRevision:1,actualSeries,fingerPain:3,comment:'Esforço incompleto'}));
   assert.deepEqual([partial.actualSets,partial.actualQuantity,partial.supersedesId],[2,9.75,completed.id]);
   assert.deepEqual(JSON.parse(JSON.stringify(partial.actualSeries)),actualSeries);
-  const notDone=ok(f.feedback(saved,{status:'not_done',expectedRevision:2}));
+  const notDone=ok(f.feedback(saved,{status:'not_done',expectedRevision:2,actualSeries:[{repetitions:0,seconds:0},{repetitions:0,seconds:0}]}));
   assert.deepEqual([notDone.actualSets,notDone.actualQuantity,notDone.quantityUnit],[0,0,'hang_seconds']);
   const coach=f.read('coach');
   assert.equal(coach.items[0].prescription.volume.total,30);
@@ -175,7 +175,7 @@ test('Fingerboard validates partial traction and rejects forged feedback units, 
   delete body.directed.durationSeconds;
   const saved=ok(f.save(body));
   const invalid=[
-    {status:'partial'}, {status:'partial',actualSeries:[{repetitions:1}]},
+    {status:'partial',actualSeries:[{repetitions:1}]},
     {status:'partial',actualSeries:[{repetitions:1,seconds:2},{repetitions:0}]},
     {status:'partial',actualSeries:[{repetitions:10001},{repetitions:0}]},
     {status:'partial',actualSeries:[{repetitions:0},{repetitions:null}]},
@@ -191,13 +191,14 @@ test('Fingerboard validates partial traction and rejects forged feedback units, 
 
 test('Fingerboard feedback keeps original prescription provenance during interrupted writes and replay',()=>{
   const f=setup(),saved=ok(f.save());
+  const dose={actualSeries:[{repetitions:3,seconds:15},{repetitions:3,seconds:15}]};
   f.fail('ItemFeedback');
-  rejects(f.feedback(saved,{},'feedback-retry'),'INTERNAL_ERROR');
+  rejects(f.feedback(saved,dose,'feedback-retry'),'INTERNAL_ERROR');
   const edited=ok(f.revise(saved,f.data({durationSeconds:10}).directed));
-  const retry=ok(f.feedback(saved,{},'feedback-retry'));
+  const retry=ok(f.feedback(saved,dose,'feedback-retry'));
   assert.equal(retry.prescriptionId,saved.prescription.id);
   assert.equal(retry.actualQuantity,30);
-  assert.equal(ok(f.feedback(saved,{},'feedback-retry')).id,retry.id);
+  assert.equal(ok(f.feedback(saved,dose,'feedback-retry')).id,retry.id);
   assert.equal(f.tables.ItemFeedback.length,2);
   const workout=f.read();
   assert.equal(workout.items[0].prescription.prescriptionId,edited.prescription.id);
@@ -272,15 +273,15 @@ test('traction blocks preserve recovery and resume creation and revision in a mi
   assert.equal(f.tables.PRESCRICAO_SERIES.length,7);
 });
 
-test('traction block feedback records the prescribed dose, incomplete efforts and explicit zero in seconds',()=>{
+test('traction block feedback records reported dose, incomplete efforts and explicit zero in seconds',()=>{
   const f=setup(),saved=ok(f.save(tractionData(f)));
-  const complete=ok(f.feedback(saved));
+  const complete=ok(f.feedback(saved,{actualSeries:[{repetitions:3,seconds:15},{repetitions:3,seconds:15}]}));
   assert.deepEqual([complete.actualQuantity,complete.actualSets,complete.quantityUnit],[30,2,'seconds']);
   assert.equal(complete.actualSeries[0].seconds,15);
-  rejects(f.feedback(saved,{expectedRevision:1,status:'partial',actualSeries:[{repetitions:1},{repetitions:0,seconds:3}]}));
+  rejects(f.feedback(saved,{expectedRevision:1,status:'partial',actualSeries:[{repetitions:1,seconds:-1},{repetitions:0,seconds:3}]}));
   const actualSeries=[{repetitions:1,seconds:6.5},{repetitions:0,seconds:3}];
   const partial=ok(f.feedback(saved,{expectedRevision:1,status:'partial',actualSeries,fingerPain:2,comment:'Esforço incompleto'}));
-  const notDone=ok(f.feedback(saved,{expectedRevision:2,status:'not_done'}));
+  const notDone=ok(f.feedback(saved,{expectedRevision:2,status:'not_done',actualSeries:[{seconds:0,repetitions:0},{seconds:0,repetitions:0}]}));
   assert.deepEqual([partial.actualQuantity,notDone.actualQuantity,notDone.quantityUnit],[9.5,0,'seconds']);
   const coach=f.read('coach');
   assert.equal(coach.items[0].prescription.volume.total,30);
@@ -382,16 +383,16 @@ test('Campus Board recovers writes, retains historical paths and pins feedback t
   const pending=ok(f.lib('listPendingCoachSaves',{}))[0];
   const saved=ok(f.save(pending.data,pending.requestId));
   assert.equal(ok(f.save(body,'campus-create')).item.id,saved.item.id);
-  const complete=ok(f.feedback(saved));
+  const complete=ok(f.feedback(saved,{actualSeries:[{repetitions:3,additionalMoves:0},{repetitions:3,additionalMoves:0}]}));
   assert.deepEqual([complete.actualQuantity,complete.quantityUnit],[78,'moves']);
   assert.equal(complete.actualSeries[0].additionalMoves,0);
-  for(const line of [{repetitions:4,additionalMoves:0},{repetitions:3,additionalMoves:1},{repetitions:2,additionalMoves:13},{repetitions:0},{repetitions:0,additionalMoves:0.5}]){
+  for(const line of [{repetitions:4,additionalMoves:0},{repetitions:3,additionalMoves:1},{repetitions:2,additionalMoves:13},{repetitions:0,seconds:2},{repetitions:0,additionalMoves:0.5}]){
     rejects(f.feedback(saved,{status:'partial',expectedRevision:1,actualSeries:[line,{repetitions:0,additionalMoves:0}]}));
   }
   const actualSeries=[{repetitions:2,additionalMoves:4},{repetitions:0,additionalMoves:0}];
   const partial=ok(f.feedback(saved,{status:'partial',expectedRevision:1,actualSeries,comment:'Retorno de Campus'}));
   assert.equal(partial.actualQuantity,30);
-  const zero=ok(f.feedback(saved,{status:'not_done',expectedRevision:2}));
+  const zero=ok(f.feedback(saved,{status:'not_done',expectedRevision:2,actualSeries:[{repetitions:0,additionalMoves:0},{repetitions:0,additionalMoves:0}]}));
   assert.equal(zero.actualQuantity,0);
   const originalCatalog=f.context.campusCatalog_;
   f.context.campusCatalog_=()=>{
@@ -440,21 +441,20 @@ test('one workout retains five directed prescriptions in order and all three fee
     assert.equal(item.prescription.quantityUnit,unit);
 
     const complete=ok(f.feedback(saved,{fingerPain:0,comment:'Completa'}));
-    assert.equal(complete.actualQuantity,total);
-    assert.equal(complete.actualSets,3);
+    assert.equal(complete.actualQuantity,'');
+    assert.equal(complete.actualSets,'');
     const zero=Object.fromEntries(Object.keys(line).map(key=>[key,0]));
     const partial={status:'partial',expectedRevision:1,actualSeries:[line,zero,zero],fingerPain:3,comment:'Parcial'};
     rejects(f.feedback(saved,{...partial,actualSeries:[line,zero]}));
-    rejects(f.feedback(saved,{...partial,actualSeries:[{},zero,zero]}));
     rejects(f.feedback(saved,{...partial,actualSeries:[{...line,repetitions:10001},zero,zero]}));
     const returned=ok(f.feedback(saved,partial,'integrated-feedback-'+index));
     assert.equal(returned.actualQuantity,actual);
     assert.equal(returned.actualSets,1);
     assert.equal(ok(f.feedback(saved,partial,'integrated-feedback-'+index)).id,returned.id);
     rejects(f.feedback(saved,partial),'CONFLICT');
-    const notDone=ok(f.feedback(saved,{status:'not_done',expectedRevision:2,fingerPain:0}));
+    const notDone=ok(f.feedback(saved,{status:'not_done',expectedRevision:2,fingerPain:0,actualSeries:[zero,zero,zero]}));
     assert.equal(notDone.actualQuantity,0);
-    assert.equal(notDone.actualSeries,undefined);
+    assert.deepEqual(JSON.parse(JSON.stringify(notDone.actualSeries)),[zero,zero,zero]);
 
     const revised=ok(f.revise(saved,{...body.directed,guidance:'Instrução revisada'}));
     rejects(f.revise(saved,body.directed),'CONFLICT');
@@ -465,7 +465,7 @@ test('one workout retains five directed prescriptions in order and all three fee
     assert.equal(f.read().items[index].prescription.directed.guidance,'Instrução revisada');
     const history=coach.itemFeedback.filter(record=>record.itemId===saved.item.id);
     assert.equal(history.length,3);
-    assert.ok(history.every(record=>record.prescriptionId===saved.prescription.id&&record.quantityUnit===unit));
+    assert.ok(history.every(record=>record.prescriptionId===saved.prescription.id)&&history.slice(1).every(record=>record.quantityUnit===unit));
     assert.equal(history[1].fingerPain,3);
     assert.equal(history[1].comment,'Parcial');
     assert.deepEqual(JSON.parse(JSON.stringify(history[1].actualSeries)),[line,zero,zero]);
@@ -511,4 +511,40 @@ test('directed feedback replay rejects duplicate reservations and duplicate save
   rejects(f.feedback(saved,{},key),'SCHEMA_ERROR');
   f.tables.ItemFeedback.pop();
   assert.equal(ok(f.feedback(saved,{},key)).id,first.id);
+});
+
+test('one-click completion preserves sparse feedback across a directed prescription revision and a lost reply',()=>{
+  const f=setup(),saved=ok(f.save());
+  const sparse=[{repetitions:0},{}];
+  const last=ok(f.feedback(saved,{status:'partial',actualSeries:sparse,rpe:8,fingerPain:0,comment:'Mantive a técnica'}));
+  assert.deepEqual([last.actualSets,last.actualQuantity,last.fingerPain,last.rpe],['','',0,8]);
+  ok(f.revise(saved,f.data({sets:3,durationSeconds:9}).directed));
+  const complete={workoutId:f.workoutId,itemId:saved.item.id,status:'completed',expectedRevision:1,completeOnly:true};
+  f.fail('ItemFeedback');
+  rejects(f.api('submitItemFeedback',complete,'finish','student'),'INTERNAL_ERROR');
+  const result=ok(f.api('submitItemFeedback',complete,'finish','student'));
+  assert.equal(result.status,'completed');
+  assert.equal(result.revision,2);
+  assert.equal(result.prescriptionId,saved.prescription.id);
+  assert.equal(result.actualQuantity,'');
+  assert.deepEqual(JSON.parse(JSON.stringify(result.actualSeries)),sparse);
+  assert.deepEqual([result.fingerPain,result.rpe,result.comment],[0,8,'Mantive a técnica']);
+  assert.equal(ok(f.api('submitItemFeedback',complete,'finish','student')).id,result.id);
+  rejects(f.api('submitItemFeedback',complete,'new-finish','student'),'CONFLICT');
+  const history=f.read('coach').itemFeedback;
+  assert.equal(history.length,2);
+  assert.deepEqual(JSON.parse(JSON.stringify(history[1])),JSON.parse(JSON.stringify(result)));
+});
+
+test('historical directed completion still reads its recorded aggregate and per-series dose',()=>{
+  const {execFileSync}=require('node:child_process');
+  const f=setup(),saved=ok(f.save());
+  vm.runInContext(execFileSync('git',['show','d57adae:apps-script/Student.gs'],{encoding:'utf8'}),f.context);
+  const historical=ok(f.feedback(saved,{},'historical'));
+  vm.runInContext(fs.readFileSync('apps-script/Student.gs','utf8'),f.context);
+  const [record]=f.read().itemFeedback;
+  assert.equal(record.id,historical.id);
+  assert.equal(record.actualQuantity,30);
+  assert.deepEqual(JSON.parse(JSON.stringify(record.actualSeries)),[{repetitions:3,seconds:15},{repetitions:3,seconds:15}]);
+  assert.equal(ok(f.feedback(saved,{},'historical')).id,record.id);
 });

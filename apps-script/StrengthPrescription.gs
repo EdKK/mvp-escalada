@@ -78,13 +78,12 @@ function applyStrengthFeedback_(record,data,p){
   if(data.prescriptionId!==undefined)fail_('INVALID_DATA');
   if(data.actualSeries!==undefined||data.actualQuantity!==undefined||data.quantityUnit!==undefined)fail_('INVALID_DATA');
   var notDone=data.status==='not_done';
-  var sets=numberRange_(notDone&&data.actualSets===undefined?0:data.actualSets,notDone?0:1,notDone?0:1000,true);
-  var repetitions=numberRange_(notDone&&data.actualRepetitions===undefined?0:data.actualRepetitions,notDone?0:1,notDone?0:10000,true);
-  var kilograms=numberRange_(notDone&&data.actualKilograms===undefined?0:data.actualKilograms,0,100000,false);
-  if((notDone||p.strength.condition==='bodyweight')&&kilograms!==0)fail_('INVALID_DATA');
-  if(!notDone&&p.strength.condition==='assisted'&&kilograms<=0)fail_('INVALID_DATA');
-  if(data.rpe!==undefined&&data.rpe!==null)record.rpe=numberRange_(data.rpe,1,10,true);
-  record.actualSets=sets;
-  record.actualQuantity=sets*repetitions*(p.strength.execution==='unilateral'?2:1);
-  record.quantityUnit='repetitions';
+  var sets=data.actualSets,repetitions=data.actualRepetitions,kilograms=data.actualKilograms;
+  if(sets!==undefined)record.actualSets=numberRange_(sets,0,notDone?0:1000,true);
+  if(repetitions!==undefined)numberRange_(repetitions,0,notDone?0:10000,true);
+  if(kilograms!==undefined)numberRange_(kilograms,0,notDone||p.strength.condition==='bodyweight'?0:100000,false);
+  if(sets!==undefined&&repetitions!==undefined){
+    record.actualQuantity=sets*repetitions*(p.strength.execution==='unilateral'?2:1);
+    record.quantityUnit='repetitions';
+  }
 }

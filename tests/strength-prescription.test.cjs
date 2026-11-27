@@ -132,7 +132,9 @@ test('strength feedback records actual dose and survives retry, revision and the
   const absent={workoutId,itemId:item.id,strengthPrescriptionId:item.prescription.prescriptionId,status:'not_done',
     fingerPain:0,expectedRevision:2};
   assert.equal(f.submit({...absent,actualKilograms:5},'incorrect').error.code,'INVALID_DATA');
-  const zero=ok(f.submit(absent,'absent'));
+  const unreported=ok(f.submit(absent,'absent'));
+  assert.deepEqual([unreported.actualSets,unreported.actualQuantity,unreported.actualRepetitions,unreported.actualKilograms],['','',undefined,undefined]);
+  const zero=ok(f.submit({...absent,expectedRevision:3,actualSets:0,actualRepetitions:0,actualKilograms:0},'zero'));
   assert.deepEqual([zero.actualSets,zero.actualQuantity,zero.actualRepetitions,zero.actualKilograms],[0,0,0,0]);
   assert.equal(JSON.stringify(f.tables.PRESCRICOES),before);
   assert.equal(ok(f.get(workoutId,f.coach)).itemFeedback[1].actualKilograms,32.5);

@@ -463,6 +463,12 @@ select.native-hidden {
     #coachStudentsPanel .students-chart{margin:16px 0}
     #coachStudentsPanel figcaption{font-size:14px;margin-bottom:8px}
     #coachStudentsPanel figcaption span{font-size:12px;color:var(--muted)}
+    #avaContent[hidden],#avaContent [hidden]{display:none}
+    #avaRefresh{margin-bottom:14px}
+    #avaContent .ava-mass{font-size:1.5rem;font-weight:700;margin:0 0 8px}
+    #avaChart{width:100%;height:auto;display:block}
+    #avaHistory li{display:block}
+    #avaHistory button{margin:8px 8px 0 0}
     #coachStudentsPanel .students-chart svg{width:100%;height:auto;display:block}
     #coachStudentsPanel .students-chart-grid{stroke:var(--line);stroke-width:1;fill:none}
     #coachStudentsPanel .students-chart-labels{fill:var(--muted);font-family:var(--sans);font-size:11px}
@@ -614,12 +620,36 @@ select.native-hidden {
           </div>
         </section>
         <section class="card students-card" aria-labelledby="studentsAssessmentTitle">
-          <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">02</span><h3 id="studentsAssessmentTitle">Avaliação física</h3></div>
-          <h4>Dados antropométricos</h4>
-          <dl class="students-fields"><div><dt>Massa corporal</dt><dd>— kg</dd></div><div><dt>Estatura</dt><dd>— cm</dd></div></dl>
-          <div class="students-placeholder"><h4>Avaliações físicas</h4><p>Espaço reservado para resultados e referências individuais.</p></div>
-          <div class="students-placeholder"><h4>Testes de desempenho</h4><p>Espaço reservado para protocolos, datas e resultados.</p></div>
-          <p class="students-note">Nenhuma avaliação ou teste é carregado neste cartão.</p>
+          <div class="students-card-heading"><h3 id="studentsAssessmentTitle">Avaliação</h3></div>
+          <p id="avaStatus" class="students-note" role="status">Selecione um aluno para consultar a avaliação.</p>
+          <button type="button" id="avaRefresh" hidden>Atualizar avaliação</button>
+          <div id="avaContent" hidden>
+            <h4>Massa corporal</h4>
+            <p id="avaMass" class="ava-mass"></p>
+            <p id="avaMassChange"></p>
+            <p id="avaDue" class="students-note"></p>
+            <figure class="students-chart" id="avaFigure" hidden>
+              <figcaption>Evolução da massa corporal (kg)</figcaption>
+              <canvas id="avaChart" width="480" height="180" role="img" aria-label="Evolução cronológica da massa corporal. Os valores estão no histórico."></canvas>
+            </figure>
+            <h4>Últimas medidas</h4>
+            <dl id="avaCurrent" class="students-fields"></dl>
+            <div class="students-divider"></div>
+            <form id="avaForm">
+              <h4 id="avaFormTitle">Registrar avaliação</h4>
+              <p id="avaEditContext" class="students-note" hidden></p>
+              <label id="avaDateLabel" for="avaDate">Data da avaliação</label><input id="avaDate" type="date" required>
+              <div class="students-fields">
+                <div id="avaField-height"><label for="ava-height">Estatura (cm)</label><input id="ava-height" type="number" min="0.01" max="1000" step="0.001"></div>
+                <div id="avaField-mass"><label for="ava-mass">Massa corporal (kg)</label><input id="ava-mass" type="number" min="0.01" max="1000" step="0.001"></div>
+                <div id="avaField-span"><label for="ava-span">Envergadura (cm)</label><input id="ava-span" type="number" min="0.01" max="1000" step="0.001"></div>
+              </div>
+              <label id="avaNotesLabel" for="avaNotes">Observações (opcional)</label><textarea id="avaNotes" maxlength="500"></textarea>
+              <div class="btnbar"><button id="avaSave" type="submit">Salvar medidas</button><button id="avaCancel" type="button" hidden>Cancelar</button></div>
+            </form>
+            <div class="students-divider"></div>
+            <details><summary>Histórico de avaliações</summary><ul id="avaHistory" class="students-status-list"></ul></details>
+          </div>
         </section>
         <section class="card students-card" aria-labelledby="studentsGuidelinesTitle">
           <div class="students-card-heading"><span class="students-card-number" aria-hidden="true">03</span><h3 id="studentsGuidelinesTitle">Diretrizes individuais de treino</h3></div>
@@ -2749,6 +2779,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
   }
 
   async function financeSelectStudent(studentId, period = '') {
+    if (avaStudent !== studentId) loadAssessment(studentId);
     const result = studentId ? await financeCall('getStudent', {studentId}) : undefined;
     financeRecord = result;
     financeProfileForm(result?.profile);
@@ -2848,7 +2879,278 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     return 'Aula registrada.';
   });
 
+  /* BEGIN GENERATED ASSESSMENT INTENT */
+/* Store only an intent ID and digest in this tab, so a retry after reload reuses the ID. */
+function createAssessmentWriter() {
+  const pending = new Map();
+  return async (actorId, action, data, send, onStorageFailure) => {
+    const payload = JSON.stringify([actorId, action, data]);
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
+    const storageKey = 'mvp.ava.' + Array.from(new Uint8Array(digest), byte =>
+      byte.toString(16).padStart(2, '0')).join('');
+    let id = pending.get(storageKey);
+    try { id ||= window.sessionStorage.getItem(storageKey); }
+    catch { onStorageFailure(); }
+    const retrying = Boolean(id);
+    id ||= crypto.randomUUID();
+    pending.set(storageKey, id);
+    try { window.sessionStorage.setItem(storageKey, id); }
+    catch { onStorageFailure(); }
+    const clear = () => {
+      pending.delete(storageKey);
+      try { window.sessionStorage.removeItem(storageKey); }
+      catch { onStorageFailure(); }
+    };
+    try {
+      const result = await send(action, data, id);
+      clear();
+      return result;
+    } catch (error) {
+      const rejected = ['INVALID_DATA', 'CONFLICT', 'NOT_FOUND', 'FORBIDDEN', 'NO_ACTIVE_LINK'];
+      if (!retrying && rejected.includes(error.message)) clear();
+      throw error;
+    }
+  };
+}
+/* END GENERATED ASSESSMENT INTENT */
+  const writeAssessment = createAssessmentWriter();
+  const avaVariables = ['height', 'mass', 'span'];
+  const avaNames = {height: 'Estatura', mass: 'Massa corporal', span: 'Envergadura', ape: 'Ape Index'};
+  const avaOrigins = {direct: 'Mensuração direta', self_report: 'Autorrelato', calculation: 'Cálculo'};
+  const avaNumber = new Intl.NumberFormat('pt-BR', {maximumFractionDigits: 3});
+  const avaChange = new Intl.NumberFormat('pt-BR', {maximumFractionDigits: 2, signDisplay: 'exceptZero'});
+  let assessmentRpc, avaStudent = '', avaVersion = 0, avaView, avaEdit, avaBusy = false;
+
+  function avaElement(tag, text) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    return node;
+  }
+
+  function avaDate(date) { return date.split('-').reverse().join('/'); }
+  function avaMeasure(row) { return avaNumber.format(row.value) + ' ' + row.unit; }
+  function avaStatus(text) { $('avaStatus').textContent = text; }
+  function avaClearForm() {
+    avaEdit = undefined;
+    $('avaFormTitle').textContent = 'Registrar avaliação';
+    $('avaEditContext').hidden = true;
+    $('avaEditContext').textContent = '';
+    $('avaCancel').hidden = true;
+    $('avaDate').hidden = $('avaDateLabel').hidden = false;
+    $('avaDate').required = true;
+    $('avaDate').max = $('avaDate').value = avaView?.today || '';
+    $('avaNotesLabel').textContent = 'Observações (opcional)';
+    $('avaNotes').required = false;
+    $('avaNotes').value = '';
+    $('avaSave').textContent = 'Salvar medidas';
+    for (const id of avaVariables) {
+      $('ava-' + id).value = '';
+      $('ava-' + id).required = false;
+      const available = avaView?.catalog.some(row => row.id === id && (row.active === true || row.active === 'TRUE'));
+      $('ava-' + id).disabled = $('avaField-' + id).hidden = !available;
+    }
+  }
+
+  function resetAssessment() {
+    avaVersion++;
+    avaStudent = '';
+    avaBusy = false;
+    avaView = undefined;
+    $('avaContent').hidden = $('avaRefresh').hidden = true;
+    $('avaContent').inert = $('avaRefresh').disabled = false;
+    $('avaCurrent').replaceChildren();
+    $('avaHistory').replaceChildren();
+    $('avaMass').textContent = $('avaMassChange').textContent = $('avaDue').textContent = '';
+    $('avaChart').getContext?.('2d')?.clearRect(0, 0, 480, 180);
+    avaClearForm();
+    avaStatus('Selecione um aluno para consultar a avaliação.');
+  }
+
+  function avaChart(series) {
+    $('avaFigure').hidden = !series.length;
+    const canvas = $('avaChart'), ctx = canvas.getContext?.('2d');
+    if (!ctx || !series.length) return;
+    const dates = series.map(row => Date.parse(row.date)), values = series.map(row => row.value);
+    const low = Math.min(...values), high = Math.max(...values);
+    const min = low === high ? low - 0.5 : low, max = low === high ? high + 0.5 : high;
+    const elapsed = dates[dates.length - 1] - dates[0];
+    const points = series.map((row, index) => [
+      elapsed ? 63 + (dates[index] - dates[0]) * 395 / elapsed : 260,
+      145 - (row.value - min) * 126 / (max - min)
+    ]);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const style = getComputedStyle(canvas);
+    ctx.font = '13px system-ui';
+    ctx.fillStyle = style.color;
+    ctx.fillText(avaNumber.format(max), 4, 24);
+    ctx.fillText(avaNumber.format(min), 4, 150);
+    ctx.fillText(avaDate(series[0].date), 63, 172);
+    if (elapsed) ctx.fillText(avaDate(series[series.length - 1].date), 381, 172);
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.beginPath();
+    ctx.moveTo(60, 18);
+    ctx.lineTo(60, 148);
+    ctx.lineTo(458, 148);
+    ctx.stroke();
+    ctx.strokeStyle = ctx.fillStyle = style.getPropertyValue('--accent').trim() || style.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.stroke();
+    for (const [x, y] of points) {
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.lineWidth = 1;
+  }
+
+  function avaBeginEdit(row, action) {
+    if (avaBusy) return;
+    avaClearForm();
+    avaEdit = {row, action};
+    const invalidate = action === 'invalidate';
+    $('avaFormTitle').textContent = invalidate ? 'Invalidar registro' : 'Corrigir registro';
+    $('avaEditContext').textContent = avaNames[row.variableId] + ' · ' + avaMeasure(row) + ' · ' + avaDate(row.date);
+    $('avaEditContext').hidden = false;
+    $('avaCancel').hidden = false;
+    $('avaDate').value = row.date;
+    $('avaDate').hidden = $('avaDateLabel').hidden = invalidate;
+    $('avaDate').required = !invalidate;
+    $('avaNotesLabel').textContent = invalidate ? 'Motivo da invalidação' : 'Observações (opcional)';
+    $('avaNotes').required = invalidate;
+    $('avaNotes').value = invalidate ? '' : row.notes;
+    $('avaSave').textContent = invalidate ? 'Confirmar invalidação' : 'Salvar correção';
+    for (const id of avaVariables) {
+      const use = !invalidate && id === row.variableId;
+      $('ava-' + id).disabled = $('avaField-' + id).hidden = !use;
+      $('ava-' + id).required = use;
+      if (use) $('ava-' + id).value = row.value;
+    }
+    (invalidate ? $('avaNotes') : $('avaDate')).focus();
+  }
+
+  function renderAssessment(view) {
+    const {current, mass, history, ape, catalog} = view;
+    $('avaMass').textContent = current.mass ? avaMeasure(current.mass) + ' · ' + avaDate(current.mass.date) : 'Massa corporal ainda sem registro';
+    $('avaMassChange').textContent = mass?.delta != null
+      ? 'Variação desde o registro anterior: ' + avaChange.format(mass.delta) + ' kg (' + avaChange.format(mass.percent) + '%)'
+      : '';
+    $('avaDue').textContent = mass ? 'Nova avaliação recomendada em ' + avaDate(mass.dueDate) +
+      (mass.overdue ? ' · mais de 30 dias desde a última medição.' : '.') : '';
+    avaChart(mass?.series || []);
+    $('avaCurrent').replaceChildren(...['mass', 'height', 'span', 'ape'].map(id => {
+      const row = current[id], item = document.createElement('div');
+      item.append(avaElement('dt', avaNames[id]), avaElement('dd', row
+        ? avaMeasure(row) + ' · ' + avaDate(row.date) + ' · ' + avaOrigins[row.origin] : 'Sem medida válida'));
+      return item;
+    }));
+    const byId = new Map(history.map(row => [row.id, row]));
+    const entries = history.concat(ape).sort((a, b) => b.date.localeCompare(a.date));
+    $('avaHistory').replaceChildren(...entries.map(row => {
+      const item = avaElement('li', '');
+      const title = avaNames[row.variableId] + ' · ' + avaDate(row.date);
+      if (row.origin === 'calculation') {
+        item.append(avaElement('strong', title + ' · ' + avaMeasure(row)),
+          avaElement('span', 'Cálculo: envergadura ' + avaMeasure(row.span) + ' (' + avaDate(row.span.date) +
+            ') − estatura ' + avaMeasure(row.height) + ' (' + avaDate(row.height.date) + ')'));
+        return item;
+      }
+      const source = byId.get(row.supersedesId);
+      item.append(avaElement('strong', title + (row.kind === 'invalidation' ? ' · Invalidação' : ' · ' + avaMeasure(row))),
+        avaElement('span', avaOrigins[row.origin] + ' · ' + (row.valid ? 'Válido' : row.kind === 'invalidation' ? 'Registro de auditoria' : 'Invalidado')),
+        avaElement('span', 'Registrado por ' + row.actorId + ' · ' + new Date(row.createdAt).toLocaleString('pt-BR')));
+      if (source) item.append(avaElement('span', 'Substitui ' + avaMeasure(source) + ' de ' + avaDate(source.date)));
+      if (row.notes) item.append(avaElement('span', row.notes));
+      if (row.valid) {
+        if (row.origin === 'direct' && catalog.some(entry => entry.id === row.variableId && (entry.active === true || entry.active === 'TRUE'))) {
+          const correct = avaElement('button', 'Corrigir');
+          correct.type = 'button';
+          correct.addEventListener('click', () => avaBeginEdit(row, 'correct'));
+          item.append(correct);
+        }
+        const invalidate = avaElement('button', 'Invalidar');
+        invalidate.type = 'button';
+        invalidate.addEventListener('click', () => avaBeginEdit(row, 'invalidate'));
+        item.append(invalidate);
+      }
+      return item;
+    }));
+    if (!entries.length) $('avaHistory').append(avaElement('li', 'Nenhuma avaliação registrada.'));
+  }
+
+  async function loadAssessment(studentId, confirmation = '') {
+    resetAssessment();
+    if (!studentId) return;
+    avaStudent = studentId;
+    const version = avaVersion;
+    avaStatus(confirmation + 'Carregando avaliação…');
+    try {
+      const view = await assessmentRpc({action: 'get', data: {studentId}});
+      if (avaVersion !== version) return;
+      avaView = view;
+      avaClearForm();
+      $('avaContent').hidden = false;
+      renderAssessment(view);
+      avaStatus(confirmation);
+    } catch (error) {
+      if (avaVersion !== version) return;
+      if (error.message === 'UNAUTHENTICATED') return clearSession();
+      avaStatus(confirmation + (error.message === 'SCHEMA_ERROR'
+        ? 'A avaliação ainda não foi inicializada.'
+        : 'Não foi possível consultar a avaliação.'));
+    } finally {
+      if (avaVersion === version) $('avaRefresh').hidden = false;
+    }
+  }
+
+  $('avaRefresh').addEventListener('click', () => { if (!avaBusy) return loadAssessment(avaStudent); });
+  $('avaCancel').addEventListener('click', avaClearForm);
+  $('avaForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (avaBusy || !avaView || session?.role !== 'coach') return;
+    const version = avaVersion, studentId = avaStudent, token = sessionToken;
+    const action = avaEdit?.action || 'save';
+    const data = {studentId, notes: $('avaNotes').value};
+    if (avaEdit) data.recordId = avaEdit.row.id;
+    if (action !== 'invalidate') {
+      data.date = $('avaDate').value;
+      data.measures = {};
+      for (const id of avaVariables) {
+        const input = $('ava-' + id);
+        if (!input.disabled && input.value !== '') data.measures[id] = Number(input.value);
+      }
+      if (!Object.keys(data.measures).length) return avaStatus('Preencha pelo menos uma medida.');
+    }
+    avaBusy = $('avaContent').inert = $('avaRefresh').disabled = true;
+    avaStatus('Salvando…');
+    let storageFailure = false;
+    try {
+      await writeAssessment(session.id, action, data, (action, data, requestId) => {
+        if (token !== sessionToken || version !== avaVersion) throw Error('STALE');
+        return assessmentRpc({action, data, requestId});
+      }, () => { storageFailure = true; });
+      if (version === avaVersion) {
+        $('avaRefresh').disabled = false;
+        await loadAssessment(studentId, 'Avaliação atualizada. ');
+      }
+    } catch (error) {
+      if (version !== avaVersion) return;
+      if (error.message === 'UNAUTHENTICATED') return clearSession();
+      const messages = {
+        INVALID_DATA: 'Confira a data, as medidas e as observações.',
+        CONFLICT: 'O registro mudou. Atualize a avaliação antes de tentar novamente.',
+        NOT_FOUND: 'O registro não está disponível.'
+      };
+      avaStatus(messages[error.message] || 'Gravação sem confirmação. Tente novamente com os mesmos dados.' +
+        (storageFailure ? ' Mantenha esta aba aberta até receber a confirmação.' : ''));
+    } finally {
+      if (version === avaVersion) avaBusy = $('avaContent').inert = $('avaRefresh').disabled = false;
+    }
+  });
+
   function clearSession() {
+    resetAssessment();
     resetFinance();
     closeLibraryPage();
     generalCatalog=null;generalCatalogRequest=null;preventiveCatalog=null;preventiveCatalogRequest=null;catalogLoading.clear();catalogErrors.clear();strengthReferences=new Map();
@@ -3179,6 +3481,7 @@ function createLoginResume({link, prepareButton, finishButton, finish, onSuccess
     rpc=createRpc(google.script.run,()=>sessionToken);
     libraryRpc=createRpc(google.script.run,()=>sessionToken,'libraryApi');
     financeRpc=createRpc(google.script.run,()=>sessionToken,'financeApi');
+    assessmentRpc=createRpc(google.script.run,()=>sessionToken,'assessmentApi');
     coachRefreshButton=button($('appPanel'),'Atualizar treinos',()=>refresh(selected));
   } catch(e) { notice('Acesso indisponível: '+e.message); document.querySelectorAll('button').forEach(b=>{b.disabled=true;}); }
 

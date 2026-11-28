@@ -20,9 +20,11 @@ test('server globals expose only the allowed RPC dispatchers and doGet', () => {
   }
   const publicFunctions = Object.keys(context)
     .filter(name => typeof context[name] === 'function' && !name.endsWith('_'));
-  assert.deepEqual(publicFunctions.sort(), ['api', 'doGet', 'financeApi', 'libraryApi']);
+  assert.deepEqual(publicFunctions.sort(), ['api', 'assessmentApi', 'doGet', 'financeApi', 'libraryApi']);
   assert.equal(typeof context.prepararCadastroFinanceiroTeste_, 'function');
   assert.equal(context.prepararCadastroFinanceiroTeste, undefined);
+  assert.equal(typeof context.prepararAvaliacaoTeste_, 'function');
+  assert.equal(context.prepararAvaliacaoTeste, undefined);
   for (const [file, wrapper, initializer] of helpers) {
     assert.equal(context[wrapper], undefined);
     assert.match(source[file], new RegExp('^function ' + wrapper + '_\\(\\)', 'm'));
@@ -36,10 +38,11 @@ test('RPC allowlists exclude initialization and protect writes by session and ro
   properties.LIBRARY_SPREADSHEET_ID = properties.SPREADSHEET_ID;
   vm.runInContext(source['TrainingLibrary.gs'], context);
   vm.runInContext(source['StudentFinance.gs'], context);
+  vm.runInContext(source['Assessment.gs'], context);
   const before = JSON.stringify(tables);
-  for (const dispatch of [context.api, context.libraryApi, context.financeApi]) {
+  for (const dispatch of [context.api, context.libraryApi, context.financeApi, context.assessmentApi]) {
     for (const action of helpers.flatMap(([, wrapper, initializer]) =>
-      [wrapper, wrapper + '_', initializer]).concat('initializeSchema_', 'prepararCadastroFinanceiroTeste_')) {
+      [wrapper, wrapper + '_', initializer]).concat('initializeSchema_', 'prepararCadastroFinanceiroTeste_', 'prepararAvaliacaoTeste_')) {
       assert.equal(dispatch({ action, data: {} }).error.code, 'INVALID_ACTION');
     }
   }

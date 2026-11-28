@@ -1,8 +1,8 @@
 /* Local browser test server. All identities, Sheets and OAuth replies are fictitious.
    Never use this adapter in an Apps Script deployment. */
 const http=require('node:http'),fs=require('node:fs'),vm=require('node:vm');
-const {fixture,setupFinance}=require('./gas.cjs');
-const f=setupFinance(fixture());
+const {fixture,setupFinance,setupAssessment}=require('./gas.cjs');
+const f=setupAssessment(setupFinance(fixture()));
 for(const name of ['TrainingLibrary','TrainingLoad','TrainingCatalog','CoachLibrary','GeneralCatalog','StrengthPrescription','PreventiveCatalog'])vm.runInContext(fs.readFileSync('apps-script/'+name+'.gs','utf8'),f.context);
 f.properties.LIBRARY_SPREADSHEET_ID='test-only';f.context.initializeLibraryDevelopment_();
 f.context.prepararCatalogoGeralHomologacao_();
@@ -13,7 +13,7 @@ for(const studentId of ['s1','s2'])f.context.api({action:'createWorkout',data:{s
 const firstWorkout=f.tables.Workouts[1][0];
 const feedback=f.context.api({action:'submitFeedback',data:{workoutId:firstWorkout,status:'Concluído',reason:'',fingerPain:0,rpe:6,comment:'Retorno fictício para consulta'},requestId:'feedback-test',sessionToken:f.context.issueSession_({email:'one@example.invalid',sub:'12345'})});
 if(!feedback.ok)throw Error('Fictitious feedback fixture failed');
-let loseNext=false,loseNextFeedback=false,delayNext=0;
+let loseNext=false,loseNextFeedback=false,loseNextAssessment=false,delayNext=0;
 const adapter=`<script>
 window.testProfile='coach';
 class TestRunner{
@@ -21,7 +21,7 @@ class TestRunner{
  withSuccessHandler(fn){return new TestRunner(fn,this.failure)}
  withFailureHandler(fn){return new TestRunner(this.success,fn)}
  send(method,request){fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,request,profile:window.testProfile})}).then(r=>{if(!r.ok)throw Error('test transport failure');return r.json()}).then(this.success).catch(this.failure)}
- api(r){this.send('api',r)} libraryApi(r){this.send('libraryApi',r)} financeApi(r){this.send('financeApi',r)}
+ api(r){this.send('api',r)} libraryApi(r){this.send('libraryApi',r)} financeApi(r){this.send('financeApi',r)} assessmentApi(r){this.send('assessmentApi',r)}
 }
 window.google={script:{run:new TestRunner()}};
 </script>`;
@@ -47,7 +47,7 @@ const server=http.createServer(async(req,res)=>{
  }
  let raw='';for await(const chunk of req)raw+=chunk;
  const body=JSON.parse(raw||'{}');res.setHeader('Content-Type','application/json');
- if(req.url==='/test-control'){loseNext=!!body.loseNext;loseNextFeedback=!!body.loseNextFeedback;delayNext=body.delayNext||0;if(body.failTable)f.fail(body.failTable);
+ if(req.url==='/test-control'){loseNext=!!body.loseNext;loseNextAssessment=!!body.loseNextAssessment;loseNextFeedback=!!body.loseNextFeedback;delayNext=body.delayNext||0;if(body.failTable)f.fail(body.failTable);
   if(body.expireSession)f.advance(1801*1000);
   if(body.revokeStudent)f.tables.Links.find(row=>row[1]==='c1'&&row[2]===body.revokeStudent)[3]=false;
   // Fictitious pre-fix history for state regression only; never deployed to Apps Script.
@@ -65,6 +65,7 @@ const server=http.createServer(async(req,res)=>{
  if(method==='api'&&r.action==='beginLogin')result={ok:true,data:{authorizationUrl:'https://accounts.google.com/o/oauth2/v2/auth',transaction:'fake',proof:'fake'}};
  else if(method==='api'&&r.action==='finishLogin')result={ok:true,data:{sessionToken:f.context.issueSession_({email:profile==='student'?'one@example.invalid':profile==='student-b'?'two@example.invalid':'coach@example.invalid',sub:'12345'})}};
  else result=f.context[method](r);
+ if(method==='assessmentApi'&&r.action!=='get'&&result.ok&&loseNextAssessment){loseNextAssessment=false;res.statusCode=503;res.end('{}');return;}
  if(r.action==='submitItemFeedback'&&result.ok&&loseNextFeedback){loseNextFeedback=false;res.statusCode=503;res.end('{}');return;}
  if(['saveCoachPrescription','saveCoachSession'].includes(r.action)&&result.ok){if(loseNext){loseNext=false;res.statusCode=503;res.end('{}');return;}if(delayNext){const delay=delayNext;delayNext=0;await new Promise(resolve=>setTimeout(resolve,delay));}}
  res.end(JSON.stringify(result));

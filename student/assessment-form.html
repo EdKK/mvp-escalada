@@ -1,0 +1,11 @@
+<section class="auth-box" aria-labelledby="selfMassTitle">
+  <h2 id="selfMassTitle">Minha massa corporal</h2>
+  <p>Use a mesma balança em piso firme, de preferência no mesmo horário e com roupas leves. O valor será compartilhado com seus treinadores ativos como autorrelato.</p>
+  <form id="selfMassForm">
+    <p><label for="selfMassValue">Massa corporal (kg)</label> <input id="selfMassValue" type="number" min="0.01" max="1000" step="0.001" required></p>
+    <p><label for="selfMassDate">Data da medição</label> <input id="selfMassDate" type="date" required></p>
+    <button id="selfMassSave" type="submit">Enviar autorrelato</button>
+  </form>
+  <p id="selfMassStatus" role="status"></p>
+  <p id="selfMassStorage" role="status" hidden>Mantenha esta aba aberta até receber a confirmação.</p>
+</section>

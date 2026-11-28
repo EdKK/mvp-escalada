@@ -106,7 +106,18 @@ input, select, textarea { min-width:0; max-width:100%; min-height:48px; font-siz
 <div class="app-shell">
 <header class="hero"><div class="brand-row"><svg class="mountain" viewBox="0 0 50 38" aria-hidden="true"><path d="M0 35 14 13l8 12 10-23 18 33H38L31 21l-7 14H15l-3-6-4 6z"/></svg><h1 class="brand-name">MVP Escalada</h1><button id="profileButton" class="profile-icon" aria-label="Informações do perfil"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2z"/></svg></button></div><h2>Treino do aluno</h2><p class="eyebrow">FOCO NO MOVIMENTO. EVOLUA A CADA TREINO.</p></header>
 <section id="authPanel" class="auth-box" hidden><h2>Seu próximo movimento começa aqui.</h2><p>Entre com a conta Google autorizada para acompanhar seus treinos.</p><button id="prepareLogin">Preparar entrada</button><a id="loginLink" target="_blank" rel="noopener noreferrer" hidden>Continuar no Google</a><button id="finishLogin" hidden>Concluir entrada</button><p id="authMessage" role="status">Depois de autenticar no Google, volte a esta aba. A entrada será concluída automaticamente. Se precisar, use “Concluir entrada”.</p><a id="coachLink" href="@@COACH_URL@@" target="_top">Sou treinador</a></section>
-<main id="trainingPanel" hidden><nav class="day-navigation" aria-label="Dias de treino"><button class="icon-only" id="previousDays" aria-label="Datas anteriores"><svg viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></svg></button><div class="days" id="days"></div><button class="icon-only" id="nextDays" aria-label="Próximas datas"><svg viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></svg></button></nav>
+<main id="trainingPanel" hidden><section class="auth-box" aria-labelledby="selfMassTitle">
+  <h2 id="selfMassTitle">Minha massa corporal</h2>
+  <p>Use a mesma balança em piso firme, de preferência no mesmo horário e com roupas leves. O valor será compartilhado com seus treinadores ativos como autorrelato.</p>
+  <form id="selfMassForm">
+    <p><label for="selfMassValue">Massa corporal (kg)</label> <input id="selfMassValue" type="number" min="0.01" max="1000" step="0.001" required></p>
+    <p><label for="selfMassDate">Data da medição</label> <input id="selfMassDate" type="date" required></p>
+    <button id="selfMassSave" type="submit">Enviar autorrelato</button>
+  </form>
+  <p id="selfMassStatus" role="status"></p>
+  <p id="selfMassStorage" role="status" hidden>Mantenha esta aba aberta até receber a confirmação.</p>
+</section>
+<nav class="day-navigation" aria-label="Dias de treino"><button class="icon-only" id="previousDays" aria-label="Datas anteriores"><svg viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></svg></button><div class="days" id="days"></div><button class="icon-only" id="nextDays" aria-label="Próximas datas"><svg viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></svg></button></nav>
 <div class="content"><div class="session-topline"><span id="sessionDate"></span><button id="refreshWorkouts">Atualizar treinos ↻</button></div><label for="sessionSelect" id="sessionLabel" hidden>Sessão do dia</label><select id="sessionSelect" hidden></select>
 <div id="emptyState" class="empty-state" hidden><h3>Nenhum treino por aqui.</h3><p>Quando seu treinador disponibilizar uma sessão, ela aparecerá nesta tela.</p></div>
 <section id="sessionContent" hidden><section class="information" aria-label="Orientações do treinamento"><div class="info-row"><span class="info-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4"/><path d="m11 13 9-10m-1 1v4h-4"/></svg></span><div><h3 id="dayGoalLabel">Objetivo do dia</h3><p id="dayGoal"></p></div></div><div class="info-row"><span class="info-icon purple"><svg viewBox="0 0 24 24"><path d="M8 4H4v17h16V4h-4M8 2h8v5H8zM8 11h8M8 15h8M8 18h5"/></svg></span><div><h3>Orientação passo a passo</h3><ol id="dayInstructions"></ol><p id="noInstructions" hidden>O treinador ainda não adicionou orientações para esta sessão.</p></div></div></section>
@@ -322,13 +333,45 @@ var StudentModel = (() => {
   document.addEventListener('visibilitychange', () => check());
   return {prepare, markOpened, reset};
 }
+/* Store only an intent ID and digest in this tab, so a retry after reload reuses the ID. */
+function createAssessmentWriter() {
+  const pending = new Map();
+  return async (actorId, action, data, send, onStorageFailure) => {
+    const payload = JSON.stringify([actorId, action, data]);
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
+    const storageKey = 'mvp.ava.' + Array.from(new Uint8Array(digest), byte =>
+      byte.toString(16).padStart(2, '0')).join('');
+    let id = pending.get(storageKey);
+    try { id ||= window.sessionStorage.getItem(storageKey); }
+    catch { onStorageFailure(); }
+    const retrying = Boolean(id);
+    id ||= crypto.randomUUID();
+    pending.set(storageKey, id);
+    try { window.sessionStorage.setItem(storageKey, id); }
+    catch { onStorageFailure(); }
+    const clear = () => {
+      pending.delete(storageKey);
+      try { window.sessionStorage.removeItem(storageKey); }
+      catch { onStorageFailure(); }
+    };
+    try {
+      const result = await send(action, data, id);
+      clear();
+      return result;
+    } catch (error) {
+      const rejected = ['INVALID_DATA', 'CONFLICT', 'NOT_FOUND', 'FORBIDDEN', 'NO_ACTIVE_LINK'];
+      if (!retrying && rejected.includes(error.message)) clear();
+      throw error;
+    }
+  };
+}
 /* Same authenticated API and OAuth flow as Index; no mock identity in this build. */
 window.StudentAPI=(()=>{
   let token='';
   const $=id=>document.getElementById(id);
-  const call=(action,data,requestId)=>new Promise((resolve,reject)=>{
+  const call=(action,data,requestId,method = 'api')=>new Promise((resolve,reject)=>{
     const request={action,data};if(requestId)request.requestId=requestId;if(token)request.sessionToken=token;
-    google.script.run.withSuccessHandler(r=>{if(r&&r.ok){resolve(r.data);return;}const code=r?.error?.code||'INVALID_RESPONSE';if(code==='UNAUTHENTICATED' && token){token='';$('trainingPanel').hidden=true;$('authPanel').hidden=false;$('authMessage').textContent='Sua sessão expirou. Prepare uma nova entrada.';}reject(Error(code));}).withFailureHandler(()=>reject(Error('TRANSPORT_ERROR'))).api(request);
+    google.script.run.withSuccessHandler(r=>{if(r&&r.ok){resolve(r.data);return;}const code=r?.error?.code||'INVALID_RESPONSE';if(code==='UNAUTHENTICATED' && token){token='';$('trainingPanel').hidden=true;$('authPanel').hidden=false;$('authMessage').textContent='Sua sessão expirou. Prepare uma nova entrada.';}reject(Error(code));}).withFailureHandler(()=>reject(Error('TRANSPORT_ERROR')))[method](request);
   });
   async function setupLogin(start){
     $('authPanel').hidden=false;
@@ -363,6 +406,38 @@ window.StudentAPI=(()=>{
       } finally {
         button.disabled = false;
       }
+    });
+    const writeAssessment = createAssessmentWriter();
+    const date = new Date();
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    $('selfMassDate').value = date.toISOString().slice(0, 10);
+    $('selfMassForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const save = $('selfMassSave'), status = $('selfMassStatus');
+      if (!token || save.disabled) return;
+      const sessionToken = token;
+      const data = {date: $('selfMassDate').value, mass: Number($('selfMassValue').value)};
+      save.disabled = true;
+      status.textContent = 'Enviando…';
+      try {
+        const actor = await call('getSession', {});
+        await writeAssessment(actor.id, 'selfReport', data,
+          (action, payload, id) => {
+            if (token !== sessionToken) throw Error('UNAUTHENTICATED');
+            return call(action, payload, id, 'assessmentApi');
+          },
+          () => { $('selfMassStorage').hidden = false; });
+        if (Number($('selfMassValue').value) === data.mass) $('selfMassValue').value = '';
+        status.textContent = 'Autorrelato registrado.';
+      } catch (error) {
+        const messages = {
+          NO_ACTIVE_LINK: 'Seu cadastro precisa de um vínculo ativo com um treinador.',
+          INVALID_DATA: 'Confira o peso em kg e a data da medição.',
+          SCHEMA_ERROR: 'A avaliação ainda não está disponível.'
+        };
+        status.textContent = messages[error.message] ||
+          'Envio sem confirmação. Tente novamente com o mesmo valor e a mesma data.';
+      } finally { save.disabled = false; }
     });
     const signout=document.createElement('button');signout.textContent='Sair';signout.className='student-signout';signout.addEventListener('click',async()=>{try{await call('logout',{});}finally{token='';location.reload();}});document.querySelector('.app-footer').append(signout);
   }

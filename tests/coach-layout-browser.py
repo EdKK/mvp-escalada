@@ -147,7 +147,7 @@ try:
                 page.locator('#libraryBack').click()
                 assert page.request.post(base+'/test-tables',data={}).json()==before_navigation
             else:
-                static_cards=prefix+' '+card_selector+':not([aria-labelledby="studentsRegistrationTitle"])'
+                static_cards=prefix+' '+card_selector+':not([aria-labelledby="studentsRegistrationTitle"]):not([aria-labelledby="studentsAssessmentTitle"])'
                 expect(page.locator('#financeStudent option')).to_have_count(3)
                 expect(page.locator(', '.join(static_cards+' '+tag for tag in ('input','select','button','textarea','a')))).to_have_count(0)
                 expect(page.locator(prefix+' table tbody tr')).to_have_count(4)

@@ -158,14 +158,18 @@ test('tabs preserve pending intents and review state, support keyboard navigatio
 });
 
 
-test('only the finance card is interactive; prescription RPC/model retain their contracts to navigation baseline',()=>{
+test('finance and assessment have controls; prescription RPC/model retain their navigation baseline contracts',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','0faa4f2714546d06697789cb1288594b9941ce03:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
  const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
  // Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
  const overview=html.slice(html.indexOf('<section id="coachStudentsPanel"'),html.indexOf('<section id="coachLibraryPanel"'));
- assert.equal((overview.match(/class="card students-card"/g)||[]).length,4);assert.doesNotMatch(overview.slice(overview.indexOf('aria-labelledby="studentsAssessmentTitle"')),/<(?:input|select|textarea|button|a)\b|contenteditable=/);
- for(const title of ['Cadastro e controle financeiro','Avaliação física','Diretrizes individuais de treino','Últimas quatro sessões'])assert.ok(overview.includes(title));
+ assert.equal((overview.match(/class="card students-card"/g)||[]).length,4);
+ const assessment=overview.slice(overview.indexOf('aria-labelledby="studentsAssessmentTitle"'),overview.indexOf('aria-labelledby="studentsGuidelinesTitle"'));
+ assert.match(assessment,/<form id="avaForm">/);
+ assert.match(assessment,/<canvas id="avaChart"/);
+ assert.doesNotMatch(overview.slice(overview.indexOf('aria-labelledby="studentsGuidelinesTitle"')),/<(?:input|select|textarea|button|a)\b|contenteditable=/);
+ for(const title of ['Cadastro e controle financeiro','Avaliação','Diretrizes individuais de treino','Últimas quatro sessões'])assert.ok(overview.includes(title));
  assert.equal((overview.match(/<tbody>([\s\S]*?)<\/tbody>/)[1].match(/<tr>/g)||[]).length,4);
  assert.match(overview,/Exemplo fictício, sem vínculo com as sessões cadastradas/);assert.match(overview,/role="img"/);assert.match(overview,/students-status-green/);assert.match(overview,/students-status-yellow/);assert.match(overview,/students-status-red/);
 });
@@ -174,9 +178,8 @@ test('only the finance card is interactive; prescription RPC/model retain their 
 test('library shows six navigation buttons in order and houses session controls in the subpage',()=>{
  const baseline=require('node:child_process').execFileSync('git',['show','a2aa41bf495bbc7eab2ca685f183c0f1640ebd68:apps-script/Index.html'],{encoding:'utf8'});
  assert.equal(withoutExecutedFields(script.split('// UI integration')[0].split('var SpecificTaskModel')[0]).replace("catalog=await lib('catalog',{});exercises=active(await lib('listExercises',{}))","const data=await Promise.all([lib('catalog',{}),lib('listExercises',{})]);catalog=data[0];exercises=active(data[1])").trimEnd(),baseline.match(/<script>([\s\S]*?)<\/script>/)[1].split('// UI integration')[0].trimEnd());
- const students=source=>source.slice(source.indexOf('aria-labelledby="studentsAssessmentTitle"'),source.indexOf('<section id="coachLibraryPanel"'));
- const build=source=>source.slice(source.indexOf('<section id="coachBuildPanel"'),source.indexOf('<!-- ALUNO -->'));
- assert.equal(students(html),students(baseline));// Build form validation changed intentionally; unchanged RPC/model contracts are checked above.
+ const students=source=>source.slice(source.indexOf('aria-labelledby="studentsGuidelinesTitle"'),source.indexOf('<section id="coachLibraryPanel"'));
+ assert.equal(students(html),students(baseline));
  const library=html.slice(html.indexOf('<section id="coachLibraryPanel"'),html.indexOf('<section id="coachBuildPanel"'));
  const overview=library.slice(0,library.indexOf('<section id="libraryPage"'));
  const cards=[...overview.matchAll(/<button\b[^>]*\bclass="card library-overview-card"[^>]*>([\s\S]*?)<\/button>/g)];

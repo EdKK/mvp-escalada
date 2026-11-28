@@ -10,7 +10,7 @@ demo_backend=re.search(r'<script>([\s\S]*?)</script>',(root/'demo/index.html').r
 controls='''<aside class="demo-strip"><strong>DEMONSTRAÇÃO</strong><span>Dados fictícios • sem conexão com Google</span><label class="sr-only" for="demoProfile">Perfil de demonstração</label><select id="demoProfile"><option value="hom-student-a">Aluna A Demo</option><option value="hom-student-b">Aluno B Demo</option><option value="hom-student-empty">Sem treinos</option></select><button id="resetDemo">Reiniciar</button><a href="coach.html">Treinador ↗</a></aside>'''
 fonts=(root/'student/assets/fonts.css').read_text()
 fonts=re.sub(r'url\(([^)]+)\)',r'url(assets/\1)',fonts)
-demo=base.replace('/*STYLES*/',fonts+css).replace('<!--DEMO_CONTROLS-->',controls).replace('/*ADAPTER*/',demo_backend+'\n'+(root/'student/demo-adapter.js').read_text()).replace('@@COACH_URL@@','coach.html')
+demo=base.replace('<!--ASSESSMENT_FORM-->','').replace('/*STYLES*/',fonts+css).replace('<!--DEMO_CONTROLS-->',controls).replace('/*ADAPTER*/',demo_backend+'\n'+(root/'student/demo-adapter.js').read_text()).replace('@@COACH_URL@@','coach.html')
 (root/'demo/student.html').write_text(demo)
 # Apps Script HtmlService has no static asset directory: embed the hero, use sans-serif fallback.
 photo=base64.b64encode((root/'student/assets/climbing.jpg').read_bytes()).decode()
@@ -21,7 +21,11 @@ coach=coach_path.read_text()
 coach, count=re.subn(r'(?<=/\* BEGIN GENERATED LOGIN RESUME \*/\n).*?(?=/\* END GENERATED LOGIN RESUME \*/)', lambda _: login_resume+'\n', coach, flags=re.S)
 if count != 1:
     raise ValueError('Expected one generated login block in Index.html')
+intent=(root/'student/assessment-intent.js').read_text().rstrip()
+coach, count=re.subn(r'(?<=/\* BEGIN GENERATED ASSESSMENT INTENT \*/\n).*?(?=/\* END GENERATED ASSESSMENT INTENT \*/)', lambda _: intent+'\n', coach, flags=re.S)
+if count != 1:
+    raise ValueError('Expected one generated assessment intent block in Index.html')
 coach_path.write_text(coach)
-google=base.replace('/*STYLES*/',google_css).replace('<!--DEMO_CONTROLS-->','').replace('/*ADAPTER*/',login_resume+'\n'+(root/'student/google-adapter.js').read_text())
+google=base.replace('<!--ASSESSMENT_FORM-->',(root/'student/assessment-form.html').read_text()).replace('/*STYLES*/',google_css).replace('<!--DEMO_CONTROLS-->','').replace('/*ADAPTER*/',login_resume+'\n'+intent+'\n'+(root/'student/google-adapter.js').read_text())
 (root/'apps-script/Student.html').write_text(google)
 print('demo/student.html and apps-script/Student.html generated')

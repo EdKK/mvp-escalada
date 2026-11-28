@@ -7,7 +7,7 @@ function fixture() {
   const context = vm.createContext({
     Session: {getActiveUser: () => ({getEmail: () => email})},
     PropertiesService: {getScriptProperties: () => ({getProperty: k => properties[k] || null})},
-    Utilities: {getUuid: () => crypto.randomUUID(), DigestAlgorithm:{SHA_256:'sha256'}, Charset:{UTF_8:'utf8'},
+    Utilities: {formatDate: (date, zone) => new Intl.DateTimeFormat('sv-SE', {timeZone: zone}).format(date), getUuid: () => crypto.randomUUID(), DigestAlgorithm:{SHA_256:'sha256'}, Charset:{UTF_8:'utf8'},
       computeDigest: (_,value) => [...crypto.createHash('sha256').update(value).digest()],
       base64EncodeWebSafe: value => Buffer.from(value).toString('base64url')},
     CacheService: {getScriptCache: () => ({
@@ -16,14 +16,14 @@ function fixture() {
     })},
     UrlFetchApp: {fetch:()=>{throw Error('No real network in tests')}},
     LockService: {getScriptLock: () => ({tryLock: () => {if (busy || held) return false; held = true; return true}, waitLock: () => {held = true}, hasLock: () => held, releaseLock: () => {held = false}})},
-    SpreadsheetApp: {flush() {}, openById: () => ({getSheetByName: name => tables[name] && sheet(name), insertSheet: name => {tables[name] = []; return sheet(name)}})}
+    SpreadsheetApp: {flush() {}, openById: () => ({getSpreadsheetTimeZone: () => 'America/Sao_Paulo', getSheetByName: name => tables[name] && sheet(name), insertSheet: name => {tables[name] = []; return sheet(name)}})}
   });
   function sheet(name) {return {
     getLastRow: () => tables[name].length,
     getMaxRows: () => rowCapacity.get(name)||1000,
     insertRowsAfter: (position,count) => rowCapacity.set(name,position+count),
     getLastColumn: () => tables[name][0]?.length || 0,
-    getRange: (r,c,n,w) => ({getValues: () => tables[name].slice(r-1,r-1+n).map(row => row.slice(c-1,c-1+w)),
+    getRange: (r,c,n,w) => ({setNumberFormat: () => {}, getValues: () => tables[name].slice(r-1,r-1+n).map(row => row.slice(c-1,c-1+w)),
       setValues: values => {
         if (failTable === name) {failTable = null; throw Error('simulated outage')}
         values.forEach((row, offset) => (tables[name][r-1+offset]??=[]).splice(c-1,w,...row));
@@ -46,4 +46,11 @@ function setupFinance(f) {
   f.context.prepararCadastroFinanceiroTeste_();
   return f;
 }
-module.exports={fixture,setupFinance};
+function setupAssessment(f) {
+  vm.runInContext(fs.readFileSync('apps-script/Assessment.gs', 'utf8'), f.context);
+  f.properties.HOMOLOGATION_SPREADSHEET_ID = f.properties.SPREADSHEET_ID;
+  f.properties.ASSESSMENT_INIT_SPREADSHEET_ID = f.properties.SPREADSHEET_ID;
+  f.context.prepararAvaliacaoTeste_();
+  return f;
+}
+module.exports={fixture,setupFinance,setupAssessment};

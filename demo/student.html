@@ -885,13 +885,40 @@ function renderCampusBoard(path){
   function icon(name){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('aria-hidden','true');s.innerHTML=icons[name]||icons.clock;return s;}
   function el(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
   function button(text,cls,handler,ic){const b=el('button',cls);if(ic)b.append(icon(ic));b.append(document.createTextNode(text));b.addEventListener('click',handler);return b;}
-  let toastTimer;
+  let toastTimer, sessionVersion = 0;
+  function clearTraining() {
+    sessionVersion++;
+    loadVersion++;
+    workouts = [];
+    workout = session = dialogItem = focusBefore = null;
+    selectedDate = '';
+    sending = false;
+    timers.clear(); rests.clear(); expanded.clear(); intentions.clear();
+    hideModal('feedbackDialog');
+    $('feedbackForm').reset();
+    for (const id of ['days', 'sessionSelect', 'dayInstructions', 'exercises', 'actualSeriesFields']) $(id).replaceChildren();
+    for (const id of ['sessionDate', 'dayGoal', 'feedbackExercise', 'feedbackHistory', 'feedbackError', 'actualStrengthVolume', 'progressText', 'toast']) {
+      const element = $(id);
+      if (element) element.textContent = '';
+    }
+    $('progressBar').style.width = '0%';
+    for (const id of ['emptyState', 'sessionContent', 'sessionSelect', 'sessionLabel', 'toast']) $(id).hidden = true;
+    $('saveFeedback').disabled = false;
+    clearTimeout(toastTimer);
+  }
   function notify(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
   function errorText(e){return ({CONFLICT:'O registro mudou em outra sessão. Atualize o treino antes de corrigir novamente.',BUSY:'O servidor está ocupado. Tente novamente.',UNAUTHENTICATED:'Sua sessão expirou. Entre novamente.',FORBIDDEN:'Esta conta não tem permissão para esta operação.',INVALID_DATA:'Confira os valores e as unidades informadas.'})[e.message]||'Não foi possível carregar ou salvar. Tente novamente.';}
-  async function safe(fn){try{await fn();}catch(e){notify(errorText(e));}}
+  async function safe(fn){const version=sessionVersion;try{await fn();}catch(e){if(version===sessionVersion)notify(errorText(e));}}
   function timerKey(item){return `${session.id}:${workout.id}:${item.id}`;}
   function selectionVisible(){return workout && !sending;}
-  function write(data){const signature=JSON.stringify(data);if(!intentions.has(signature))intentions.set(signature,crypto.randomUUID());return api.call('submitItemFeedback',data,intentions.get(signature)).then(result=>{intentions.delete(signature);return result;});}
+  function write(data){
+    const version = sessionVersion, signature = JSON.stringify(data);
+    if (!intentions.has(signature)) intentions.set(signature, crypto.randomUUID());
+    return api.call('submitItemFeedback', data, intentions.get(signature)).then(result => {
+      if (version === sessionVersion) intentions.delete(signature);
+      return result;
+    });
+  }
   function hideModal(id){$(id).hidden=true;document.body.style.overflow='';focusBefore?.focus();}
   function showModal(id){focusBefore=document.activeElement;$(id).hidden=false;document.body.style.overflow='hidden';$(id).querySelector('button,select,input').focus();}
   async function loadWorkouts(preferred){
@@ -1074,10 +1101,12 @@ function renderCampusBoard(path){
   }
   async function save(item,values,control){
     if(sending)return;
+    const version = sessionVersion;
     sending=true;control.disabled=true;
     if($('demoProfile'))$('demoProfile').disabled=true;
     try{
       const target=workout,record=await write(M.feedbackData(target,item,target.itemFeedback||[],values));
+      if (version !== sessionVersion) return;
       target.itemFeedback=(target.itemFeedback||[]).filter(f=>f.id!==record.id).concat(record);
       if(workout===target){
         if(!values.completeOnly)hideModal('feedbackDialog');
@@ -1089,11 +1118,14 @@ function renderCampusBoard(path){
       }
       notify(values.completeOnly?'Exercício concluído.':'Feedback salvo.');
     }catch(e){
+      if (version !== sessionVersion) return;
       if(values.completeOnly)notify(errorText(e));
       else $('feedbackError').textContent=errorText(e);
     }finally{
-      sending=false;control.disabled=false;
-      if($('demoProfile'))$('demoProfile').disabled=false;
+      if (version === sessionVersion) {
+        sending=false;control.disabled=false;
+        if($('demoProfile'))$('demoProfile').disabled=false;
+      }
     }
   }
   $('feedbackForm').addEventListener('submit',event=>{
@@ -1120,8 +1152,16 @@ function renderCampusBoard(path){
   $('refreshWorkouts').addEventListener('click',()=>safe(()=>loadWorkouts(selectedDate)));
   $('profileButton').addEventListener('click',()=>notify(session?`Perfil: ${session.id}. ${api.isDemo?'Demonstração com dados fictícios.':'Conta autenticada.'}`:'Entre para acompanhar seu treino.'));
   document.addEventListener('visibilitychange',paintClocks);window.addEventListener('pageshow',paintClocks);setInterval(paintClocks,500);
-  async function start(){session=await api.call('getSession',{});if(session.role!=='student')throw Error('STUDENT_ONLY');$('trainingPanel').hidden=false;$('authPanel').hidden=true;await loadWorkouts(api.initialDate);}
+  async function start(){
+    const version = sessionVersion, profile = await api.call('getSession', {});
+    if (version !== sessionVersion) return;
+    if (profile.role !== 'student') throw Error('STUDENT_ONLY');
+    session = profile;
+    $('trainingPanel').hidden = false;
+    $('authPanel').hidden = true;
+    await loadWorkouts(api.initialDate);
+  }
   if(api.isDemo){$('demoFooter').textContent='· DEMONSTRAÇÃO';$('demoProfile').addEventListener('change',()=>safe(async()=>{timers.clear();rests.clear();expanded.clear();intentions.clear();api.switchUser($('demoProfile').value);await start();}));$('resetDemo').addEventListener('click',()=>safe(async()=>{api.reset();timers.clear();rests.clear();expanded.clear();intentions.clear();await start();}));await safe(start);}
-  else {await api.setupLogin(start,notify);}
+  else {await api.setupLogin(start,clearTraining);}
 })();
 </script></body></html>

@@ -1,35 +1,84 @@
 /* Same authenticated API and OAuth flow as Index; no mock identity in this build. */
 window.StudentAPI=(()=>{
-  let token='';
-  const $=id=>document.getElementById(id);
-  const call=(action,data,requestId,method = 'api')=>new Promise((resolve,reject)=>{
-    const request={action,data};if(requestId)request.requestId=requestId;if(token)request.sessionToken=token;
-    google.script.run.withSuccessHandler(r=>{if(r&&r.ok){resolve(r.data);return;}const code=r?.error?.code||'INVALID_RESPONSE';if(code==='UNAUTHENTICATED' && token){token='';$('trainingPanel').hidden=true;$('authPanel').hidden=false;$('authMessage').textContent='Sua sessão expirou. Prepare uma nova entrada.';}reject(Error(code));}).withFailureHandler(()=>reject(Error('TRANSPORT_ERROR')))[method](request);
-  });
-  async function setupLogin(start){
-    $('authPanel').hidden=false;
-    if(typeof google==='undefined'||!google.script?.run){$('authMessage').textContent='Abra esta interface pelo Apps Script.';return;}
+  let token = '', generation = 0, resetTraining = () => {}, resetLoginAttempt = () => {};
+  const $ = id => document.getElementById(id);
+
+  function resetSession(message = '') {
+    generation++;
+    token = '';
+    $('trainingPanel').hidden = true;
+    $('authPanel').hidden = false;
+    $('authMessage').textContent = message;
+    $('selfMassForm').reset();
+    $('selfMassDate').value = '';
+    $('selfMassSave').disabled = false;
+    $('selfMassStatus').textContent = '';
+    $('selfMassStorage').hidden = true;
+    const signout = $('studentSignout');
+    if (signout) signout.hidden = true;
+    resetTraining();
+  }
+
+  function call(action, data, requestId, method = 'api') {
+    const current = generation;
+    const request = {action, data};
+    if (requestId) request.requestId = requestId;
+    if (token) request.sessionToken = token;
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(response => {
+        if (current !== generation) return reject(Error('STALE_SESSION'));
+        if (response?.ok) return resolve(response.data);
+        const code = response?.error?.code || 'INVALID_RESPONSE';
+        if (code === 'UNAUTHENTICATED' && request.sessionToken) {
+          resetSession('Sua sessão expirou. Prepare uma nova entrada.');
+          resetLoginAttempt();
+        }
+        reject(Error(code));
+      }).withFailureHandler(() => {
+        reject(Error(current === generation ? 'TRANSPORT_ERROR' : 'STALE_SESSION'));
+      })[method](request);
+    });
+  }
+
+  async function setupLogin(start, clearTraining) {
+    resetTraining = clearTraining;
+    $('authPanel').hidden = false;
+    if (typeof google === 'undefined' || !google.script?.run) {
+      $('authMessage').textContent = 'Abra esta interface pelo Apps Script.';
+      return;
+    }
     const status = text => { $('authMessage').textContent = text; };
     const loginResume = createLoginResume({
       link: $('loginLink'), prepareButton: $('prepareLogin'), finishButton: $('finishLogin'),
       finish: data => call('finishLogin', data),
       onSuccess: async sessionToken => {
+        resetSession();
+        const current = generation;
         token = sessionToken;
+        const date = new Date();
+        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+        $('selfMassDate').value = date.toISOString().slice(0, 10);
         try {
           await start();
+          if (current === generation) $('studentSignout').hidden = false;
         } catch (error) {
-          if (error.message !== 'STUDENT_ONLY') throw error;
+          if (current !== generation) return;
+          if (error.message !== 'STUDENT_ONLY') {
+            resetSession();
+            throw error;
+          }
+          resetSession('Esta tela é para alunos. Use “Sou treinador” para acessar a outra interface.');
           loginResume.reset();
-          status('Esta tela é para alunos. Use “Sou treinador” para acessar a outra interface.');
         }
       },
       onStatus: status
     });
+    resetLoginAttempt = loginResume.reset;
     $('prepareLogin').addEventListener('click', async () => {
       const button = $('prepareLogin');
       if (button.disabled) return;
       button.disabled = true;
-      token = '';
+      resetSession();
       loginResume.reset();
       try {
         loginResume.prepare(await call('beginLogin', {}));
@@ -40,29 +89,29 @@ window.StudentAPI=(()=>{
         button.disabled = false;
       }
     });
+
     const writeAssessment = createAssessmentWriter();
-    const date = new Date();
-    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-    $('selfMassDate').value = date.toISOString().slice(0, 10);
     $('selfMassForm').addEventListener('submit', async event => {
       event.preventDefault();
       const save = $('selfMassSave'), status = $('selfMassStatus');
       if (!token || save.disabled) return;
-      const sessionToken = token;
+      const current = generation;
+      const isCurrent = () => current === generation;
       const data = {date: $('selfMassDate').value, mass: Number($('selfMassValue').value)};
       save.disabled = true;
       status.textContent = 'Enviando…';
       try {
         const actor = await call('getSession', {});
+        if (!isCurrent()) return;
         await writeAssessment(actor.id, 'selfReport', data,
-          (action, payload, id) => {
-            if (token !== sessionToken) throw Error('UNAUTHENTICATED');
-            return call(action, payload, id, 'assessmentApi');
-          },
-          () => { $('selfMassStorage').hidden = false; });
+          (action, payload, id) => call(action, payload, id, 'assessmentApi'),
+          () => { if (isCurrent()) $('selfMassStorage').hidden = false; },
+          isCurrent);
+        if (!isCurrent()) return;
         if (Number($('selfMassValue').value) === data.mass) $('selfMassValue').value = '';
         status.textContent = 'Autorrelato registrado.';
       } catch (error) {
+        if (!isCurrent()) return;
         const messages = {
           NO_ACTIVE_LINK: 'Seu cadastro precisa de um vínculo ativo com um treinador.',
           INVALID_DATA: 'Confira o peso em kg e a data da medição.',
@@ -70,9 +119,25 @@ window.StudentAPI=(()=>{
         };
         status.textContent = messages[error.message] ||
           'Envio sem confirmação. Tente novamente com o mesmo valor e a mesma data.';
-      } finally { save.disabled = false; }
+      } finally {
+        if (isCurrent()) save.disabled = false;
+      }
     });
-    const signout=document.createElement('button');signout.textContent='Sair';signout.className='student-signout';signout.addEventListener('click',async()=>{try{await call('logout',{});}finally{token='';location.reload();}});document.querySelector('.app-footer').append(signout);
+
+    const signout = document.createElement('button');
+    signout.id = 'studentSignout';
+    signout.textContent = 'Sair';
+    signout.className = 'student-signout';
+    signout.hidden = true;
+    signout.addEventListener('click', () => {
+      if (!token) return;
+      const revoke = call('logout', {});
+      resetSession('Sessão encerrada. Prepare uma nova entrada.');
+      loginResume.reset();
+      // A delayed revocation reply belongs to the session just closed.
+      revoke.catch(() => {});
+    });
+    document.querySelector('.app-footer').append(signout);
   }
-  return {isDemo:false,call,setupLogin};
+  return {isDemo: false, call, setupLogin};
 })();
